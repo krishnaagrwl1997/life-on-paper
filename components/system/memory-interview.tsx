@@ -6,6 +6,8 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
+  BookmarkSimple,
+  Books,
   Camera,
   Check,
   FileText,
@@ -14,13 +16,24 @@ import {
   Paperclip,
   Pause,
   PencilSimple,
+  Plus,
   Sparkle,
   Stop,
 } from "@phosphor-icons/react";
 
 export type CaptureMode = "Write" | "Voice" | "Photo" | "Screenshot" | "File";
 
-type Phase = "capture" | "interview" | "summary";
+type Phase = "capture" | "interview" | "summary" | "placement";
+type PlacementMode = "proposal" | "change" | "create" | "placed";
+
+type ChapterPlacement = {
+  id: string;
+  book: string;
+  volume: string;
+  chapter: string;
+  title: string;
+  reason: string;
+};
 
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
 
@@ -36,6 +49,33 @@ const questions = [
   "Take me to the exact moment. Where were you, and what was happening just before it?",
   "What did you notice in yourself that you might have missed at the time?",
   "Years from now, what would you want this moment to remind you of?",
+];
+
+const chapterOptions: ChapterPlacement[] = [
+  {
+    id: "trust",
+    book: "Book One",
+    volume: "Volume II · Becoming",
+    chapter: "Chapter Four",
+    title: "Becoming Someone I Trust",
+    reason: "This moment reveals a quality you were still learning to recognize in yourself.",
+  },
+  {
+    id: "seen",
+    book: "Book One",
+    volume: "Volume I · Origins",
+    chapter: "Chapter Three",
+    title: "The People Who Saw Me",
+    reason: "This memory is shaped by the way another person noticed and named something true in you.",
+  },
+  {
+    id: "little-things",
+    book: "Book One",
+    volume: "Volume II · Becoming",
+    chapter: "Chapter Six",
+    title: "Small Things I Carry Forward",
+    reason: "A small exchange became a lesson worth carrying into the person you are becoming.",
+  },
 ];
 
 function formatTime(seconds: number) {
@@ -62,6 +102,9 @@ export function MemoryInterview({
   const [recorded, setRecorded] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [placementMode, setPlacementMode] = useState<PlacementMode>("proposal");
+  const [placement, setPlacement] = useState<ChapterPlacement>(chapterOptions[0]);
+  const [newChapterTitle, setNewChapterTitle] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const reduceMotion = useReducedMotion();
@@ -154,6 +197,36 @@ export function MemoryInterview({
     setPhase("interview");
     setQuestionIndex(Math.max(0, Math.min(answers.length, questions.length - 1)));
     setAnswer("");
+  };
+
+  const openPlacement = () => {
+    setPlacementMode("proposal");
+    setPhase("placement");
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  };
+
+  const choosePlacement = (choice: ChapterPlacement) => {
+    setPlacement(choice);
+    setPlacementMode("proposal");
+    setNotice(null);
+  };
+
+  const createChapter = () => {
+    const title = newChapterTitle.trim();
+    if (!title) {
+      setNotice("Give the new chapter a title first.");
+      return;
+    }
+    setPlacement({
+      id: `new-${title}`,
+      book: "Book One",
+      volume: "Volume II · Becoming",
+      chapter: "New chapter",
+      title,
+      reason: "You created this chapter because this memory begins a thread that deserves its own place.",
+    });
+    setPlacementMode("proposal");
+    setNotice(null);
   };
 
   return (
@@ -321,11 +394,122 @@ export function MemoryInterview({
 
             <div className="summary-actions">
               <button type="button" className="quiet-action" onClick={editInterview}>Return to interview</button>
-              <button type="button" className="interview-primary" onClick={() => setSaved(true)} disabled={saved}>
-                {saved ? "Memory kept" : "Keep this memory"}
-                {saved ? <Check size={18} weight="bold" aria-hidden="true" /> : <ArrowRight size={18} weight="bold" aria-hidden="true" />}
+              <button type="button" className="interview-primary" onClick={saved ? openPlacement : () => setSaved(true)}>
+                {saved ? "Find its chapter" : "Keep this memory"}
+                {saved ? <Books size={18} weight="bold" aria-hidden="true" /> : <ArrowRight size={18} weight="bold" aria-hidden="true" />}
               </button>
             </div>
+          </motion.section>
+        ) : null}
+
+        {phase === "placement" ? (
+          <motion.section
+            key={`placement-${placementMode}`}
+            className="memory-phase placement-phase"
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: reduceMotion ? 0 : -10 }}
+            transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}
+            aria-labelledby="placement-title"
+          >
+            {placementMode === "placed" ? (
+              <div className="placement-confirmation">
+                <div className="placement-seal"><BookmarkSimple size={25} weight="fill" aria-hidden="true" /></div>
+                <p className="memory-eyebrow">Placed with care</p>
+                <h1 id="placement-title">Your memory has found its chapter.</h1>
+                <div className="placed-path">
+                  <span>{placement.book}</span>
+                  <span>{placement.volume}</span>
+                  <span>{placement.chapter}</span>
+                  <strong>{placement.title}</strong>
+                </div>
+                <p className="placement-stop-note">The memory is placed, but no page has been designed yet. That comes in the next milestone.</p>
+                <button type="button" className="quiet-action" onClick={() => setPlacementMode("proposal")}>Reconsider placement</button>
+              </div>
+            ) : (
+              <>
+                <div className="placement-heading">
+                  <p className="memory-eyebrow">A place in your story</p>
+                  <h1 id="placement-title">This memory belongs here.</h1>
+                  <p>I found the strongest thread in what you shared. You can keep this home or choose another.</p>
+                </div>
+
+                <div className="placement-workspace">
+                  <article className="chapter-proposal">
+                    <header>
+                      <span>Suggested home</span>
+                      <span>Arranged from your interview</span>
+                    </header>
+                    <div className="chapter-hierarchy">
+                      <div><span>Book</span><strong>{placement.book}</strong></div>
+                      <div><span>Volume</span><strong>{placement.volume}</strong></div>
+                      <div className="chapter-hierarchy-main"><span>{placement.chapter}</span><h2>{placement.title}</h2></div>
+                    </div>
+                    <footer><BookmarkSimple size={17} weight="fill" aria-hidden="true" /><span>One memory ready to place</span></footer>
+                  </article>
+
+                  <aside className="placement-reason">
+                    <div className="reason-mark"><Sparkle size={17} weight="fill" aria-hidden="true" /></div>
+                    <p>Why this chapter</p>
+                    <blockquote>{placement.reason}</blockquote>
+                    <div className="placement-memory-line">
+                      <span>From your memory</span>
+                      <q>{memory || attachment?.name}</q>
+                    </div>
+                  </aside>
+                </div>
+
+                {placementMode === "change" ? (
+                  <section className="chapter-picker" aria-labelledby="change-chapter-title">
+                    <div className="chapter-picker-heading">
+                      <div><p className="memory-eyebrow">Other possible homes</p><h2 id="change-chapter-title">Choose the thread that feels truest.</h2></div>
+                      <button type="button" className="quiet-action" onClick={() => setPlacementMode("proposal")}>Cancel</button>
+                    </div>
+                    <div className="chapter-options">
+                      {chapterOptions.map((option) => (
+                        <button key={option.id} type="button" className={placement.id === option.id ? "chapter-option chapter-option--selected" : "chapter-option"} onClick={() => choosePlacement(option)}>
+                          <span>{option.volume}</span>
+                          <strong>{option.title}</strong>
+                          <small>{option.reason}</small>
+                          {placement.id === option.id ? <Check size={18} weight="bold" aria-hidden="true" /> : <ArrowRight size={18} aria-hidden="true" />}
+                        </button>
+                      ))}
+                      <button type="button" className="chapter-option chapter-option--new" onClick={() => setPlacementMode("create")}>
+                        <Plus size={20} aria-hidden="true" />
+                        <strong>Create a new chapter</strong>
+                        <small>Start a new thread in Volume II · Becoming.</small>
+                        <ArrowRight size={18} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </section>
+                ) : null}
+
+                {placementMode === "create" ? (
+                  <section className="new-chapter-sheet" aria-labelledby="new-chapter-title">
+                    <div>
+                      <p className="memory-eyebrow">A new thread</p>
+                      <h2 id="new-chapter-title">Name the chapter this memory begins.</h2>
+                      <p>It will live in Book One · Volume II, Becoming. You can reorganize the larger book later.</p>
+                    </div>
+                    <div className="new-chapter-entry">
+                      <label htmlFor="chapter-name">Chapter title</label>
+                      <input id="chapter-name" value={newChapterTitle} onChange={(event) => setNewChapterTitle(event.target.value)} placeholder="The Things Others Helped Me See" autoFocus />
+                      <div>
+                        <button type="button" className="quiet-action" onClick={() => setPlacementMode("change")}>Back</button>
+                        <button type="button" className="interview-primary" onClick={createChapter}>Create this chapter <ArrowRight size={18} weight="bold" aria-hidden="true" /></button>
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
+
+                {placementMode === "proposal" ? (
+                  <div className="placement-actions">
+                    <button type="button" className="quiet-action" onClick={() => setPlacementMode("change")}>Change chapter</button>
+                    <button type="button" className="interview-primary" onClick={() => setPlacementMode("placed")}>Place in this chapter <Check size={18} weight="bold" aria-hidden="true" /></button>
+                  </div>
+                ) : null}
+              </>
+            )}
           </motion.section>
         ) : null}
       </AnimatePresence>
@@ -353,6 +537,7 @@ function InterviewProgress({ phase }: { phase: Phase }) {
     { id: "capture", number: "I", label: "Capture" },
     { id: "interview", number: "II", label: "Interview" },
     { id: "summary", number: "III", label: "What I heard" },
+    { id: "placement", number: "IV", label: "Place" },
   ];
   const current = phases.findIndex((item) => item.id === phase);
 

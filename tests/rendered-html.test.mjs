@@ -45,6 +45,13 @@ test("keeps the four-destination memoir shell explicit", async () => {
   assert.match(interview, /File/);
   assert.match(interview, /Question \{questionIndex \+ 1\} of up to 3/);
   assert.match(interview, /Here&apos;s what I heard/);
+  assert.match(interview, /This memory belongs here/);
+  assert.match(interview, /Why this chapter/);
+  assert.match(interview, /Change chapter/);
+  assert.match(interview, /Create a new chapter/);
+  assert.match(interview, /Place in this chapter/);
+  assert.match(interview, /no page has been designed yet/i);
+  assert.equal((interview.match(/id: \"trust\"/g) ?? []).length, 1);
   assert.equal((interview.match(/const questions = \[/g) ?? []).length, 1);
   assert.match(layout, /Your life, beautifully remembered/);
   assert.doesNotMatch(`${home}\n${interview}`, /dashboard|sign in|log in/i);
