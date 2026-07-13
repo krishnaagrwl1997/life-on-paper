@@ -28,9 +28,10 @@ test("server-renders the Life In Books home experience", async () => {
 });
 
 test("keeps the four-destination memoir shell explicit", async () => {
-  const [home, interview, nav, layout] = await Promise.all([
+  const [home, interview, library, nav, layout] = await Promise.all([
     readFile(new URL("../components/system/home-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/memory-interview.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/system/library-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/nav-shell.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
   ]);
@@ -59,6 +60,13 @@ test("keeps the four-destination memoir shell explicit", async () => {
   for (const layout of ["Story", "Quote", "Illustration", "Little Things", "Letter", "Timeline", "Travel", "People", "Reflection"]) {
     assert.match(interview, new RegExp(`name: \"${layout}\"`));
   }
+  assert.match(home, /life-in-books-pages/);
+  assert.match(library, /A library only you could have written/);
+  assert.match(library, /Volume I/);
+  assert.match(library, /Volume II/);
+  assert.match(library, /Reading by lamplight/);
+  assert.match(library, /Previous/);
+  assert.match(library, /Next/);
   assert.equal((interview.match(/id: \"trust\"/g) ?? []).length, 1);
   assert.equal((interview.match(/const questions = \[/g) ?? []).length, 1);
   assert.match(layout, /Your life, beautifully remembered/);

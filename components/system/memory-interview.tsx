@@ -23,6 +23,20 @@ import {
 
 export type CaptureMode = "Write" | "Voice" | "Photo" | "Screenshot" | "File";
 
+export type KeptPage = {
+  id: string;
+  title: string;
+  excerpt: string;
+  body: string[];
+  reflection: string;
+  book: string;
+  volume: string;
+  chapter: string;
+  chapterTitle: string;
+  layout: string;
+  date: string;
+};
+
 type Phase = "capture" | "interview" | "summary" | "placement" | "page";
 type PlacementMode = "proposal" | "change" | "create" | "placed";
 type PageMode = "assembling" | "ready" | "layouts";
@@ -100,10 +114,12 @@ export function MemoryInterview({
   initialMemory = "",
   initialMode = "Write",
   onBack,
+  onPageKept,
 }: {
   initialMemory?: string;
   initialMode?: CaptureMode;
   onBack: () => void;
+  onPageKept?: (page: KeptPage) => void;
 }) {
   const [phase, setPhase] = useState<Phase>(initialMemory.trim() ? "interview" : "capture");
   const [mode, setMode] = useState<CaptureMode>(initialMode);
@@ -265,6 +281,23 @@ export function MemoryInterview({
     setPageSaved(false);
     setPageMode("ready");
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  };
+
+  const keepPage = () => {
+    setPageSaved(true);
+    onPageKept?.({
+      id: `kept-${selectedLayout.id}-${memory.trim().slice(0, 24).toLowerCase().replace(/[^a-z0-9]+/g, "-") || "memory"}`,
+      title: selectedLayout.id === "people" ? "The People Who Saw Me" : selectedLayout.id === "travel" ? "What I Carried Home" : selectedLayout.id === "little-things" ? "Three Small Things I Kept" : "The Kind of Person I Was Becoming",
+      excerpt: pageReflection,
+      body: [pageSource, pageScene, pageInsight],
+      reflection: pageReflection,
+      book: placement.book,
+      volume: placement.volume,
+      chapter: placement.chapter,
+      chapterTitle: placement.title,
+      layout: selectedLayout.name,
+      date: "13 July 2026",
+    });
   };
 
   const pageSource = memory.trim() || attachment?.name || "A small moment I wanted to remember.";
@@ -680,7 +713,7 @@ export function MemoryInterview({
                 ) : (
                   <div className="page-actions">
                     <button type="button" className="quiet-action" onClick={() => setPageMode("layouts")}>Change layout</button>
-                    <button type="button" className="interview-primary" onClick={() => setPageSaved(true)}>Keep this page <BookmarkSimple size={18} weight="fill" aria-hidden="true" /></button>
+                    <button type="button" className="interview-primary" onClick={keepPage}>Keep this page <BookmarkSimple size={18} weight="fill" aria-hidden="true" /></button>
                   </div>
                 )}
               </>

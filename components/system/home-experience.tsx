@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -12,7 +12,8 @@ import {
   PencilSimple,
 } from "@phosphor-icons/react";
 import { NavShell } from "@/components/system/nav-shell";
-import { CaptureMode, MemoryInterview } from "@/components/system/memory-interview";
+import { CaptureMode, KeptPage, MemoryInterview } from "@/components/system/memory-interview";
+import { LibraryExperience } from "@/components/system/library-experience";
 
 type Destination = "Home" | "Library" | "Add Memory" | "Garden";
 type HomeCaptureMode = "Write" | "Voice" | "Photo" | "Screenshot";
@@ -33,8 +34,21 @@ export function HomeExperience() {
   const [memorySeed, setMemorySeed] = useState("");
   const [memoryMode, setMemoryMode] = useState<CaptureMode>("Write");
   const [notice, setNotice] = useState<string | null>(null);
+  const [savedPages, setSavedPages] = useState<KeptPage[]>([]);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const restore = window.setTimeout(() => {
+      try {
+        const stored = window.localStorage.getItem("life-in-books-pages");
+        if (stored) setSavedPages(JSON.parse(stored) as KeptPage[]);
+      } catch {
+        setSavedPages([]);
+      }
+    }, 0);
+    return () => window.clearTimeout(restore);
+  }, []);
 
   const showHome = () => {
     setActive("Home");
@@ -59,6 +73,12 @@ export function HomeExperience() {
       openMemory();
       return;
     }
+    if (destination === "Library") {
+      setActive("Library");
+      setNotice(null);
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+      return;
+    }
     setNotice(`${destination} will be shaped in a later milestone.`);
     window.setTimeout(() => setNotice(null), 2600);
   };
@@ -73,6 +93,14 @@ export function HomeExperience() {
     openMemory("Write", memory.trim());
   };
 
+  const keepPageInLibrary = (page: KeptPage) => {
+    setSavedPages((current) => {
+      const next = [page, ...current.filter((item) => item.id !== page.id)];
+      window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
     <main className={active === "Add Memory" ? "home-app home-app--memory" : "home-app"}>
       {active === "Add Memory" ? (
@@ -81,7 +109,10 @@ export function HomeExperience() {
           initialMode={memoryMode}
           initialMemory={memorySeed}
           onBack={showHome}
+          onPageKept={keepPageInLibrary}
         />
+      ) : active === "Library" ? (
+        <LibraryExperience savedPages={savedPages} />
       ) : (
         <div className="home-frame">
           <header className="home-header">

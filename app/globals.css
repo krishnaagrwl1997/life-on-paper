@@ -3018,6 +3018,731 @@ input:focus-visible {
   }
 }
 
+.library-experience {
+  width: min(100%, 82rem);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 2.5rem 3rem 9rem;
+  transition: background-color 500ms var(--paper-ease), color 500ms var(--paper-ease);
+}
+
+.library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1.35rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.library-header > div p {
+  margin: 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.55rem;
+  font-weight: 470;
+  letter-spacing: -0.04em;
+}
+
+.library-header > div span,
+.library-folio {
+  color: var(--ink-muted);
+  font-size: 0.55rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.library-header > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  background: transparent;
+  font-size: 0.62rem;
+  font-weight: 650;
+}
+
+.library-intro,
+.book-contents-heading {
+  max-width: 58rem;
+  padding-top: clamp(3.2rem, 7vw, 6.4rem);
+}
+
+.library-intro h1,
+.book-contents-heading h1,
+.library-book-copy h2,
+.volume-list h2,
+.library-recent-grid strong,
+.page-row strong,
+.reader-margin strong,
+.reader-page h1,
+.reader-page blockquote {
+  font-family: var(--font-fraunces), serif;
+}
+
+.library-intro h1,
+.book-contents-heading h1 {
+  margin: 0.7rem 0 0;
+  font-size: clamp(3.2rem, 6.2vw, 6.5rem);
+  font-weight: 410;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+}
+
+.library-intro > p:last-child,
+.book-contents-heading > p:last-child {
+  max-width: 38rem;
+  margin: 1.25rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.library-featured {
+  display: grid;
+  grid-template-columns: minmax(19rem, 0.76fr) minmax(0, 1fr);
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: center;
+  margin-top: clamp(3rem, 6vw, 5.5rem);
+  padding: clamp(1.1rem, 2vw, 2rem);
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--rule);
+  background: rgba(252, 248, 241, 0.45);
+}
+
+.library-cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 27rem;
+  aspect-ratio: 0.76;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(43, 38, 32, 0.3);
+  border-radius: 0.25rem;
+  background: var(--ink);
+  box-shadow: var(--paper-shadow-md);
+  color: var(--paper-raised);
+  text-align: left;
+  transition: transform 500ms var(--paper-ease), box-shadow 500ms var(--paper-ease);
+}
+
+.library-cover:hover {
+  transform: translateY(-5px) rotate(-0.5deg);
+  box-shadow: 0 28px 58px rgba(63, 48, 32, 0.18);
+}
+
+.library-cover::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(43, 38, 32, 0.08), rgba(43, 38, 32, 0.78));
+  content: "";
+}
+
+.library-cover img {
+  object-fit: cover;
+}
+
+.library-cover > span,
+.library-cover > div {
+  position: absolute;
+  z-index: 1;
+  right: 1.4rem;
+  left: 1.4rem;
+}
+
+.library-cover > span {
+  top: 1.3rem;
+  font-size: 0.57rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.library-cover > div {
+  bottom: 1.5rem;
+}
+
+.library-cover small,
+.library-cover em {
+  display: block;
+  font-size: 0.57rem;
+  font-style: normal;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.library-cover strong {
+  display: block;
+  max-width: 18rem;
+  margin: 0.55rem 0 1.2rem;
+  font-family: var(--font-fraunces), serif;
+  font-size: clamp(2rem, 3.7vw, 3.5rem);
+  font-weight: 420;
+  letter-spacing: -0.045em;
+  line-height: 0.94;
+}
+
+.library-book-copy {
+  max-width: 37rem;
+}
+
+.library-book-copy h2 {
+  margin: 0.7rem 0 0;
+  font-size: clamp(2.4rem, 4vw, 4.25rem);
+  font-weight: 420;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+
+.library-book-copy > p:nth-of-type(2) {
+  max-width: 31rem;
+  margin: 1.15rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.library-book-copy dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 2rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.library-book-copy dl div {
+  padding: 1rem 0;
+  border-right: 1px solid var(--rule);
+}
+
+.library-book-copy dl div:last-child {
+  border-right: 0;
+  padding-left: 1rem;
+}
+
+.library-book-copy dl div:nth-child(2) {
+  padding-left: 1rem;
+}
+
+.library-book-copy dt {
+  color: var(--ink-muted);
+  font-size: 0.54rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.library-book-copy dd {
+  margin: 0.25rem 0 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.8rem;
+}
+
+.library-primary {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--action);
+  border-radius: 0.25rem;
+  background: var(--action);
+  color: var(--paper-raised);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: var(--paper-shadow-sm);
+}
+
+.library-recents {
+  margin-top: 4.5rem;
+}
+
+.library-recents > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--ink);
+}
+
+.library-recents > div:first-child span {
+  color: var(--ink-muted);
+  font-size: 0.57rem;
+}
+
+.library-recent-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.library-recent-grid button {
+  display: grid;
+  min-height: 16rem;
+  align-content: start;
+  padding: 1.2rem;
+  border: 0;
+  border-right: 1px solid var(--rule);
+  background: transparent;
+  text-align: left;
+  transition: background-color 500ms var(--paper-ease);
+}
+
+.library-recent-grid button:last-child {
+  border-right: 0;
+}
+
+.library-recent-grid button:hover {
+  background: var(--paper-raised);
+}
+
+.library-recent-grid button > span {
+  color: var(--action);
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.5rem;
+}
+
+.library-recent-grid small {
+  margin-top: 1.6rem;
+  color: var(--ink-muted);
+  font-size: 0.53rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.library-recent-grid strong {
+  margin-top: 0.5rem;
+  font-size: 1.45rem;
+  font-weight: 450;
+  line-height: 1.08;
+}
+
+.library-recent-grid p {
+  margin: 0.85rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.66rem;
+  line-height: 1.55;
+}
+
+.book-contents-heading {
+  padding-bottom: 3rem;
+}
+
+.volume-list {
+  border-top: 3px solid var(--ink);
+}
+
+.volume-list > section {
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.42fr) minmax(0, 1fr);
+  border-bottom: 1px solid var(--ink);
+}
+
+.volume-list > section > header {
+  padding: 2rem 2rem 2rem 0;
+  border-right: 1px solid var(--rule);
+}
+
+.volume-list header > span,
+.volume-list header > small {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 0.55rem;
+  font-weight: 650;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.volume-list h2 {
+  margin: 0.4rem 0 1.4rem;
+  font-size: 2.5rem;
+  font-weight: 430;
+  letter-spacing: -0.045em;
+}
+
+.page-row {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: 2rem minmax(9rem, 0.52fr) minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  min-height: 6.8rem;
+  padding: 1rem 0 1rem 1.5rem;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
+  text-align: left;
+  transition: background-color 500ms var(--paper-ease), padding-left 500ms var(--paper-ease);
+}
+
+.page-row:last-child {
+  border-bottom: 0;
+}
+
+.page-row:hover {
+  padding-left: 1.8rem;
+  background: var(--paper-raised);
+}
+
+.page-row > div {
+  color: var(--action);
+}
+
+.page-row span {
+  min-width: 0;
+}
+
+.page-row small,
+.page-row strong {
+  display: block;
+}
+
+.page-row small {
+  margin-bottom: 0.3rem;
+  color: var(--ink-muted);
+  font-size: 0.51rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-row strong {
+  font-size: 1rem;
+  font-weight: 460;
+  line-height: 1.2;
+}
+
+.reader-view {
+  display: grid;
+  grid-template-columns: minmax(13rem, 0.32fr) minmax(0, 46rem);
+  justify-content: center;
+  gap: clamp(2rem, 5vw, 5rem);
+  padding-top: 3.5rem;
+}
+
+.reader-margin {
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ink);
+}
+
+.reader-margin p,
+.reader-margin span {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 0.54rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.reader-margin strong {
+  display: block;
+  margin: 0.8rem 0;
+  font-size: 1.5rem;
+  font-weight: 450;
+  line-height: 1.12;
+}
+
+.reader-margin button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 2rem;
+  padding: 0.65rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  background: transparent;
+  font-size: 0.6rem;
+  font-weight: 650;
+}
+
+.reader-page {
+  grid-column: 2;
+  border: 1px solid rgba(43, 38, 32, 0.18);
+  border-top: 3px solid var(--ink);
+  background: #fcf9f2;
+  box-shadow: var(--paper-shadow-md);
+}
+
+.reader-page > header,
+.reader-page > footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.4rem;
+  font-size: 0.48rem;
+  font-weight: 650;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.reader-page > header {
+  border-bottom: 1px solid var(--rule);
+}
+
+.reader-page > footer {
+  margin: 0 1.4rem;
+  border-top: 1px solid var(--rule);
+}
+
+.reader-page > div {
+  max-width: 37rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 5rem) clamp(1.5rem, 6vw, 4.5rem);
+}
+
+.reader-date {
+  margin: 0 0 1.8rem !important;
+  color: var(--action);
+  font-family: var(--font-inter), sans-serif !important;
+  font-size: 0.52rem !important;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.reader-page h1 {
+  margin: 0;
+  font-size: clamp(3.5rem, 6vw, 5.8rem);
+  font-weight: 420;
+  letter-spacing: -0.06em;
+  line-height: 0.88;
+}
+
+.reader-page blockquote {
+  margin: 2.2rem 0;
+  padding-left: 1.2rem;
+  border-left: 3px solid var(--action);
+  font-size: 1.35rem;
+  font-weight: 520;
+  line-height: 1.35;
+}
+
+.reader-page > div > p:not(.reader-date) {
+  margin: 1rem 0 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.reader-controls {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+}
+
+.reader-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  background: transparent;
+  font-size: 0.6rem;
+  font-weight: 650;
+}
+
+.reader-controls span {
+  color: var(--ink-muted);
+  font-size: 0.55rem;
+}
+
+.library-experience--lamplight {
+  --paper: #efe0c3;
+  --paper-raised: #f5e8cf;
+  --sheet: #e5d0aa;
+  --sheet-deep: #d9bf91;
+  background: radial-gradient(circle at 68% 20%, rgba(255, 218, 146, 0.28), transparent 33%), #efe0c3;
+}
+
+.library-experience--lamplight .reader-page {
+  background: #f5e8cf;
+  box-shadow: 0 25px 65px rgba(83, 51, 22, 0.2);
+}
+
+@media (max-width: 800px) {
+  .library-experience {
+    padding: 2rem 1.5rem 8rem;
+  }
+
+  .library-featured {
+    grid-template-columns: minmax(16rem, 0.82fr) minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .reader-view {
+    grid-template-columns: 12rem minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .library-experience {
+    width: 100%;
+    padding: 1.4rem 1rem 7.5rem;
+  }
+
+  .library-header {
+    padding-bottom: 1rem;
+  }
+
+  .library-intro,
+  .book-contents-heading {
+    padding-top: 2.5rem;
+  }
+
+  .library-intro h1,
+  .book-contents-heading h1 {
+    font-size: clamp(3rem, 14vw, 4rem);
+  }
+
+  .library-featured {
+    display: block;
+    margin-top: 2.5rem;
+    padding: 0.75rem 0 1.5rem;
+    background: transparent;
+  }
+
+  .library-cover {
+    max-width: none;
+    aspect-ratio: 0.84;
+  }
+
+  .library-cover strong {
+    max-width: 16rem;
+    font-size: 2.7rem;
+  }
+
+  .library-book-copy {
+    padding-top: 1.7rem;
+  }
+
+  .library-book-copy h2 {
+    font-size: 2.5rem;
+  }
+
+  .library-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .library-recents {
+    margin-top: 3rem;
+  }
+
+  .library-recent-grid {
+    display: block;
+  }
+
+  .library-recent-grid button {
+    width: 100%;
+    min-height: 12rem;
+    padding: 1rem 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .volume-list > section {
+    display: block;
+  }
+
+  .volume-list > section > header {
+    padding: 1.4rem 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .volume-list h2 {
+    margin-bottom: 0.7rem;
+  }
+
+  .page-row {
+    grid-column: auto;
+    grid-template-columns: 1.7rem 1fr auto;
+    min-height: 7.2rem;
+    padding: 0.8rem 0;
+  }
+
+  .page-row > span:first-of-type {
+    display: none;
+  }
+
+  .page-row:hover {
+    padding-left: 0.4rem;
+  }
+
+  .reader-view {
+    display: block;
+    padding-top: 1.6rem;
+  }
+
+  .reader-margin {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.3rem 1rem;
+    padding: 0.8rem 0 1rem;
+    border-top: 1px solid var(--ink);
+  }
+
+  .reader-margin p,
+  .reader-margin strong,
+  .reader-margin span {
+    grid-column: 1;
+  }
+
+  .reader-margin strong {
+    margin: 0.25rem 0;
+    font-size: 1.2rem;
+  }
+
+  .reader-margin button {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    align-self: center;
+    margin: 0;
+    font-size: 0;
+  }
+
+  .reader-margin button svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .reader-page {
+    grid-column: auto;
+  }
+
+  .reader-page > header,
+  .reader-page > footer {
+    padding: 0.8rem;
+  }
+
+  .reader-page > div {
+    padding: 2.3rem 1.5rem 3rem;
+  }
+
+  .reader-page h1 {
+    font-size: clamp(3.1rem, 15vw, 4.15rem);
+  }
+
+  .reader-page blockquote {
+    font-size: 1.15rem;
+  }
+
+  .reader-controls {
+    grid-column: auto;
+    margin-bottom: 1rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
