@@ -724,6 +724,7 @@ textarea:focus-visible {
   }
 
   .memory-composer textarea {
+    height: 5.5rem;
     min-height: 5.5rem;
     padding: 1.15rem;
     font-size: 1.05rem;
