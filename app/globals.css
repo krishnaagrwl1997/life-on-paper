@@ -3845,55 +3845,12 @@ input:focus-visible {
   font-weight: 650;
 }
 
-.page-three-masthead {
-  margin-top: 2rem;
-  border-top: 4px double var(--ink);
-  border-bottom: 4px double var(--ink);
-}
-
-.page-three-masthead > div {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 1rem;
-  padding: 0.55rem 0;
-  border-bottom: 1px solid var(--rule);
-  font-size: 0.53rem;
-  font-weight: 650;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.page-three-masthead > div:last-child {
-  border-top: 1px solid var(--rule);
-  border-bottom: 0;
-}
-
-.page-three-masthead > div span:nth-child(2) {
-  text-align: center;
-}
-
-.page-three-masthead > div span:last-child {
-  text-align: right;
-}
-
-.page-three-masthead > h1 {
-  margin: 0;
-  padding: 0.5rem 0 0.7rem;
-  font-family: var(--font-fraunces), serif;
-  font-size: clamp(4.5rem, 11vw, 10rem);
-  font-weight: 540;
-  letter-spacing: -0.075em;
-  line-height: 0.82;
-  text-align: center;
-  text-transform: uppercase;
-}
-
 .garden-intro {
   max-width: 59rem;
-  padding-top: clamp(2.8rem, 5vw, 4.5rem);
+  padding-top: clamp(3.2rem, 7vw, 6.2rem);
 }
 
-.garden-intro h2,
+.garden-intro h1,
 .garden-cover strong,
 .garden-book-cover h1,
 .garden-book-author h2,
@@ -3904,10 +3861,9 @@ input:focus-visible {
   font-family: var(--font-fraunces), serif;
 }
 
-.garden-intro h2 {
+.garden-intro h1 {
   margin: 0.7rem 0 0;
-  font-family: var(--font-fraunces), serif;
-  font-size: clamp(3rem, 5.4vw, 5.6rem);
+  font-size: clamp(3.2rem, 6.2vw, 6.4rem);
   font-weight: 410;
   letter-spacing: -0.06em;
   line-height: 0.9;
@@ -3960,44 +3916,13 @@ input:focus-visible {
   min-width: 0;
 }
 
-.garden-card:first-child {
-  grid-column: span 8;
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(14rem, 0.85fr);
-  gap: 1.5rem;
-  padding-right: 1.5rem;
-  border-right: 1px solid var(--rule);
+.garden-card:nth-child(4),
+.garden-card:nth-child(5) {
+  grid-column: span 5;
 }
 
-.garden-card:first-child .page-three-rubric {
-  grid-column: 1 / -1;
-}
-
-.garden-card:first-child .garden-cover {
-  aspect-ratio: 1.15;
-}
-
-.garden-card:first-child .garden-card-copy {
-  align-self: end;
-  padding: 0 0 0.5rem;
-}
-
-.garden-card:first-child .garden-card-copy > p {
-  min-height: 0;
-  font-family: var(--font-fraunces), serif;
-  font-size: 1.05rem;
-  line-height: 1.5;
-}
-
-.page-three-rubric {
-  margin: 0 0 0.7rem;
-  padding-bottom: 0.45rem;
-  border-bottom: 1px solid var(--ink);
-  color: var(--action);
-  font-size: 0.53rem;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+.garden-card:nth-child(4) {
+  grid-column-start: 2;
 }
 
 .garden-cover {
@@ -4409,7 +4334,9 @@ input:focus-visible {
 @media (max-width: 800px) {
   .garden-experience { padding: 2rem 1.5rem 8rem; }
   .garden-card { grid-column: span 6; }
-  .garden-card:first-child { grid-column: 1 / -1; }
+  .garden-card:nth-child(4), .garden-card:nth-child(5) { grid-column: span 6; }
+  .garden-card:nth-child(4) { grid-column-start: auto; }
+  .garden-card:nth-child(5) { grid-column-start: 4; }
   .garden-book { grid-template-columns: minmax(16rem, 0.72fr) minmax(0, 1fr); gap: 2rem; }
 }
 
@@ -4417,15 +4344,10 @@ input:focus-visible {
   .garden-experience { width: 100%; padding: 1.4rem 1rem 7.5rem; }
   .garden-header { padding-bottom: 1rem; }
   .garden-intro { padding-top: 2.5rem; }
-  .page-three-masthead { margin-top: 1rem; }
-  .page-three-masthead > div { grid-template-columns: 1fr auto; }
-  .page-three-masthead > div span:nth-child(2) { display: none; }
-  .page-three-masthead > h1 { padding: 0.55rem 0 0.7rem; font-size: clamp(4rem, 22vw, 6rem); }
-  .garden-intro h2 { font-size: clamp(2.8rem, 13vw, 3.8rem); }
+  .garden-intro h1 { font-size: clamp(3rem, 14vw, 4rem); }
   .garden-principle { margin-top: 1.5rem; }
   .garden-grid { display: block; margin-top: 2.5rem; }
-  .garden-card, .garden-card:first-child { display: block; margin-bottom: 3rem; padding-right: 0; border-right: 0; }
-  .garden-card:first-child .page-three-rubric { margin-bottom: 0.7rem; }
+  .garden-card { margin-bottom: 3rem; }
   .garden-cover { aspect-ratio: 0.84; }
   .garden-cover strong { max-width: 16rem; font-size: 2.9rem; }
   .garden-card-copy > p { min-height: 0; }

@@ -160,24 +160,17 @@ export function GardenExperience() {
       <AnimatePresence mode="wait">
         {view === "garden" ? (
           <motion.section key="garden" className="garden-discovery" initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduceMotion ? 0 : -10 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
-            <div className="page-three-masthead">
-              <div><span>Issue 07</span><span>Society · Books · Private lives</span><span>Sunday, 13 July</span></div>
-              <h1>Page Three</h1>
-              <div><span>Life In Books</span><span>Lives &amp; Letters</span><span>Shared with intention</span></div>
-            </div>
-
             <div className="garden-intro">
-              <p className="memory-eyebrow">This week in lives &amp; letters</p>
-              <h2>People, private worlds, and the books taking shape between them.</h2>
-              <p>Our society page for memoirs: who is writing, what is being remembered, and which doors have been opened by invitation.</p>
+              <p className="memory-eyebrow">Books shared with intention</p>
+              <h1>Other lives, opened carefully.</h1>
+              <p>Discover the books people are making from their lives. Nothing is public by default; every author decides what may be read.</p>
             </div>
 
-            <div className="garden-principle"><LockKey size={18} weight="fill" aria-hidden="true" /><p><strong>Editor&apos;s note.</strong> Page Three celebrates people without turning their lives into a spectacle. No likes, follower counts, or reading without permission.</p></div>
+            <div className="garden-principle"><LockKey size={18} weight="fill" aria-hidden="true" /><p><strong>No audience metrics.</strong> No likes, follower counts, or performance—only stories and permission.</p></div>
 
             <div className="garden-grid">
               {gardenBooks.map((book, index) => (
                 <article key={book.id} className="garden-card">
-                  <p className="page-three-rubric">{index === 0 ? "Cover story" : index === 1 ? "On the road" : index === 2 ? "Family table" : index === 3 ? "Letters home" : "Private column"}</p>
                   <button type="button" className={`garden-cover garden-cover--${book.cover}`} onClick={() => openBook(book.id)} aria-label={`Open ${book.title} by ${book.author}`}>
                     <span>{String(index + 1).padStart(2, "0")}</span>
                     <div><small>{book.author}</small><strong>{book.title}</strong><em>{book.subtitle}</em></div>
