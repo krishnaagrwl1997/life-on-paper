@@ -315,7 +315,7 @@ export function MemoryInterview({
               {saved ? <Check size={21} weight="bold" aria-hidden="true" /> : <FileText size={21} aria-hidden="true" />}
               <div>
                 <strong>{saved ? "Memory kept" : "Nothing has been placed yet"}</strong>
-                <p>{saved ? "It is ready for chapter placement—the next milestone." : "You&apos;ll choose its book and chapter in the next step we build."}</p>
+                <p>{saved ? "It is ready for chapter placement—the next milestone." : "You'll choose its book and chapter in the next step we build."}</p>
               </div>
             </aside>
 
