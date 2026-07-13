@@ -45,7 +45,11 @@ test("keeps the four-destination memoir shell explicit", async () => {
   assert.match(home, /Screenshot/);
   assert.match(home, /Write/);
   assert.match(interview, /File/);
-  assert.match(interview, /Question \{questionIndex \+ 1\} of up to 3/);
+  assert.match(interview, /Prompt \{questionIndex \+ 1\} of up to 3/);
+  assert.match(interview, /function contextualQuestion/);
+  assert.match(interview, /Who noticed this about you/);
+  assert.match(interview, /How did this moment feel/);
+  assert.match(interview, /Continue to conversation/);
   assert.match(interview, /Here&apos;s what I heard/);
   assert.match(interview, /This memory belongs here/);
   assert.match(interview, /Why this chapter/);
@@ -55,8 +59,10 @@ test("keeps the four-destination memoir shell explicit", async () => {
   assert.match(interview, /Design this page/);
   assert.match(interview, /Your page is taking shape/);
   assert.match(interview, /This is how your memory reads/);
-  assert.match(interview, /Change layout/);
+  assert.match(interview, /Try another layout/);
   assert.match(interview, /Keep this page/);
+  assert.match(interview, /Your page is ready/);
+  assert.match(interview, /Open in Library/);
   assert.match(interview, /Page kept/);
   for (const layout of ["Story", "Quote", "Illustration", "Little Things", "Letter", "Timeline", "Travel", "People", "Reflection"]) {
     assert.match(interview, new RegExp(`name: \"${layout}\"`));
@@ -65,7 +71,9 @@ test("keeps the four-destination memoir shell explicit", async () => {
   assert.match(library, /A library only you could have written/);
   assert.match(library, /Volume I/);
   assert.match(library, /Volume II/);
-  assert.match(library, /Reading by lamplight/);
+  assert.match(library, /Toggle reading by lamplight/);
+  assert.match(library, /About 2 minutes left in this page/);
+  assert.match(library, /reader-type-controls/);
   assert.match(library, /Previous/);
   assert.match(library, /Next/);
   assert.match(library, /Open Book Studio/);
@@ -88,7 +96,7 @@ test("keeps the four-destination memoir shell explicit", async () => {
     assert.match(garden, new RegExp(author));
   }
   assert.equal((interview.match(/id: \"trust\"/g) ?? []).length, 1);
-  assert.equal((interview.match(/const questions = \[/g) ?? []).length, 1);
+  assert.equal((interview.match(/const feelings = \[/g) ?? []).length, 1);
   assert.match(layout, /Your life, beautifully remembered/);
   assert.doesNotMatch(`${home}\n${interview}`, /dashboard|sign in|log in/i);
 });

@@ -81,8 +81,10 @@ const samplePages: KeptPage[] = [
 
 export function LibraryExperience({
   savedPages,
+  onReadingChange,
 }: {
   savedPages: KeptPage[];
+  onReadingChange?: (reading: boolean) => void;
 }) {
   const initialPages = [...savedPages, ...samplePages.filter((sample) => !savedPages.some((page) => page.title === sample.title))];
   const [pages, setPages] = useState<KeptPage[]>(initialPages);
@@ -94,6 +96,7 @@ export function LibraryExperience({
   const [view, setView] = useState<LibraryView>("shelf");
   const [selectedPageId, setSelectedPageId] = useState(pages[0]?.id ?? samplePages[0].id);
   const [lamplight, setLamplight] = useState(false);
+  const [readerScale, setReaderScale] = useState<"small" | "medium" | "large">("medium");
   const reduceMotion = useReducedMotion();
   const activePages = pages.filter((page) => !removedPageIds.includes(page.id));
   const selectedPage = activePages.find((page) => page.id === selectedPageId) ?? activePages[0] ?? pages[0];
@@ -117,6 +120,11 @@ export function LibraryExperience({
     return () => window.clearTimeout(restore);
   }, []);
 
+  useEffect(() => {
+    onReadingChange?.(view === "reader");
+    return () => onReadingChange?.(false);
+  }, [onReadingChange, view]);
+
   const persistStudio = (next: { pages?: KeptPage[]; removedPageIds?: string[]; bookTitle?: string; bookVisibility?: BookVisibility; coverStyle?: CoverStyle; extraVolumes?: string[] }) => {
     const state = { pages, removedPageIds, bookTitle, bookVisibility, coverStyle, extraVolumes, ...next };
     window.localStorage.setItem("life-in-books-studio", JSON.stringify(state));
@@ -130,8 +138,8 @@ export function LibraryExperience({
   };
 
   return (
-    <div className={lamplight && view === "reader" ? "library-experience library-experience--lamplight" : "library-experience"}>
-      <header className="library-header">
+    <div className={view === "reader" ? lamplight ? "library-experience library-experience--reader library-experience--lamplight" : "library-experience library-experience--reader" : "library-experience"}>
+      {view !== "reader" ? <header className="library-header">
         <div>
           <p>Life In Books</p>
           <span>{view === "shelf" ? "Your library" : view === "book" ? "Book One" : view === "studio" ? "Book Studio" : selectedPage.chapterTitle}</span>
@@ -142,7 +150,7 @@ export function LibraryExperience({
             {view === "reader" || view === "studio" ? "Contents" : "Library"}
           </button>
         ) : <span className="library-folio">13 · 07 · 26</span>}
-      </header>
+      </header> : null}
 
       <AnimatePresence mode="wait">
         {view === "shelf" ? (
@@ -221,12 +229,22 @@ export function LibraryExperience({
             onPreview={() => { if (activePages[0]) setSelectedPageId(activePages[0].id); setView("reader"); }}
           />
         ) : (
-          <motion.section key={selectedPage.id} className="reader-view" initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
+          <motion.section key={selectedPage.id} className="reader-view reader-view--kindle" initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
+            <header className="reader-kindle-bar">
+              <button type="button" onClick={() => setView("book")}><ArrowLeft size={17} weight="bold" aria-hidden="true" /> Contents</button>
+              <div><strong>{bookTitle}</strong><span>{selectedPage.chapterTitle}</span></div>
+              <div className="reader-type-controls" aria-label="Reading appearance">
+                <button type="button" aria-label="Use smaller text" aria-pressed={readerScale === "small"} onClick={() => setReaderScale("small")}>A</button>
+                <button type="button" aria-label="Use medium text" aria-pressed={readerScale === "medium"} onClick={() => setReaderScale("medium")}>A</button>
+                <button type="button" aria-label="Use larger text" aria-pressed={readerScale === "large"} onClick={() => setReaderScale("large")}>A</button>
+                <button type="button" aria-label="Toggle reading by lamplight" aria-pressed={lamplight} onClick={() => setLamplight((value) => !value)}><LampPendant size={18} weight={lamplight ? "fill" : "regular"} aria-hidden="true" /></button>
+              </div>
+            </header>
             <aside className="reader-margin">
               <p>{selectedPage.volume}</p><strong>{selectedPage.chapterTitle}</strong><span>{selectedPage.layout} layout</span>
-              <button type="button" aria-pressed={lamplight} onClick={() => setLamplight((value) => !value)}><LampPendant size={19} weight={lamplight ? "fill" : "regular"} aria-hidden="true" /> Reading by lamplight</button>
+              <p className="reader-time">About 2 minutes left in this page</p>
             </aside>
-            <article className="reader-page">
+            <article className={`reader-page reader-page--${readerScale}`}>
               <header><span>{selectedPage.book} · {selectedPage.volume}</span><span>{selectedPage.chapter}</span></header>
               <div>
                 <p className="reader-date">{selectedPage.date}</p>
@@ -241,6 +259,7 @@ export function LibraryExperience({
               <button type="button" onClick={() => movePage(-1)}><ArrowLeft size={17} weight="bold" aria-hidden="true" /> Previous</button>
               <span>{activePages.findIndex((page) => page.id === selectedPage.id) + 1} of {activePages.length}</span>
               <button type="button" onClick={() => movePage(1)}>Next <ArrowRight size={17} weight="bold" aria-hidden="true" /></button>
+              <div className="reader-progress" aria-hidden="true"><span style={{ width: `${((activePages.findIndex((page) => page.id === selectedPage.id) + 1) / activePages.length) * 100}%` }} /></div>
             </nav>
           </motion.section>
         )}

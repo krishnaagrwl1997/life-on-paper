@@ -62,11 +62,31 @@ const captureModes = [
   { label: "File" as const, icon: Paperclip, note: "Bring in a document" },
 ];
 
-const questions = [
-  "Take me to the exact moment. Where were you, and what was happening just before it?",
-  "What did you notice in yourself that you might have missed at the time?",
-  "Years from now, what would you want this moment to remind you of?",
-];
+const feelings = ["Happy", "Proud", "Grateful", "Surprised", "Disappointed", "Hurt", "Hopeful", "Unsure"];
+
+function contextualQuestion(memory: string, answers: string[], feeling: string | null, index: number) {
+  const source = memory.trim();
+  const lower = source.toLowerCase();
+  const shortMemory = source.length > 82 ? `${source.slice(0, 79).trim()}…` : source;
+
+  if (index === 0) {
+    if (/appreciat|compliment|praised|thanked/.test(lower)) return "Who noticed this about you, and what were the exact words that stayed with you?";
+    if (/travel|trip|journey|solo|flight|train|road/.test(lower)) return "Take me to one exact scene from this journey. What could you see, hear, or feel around you?";
+    if (/conversation|said|told|spoke|talk/.test(lower)) return "What was said in that conversation—and which part changed the way you understood the moment?";
+    if (/learn|realiz|understood|noticed/.test(lower)) return "When did the lesson become clear to you, and what happened immediately before that realization?";
+    return `You wrote “${shortMemory || "this mattered to me"}.” Which exact part of that moment feels most alive now?`;
+  }
+
+  if (index === 1) {
+    const firstAnswer = answers[0]?.trim();
+    const anchor = firstAnswer && firstAnswer.length < 96 ? `“${firstAnswer}”` : "what happened";
+    return feeling
+      ? `You chose ${feeling.toLowerCase()}. What about ${anchor} made that feeling stronger—or more complicated?`
+      : `When you think about ${anchor}, what did you notice in yourself that you might have missed at the time?`;
+  }
+
+  return `Years from now, when you return to “${shortMemory || "this memory"},” what do you hope it reminds you about who you were becoming?`;
+}
 
 const chapterOptions: ChapterPlacement[] = [
   {
@@ -116,11 +136,13 @@ export function MemoryInterview({
   initialMode = "Write",
   onBack,
   onPageKept,
+  onOpenLibrary,
 }: {
   initialMemory?: string;
   initialMode?: CaptureMode;
   onBack: () => void;
   onPageKept?: (page: KeptPage) => void;
+  onOpenLibrary?: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>(initialMemory.trim() ? "interview" : "capture");
   const [mode, setMode] = useState<CaptureMode>(initialMode);
@@ -128,6 +150,7 @@ export function MemoryInterview({
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answer, setAnswer] = useState("");
   const [answers, setAnswers] = useState<string[]>([]);
+  const [selectedFeeling, setSelectedFeeling] = useState<string | null>(null);
   const [attachment, setAttachment] = useState<{ name: string; preview?: string; kind: string } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recorded, setRecorded] = useState(false);
@@ -222,10 +245,10 @@ export function MemoryInterview({
     setAnswers(nextAnswers);
     setAnswer("");
     setNotice(null);
-    if (questionIndex === questions.length - 1) {
+    if (questionIndex === 2) {
       setPhase("summary");
     } else {
-      setQuestionIndex((index) => index + 1);
+      setQuestionIndex((index) => Math.min(index + 1, 2));
     }
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
@@ -242,7 +265,7 @@ export function MemoryInterview({
   const editInterview = () => {
     setSaved(false);
     setPhase("interview");
-    setQuestionIndex(Math.max(0, Math.min(answers.length, questions.length - 1)));
+    setQuestionIndex(Math.max(0, Math.min(answers.length, 2)));
     setAnswer("");
   };
 
@@ -292,6 +315,7 @@ export function MemoryInterview({
   };
 
   const keepPage = () => {
+    if (pageSaved) return;
     setPageSaved(true);
     onPageKept?.({
       id: `kept-${selectedLayout.id}-${memory.trim().slice(0, 24).toLowerCase().replace(/[^a-z0-9]+/g, "-") || "memory"}`,
@@ -312,7 +336,13 @@ export function MemoryInterview({
   const pageSource = memory.trim() || attachment?.name || "A small moment I wanted to remember.";
   const pageScene = answers[0]?.trim() || "Someone noticed something in me that I had not yet learned to name for myself.";
   const pageInsight = answers[1]?.trim() || "The appreciation stayed with me because it made an ordinary day feel quietly important.";
-  const pageReflection = answers.at(-1)?.trim() || "I want to remember that becoming often happens in the moments someone else helps us see clearly.";
+  const finalAnswer = answers.at(-1)?.trim() || "";
+  const pageReflection = finalAnswer.length > 12 && !/^(nothing|none|no|idk|i don'?t know)$/i.test(finalAnswer)
+    ? finalAnswer
+    : selectedFeeling
+      ? `I want to remember how ${selectedFeeling.toLowerCase()} this moment felt—and what it revealed about the person I was becoming.`
+      : "I want to remember that becoming often happens in the moments someone else helps us see clearly.";
+  const currentQuestion = contextualQuestion(memory || attachment?.name || "", answers, selectedFeeling, questionIndex);
 
   return (
     <div className="memory-desk">
@@ -328,7 +358,7 @@ export function MemoryInterview({
         <span className="memory-folio">13 · 07 · 26</span>
       </header>
 
-      <InterviewProgress phase={phase} />
+      <ConversationProgress phase={phase} />
 
       <AnimatePresence mode="wait">
         {phase === "capture" ? (
@@ -386,7 +416,7 @@ export function MemoryInterview({
                 <div className="capture-sheet-footer">
                   <p>Your original stays attached to this memory.</p>
                   <button type="button" className="interview-primary" onClick={startInterview}>
-                    Continue to interview
+                    Continue to conversation
                     <ArrowRight size={18} weight="bold" aria-hidden="true" />
                   </button>
                 </div>
@@ -418,11 +448,16 @@ export function MemoryInterview({
 
             <article className="interview-page">
               <div className="question-count">
-                <span>Documentary interview</span>
-                <span>Question {questionIndex + 1} of up to 3</span>
+                <span>Guided conversation</span>
+                <span>Prompt {questionIndex + 1} of up to 3</span>
               </div>
               <div className="interviewer-mark"><Sparkle size={18} weight="fill" aria-hidden="true" /></div>
-              <h1 id="interview-question">{questions[questionIndex]}</h1>
+              <h1 id="interview-question">{currentQuestion}</h1>
+              <fieldset className="feeling-picker">
+                <legend>How did this moment feel?</legend>
+                <div>{feelings.map((feeling) => <button key={feeling} type="button" aria-pressed={selectedFeeling === feeling} onClick={() => setSelectedFeeling(selectedFeeling === feeling ? null : feeling)}>{feeling}</button>)}</div>
+                <small>Optional — choose the closest feeling, even if it is not the whole story.</small>
+              </fieldset>
               <label htmlFor="interview-answer">Answer as if you were telling someone who knows you well.</label>
               <textarea
                 id="interview-answer"
@@ -435,7 +470,7 @@ export function MemoryInterview({
               <div className="interview-page-footer">
                 <button type="button" className="quiet-action" onClick={finishEarly}>I&apos;ve said enough</button>
                 <button type="button" className="interview-primary" onClick={keepAnswer}>
-                  {questionIndex === questions.length - 1 ? "Show what you heard" : "Keep this answer"}
+                  {questionIndex === 2 ? "Show what you heard" : "Keep this answer"}
                   <ArrowRight size={18} weight="bold" aria-hidden="true" />
                 </button>
               </div>
@@ -454,7 +489,7 @@ export function MemoryInterview({
             aria-labelledby="summary-title"
           >
             <div className="summary-heading">
-              <p className="memory-eyebrow">The interview, gathered</p>
+              <p className="memory-eyebrow">The conversation, gathered</p>
               <h1 id="summary-title">Here&apos;s what I heard.</h1>
               <p>This is not the finished page. It&apos;s the truth of the memory, kept in your language.</p>
             </div>
@@ -465,8 +500,9 @@ export function MemoryInterview({
                 <span>{answers.length} follow-up{answers.length === 1 ? "" : "s"}</span>
               </header>
               <p className="summary-opening">{memory || attachment?.name}</p>
+              {selectedFeeling ? <p className="summary-feeling"><span>Feeling</span>{selectedFeeling}</p> : null}
               {answers.map((item, index) => <p key={`${index}-${item}`}>{item}</p>)}
-              <div className="summary-rule"><span>End of interview</span></div>
+              <div className="summary-rule"><span>End of conversation</span></div>
             </article>
 
             <aside className={saved ? "placement-note placement-note--saved" : "placement-note"}>
@@ -478,7 +514,7 @@ export function MemoryInterview({
             </aside>
 
             <div className="summary-actions">
-              <button type="button" className="quiet-action" onClick={editInterview}>Return to interview</button>
+              <button type="button" className="quiet-action" onClick={editInterview}>Return to conversation</button>
               <button type="button" className="interview-primary" onClick={saved ? openPlacement : () => setSaved(true)}>
                 {saved ? "Find its chapter" : "Keep this memory"}
                 {saved ? <Books size={18} weight="bold" aria-hidden="true" /> : <ArrowRight size={18} weight="bold" aria-hidden="true" />}
@@ -526,7 +562,7 @@ export function MemoryInterview({
                   <article className="chapter-proposal">
                     <header>
                       <span>Suggested home</span>
-                      <span>Arranged from your interview</span>
+                      <span>Arranged from your conversation</span>
                     </header>
                     <div className="chapter-hierarchy">
                       <div><span>Book</span><strong>{placement.book}</strong></div>
@@ -669,12 +705,21 @@ export function MemoryInterview({
                   <p>The AI chose <strong>{selectedLayout.name}</strong> because {selectedLayout.note.toLowerCase()}</p>
                 </div>
 
+                <div className={pageSaved ? "page-route-card page-route-card--saved" : "page-route-card"}>
+                  <div><span>{pageSaved ? "Your page is safely kept" : "Your page is ready"}</span><strong>{pageSaved ? "Continue to your Library to read it in the book." : "Keep it now, or try another editorial shape first."}</strong></div>
+                  {pageSaved ? (
+                    <button type="button" className="interview-primary" onClick={onOpenLibrary}>Open in Library <Books size={18} weight="bold" aria-hidden="true" /></button>
+                  ) : (
+                    <div><button type="button" className="quiet-action" onClick={() => setPageMode("layouts")}>Try another layout</button><button type="button" className="interview-primary" onClick={keepPage}>Keep this page <BookmarkSimple size={18} weight="fill" aria-hidden="true" /></button></div>
+                  )}
+                </div>
+
                 <div className="page-review-workspace">
                   <aside className="layout-decision">
                     <span>Layout chosen</span>
                     <strong>{selectedLayout.name}</strong>
                     <p>{selectedLayout.note}</p>
-                    <div><Sparkle size={16} weight="fill" aria-hidden="true" /> Chosen from the shape of your interview</div>
+                    <div><Sparkle size={16} weight="fill" aria-hidden="true" /> Chosen from the shape of your answers</div>
                   </aside>
 
                   <article className={`memoir-page memoir-page--${selectedLayout.id}`} aria-label={`${selectedLayout.name} memoir page preview`}>
@@ -718,14 +763,9 @@ export function MemoryInterview({
                     <div><Check size={20} weight="bold" aria-hidden="true" /></div>
                     <span>Page kept</span>
                     <strong>Added to {placement.title}</strong>
-                    <p>Your original memory and interview remain attached behind this page.</p>
+                    <p>Your original memory and conversation remain attached behind this page.</p>
                   </div>
-                ) : (
-                  <div className="page-actions">
-                    <button type="button" className="quiet-action" onClick={() => setPageMode("layouts")}>Change layout</button>
-                    <button type="button" className="interview-primary" onClick={keepPage}>Keep this page <BookmarkSimple size={18} weight="fill" aria-hidden="true" /></button>
-                  </div>
-                )}
+                ) : null}
               </>
             )}
           </motion.section>
@@ -750,18 +790,18 @@ export function MemoryInterview({
   );
 }
 
-function InterviewProgress({ phase }: { phase: Phase }) {
+function ConversationProgress({ phase }: { phase: Phase }) {
   const phases: Array<{ id: Phase; number: string; label: string }> = [
     { id: "capture", number: "I", label: "Capture" },
-    { id: "interview", number: "II", label: "Interview" },
-    { id: "summary", number: "III", label: "Heard" },
+    { id: "interview", number: "II", label: "Explore" },
+    { id: "summary", number: "III", label: "Gathered" },
     { id: "placement", number: "IV", label: "Place" },
     { id: "page", number: "V", label: "Page" },
   ];
   const current = phases.findIndex((item) => item.id === phase);
 
   return (
-    <ol className="interview-progress" aria-label="Memory interview progress">
+    <ol className="interview-progress" aria-label="Memory conversation progress">
       {phases.map((item, index) => (
         <li key={item.id} className={index === current ? "interview-progress--active" : index < current ? "interview-progress--complete" : ""}>
           <span>{index < current ? <Check size={13} weight="bold" aria-hidden="true" /> : item.number}</span>

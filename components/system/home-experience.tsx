@@ -36,6 +36,7 @@ export function HomeExperience() {
   const [memoryMode, setMemoryMode] = useState<CaptureMode>("Write");
   const [notice, setNotice] = useState<string | null>(null);
   const [savedPages, setSavedPages] = useState<KeptPage[]>([]);
+  const [isReading, setIsReading] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const reduceMotion = useReducedMotion();
 
@@ -114,9 +115,10 @@ export function HomeExperience() {
           initialMemory={memorySeed}
           onBack={showHome}
           onPageKept={keepPageInLibrary}
+          onOpenLibrary={() => setActive("Library")}
         />
       ) : active === "Library" ? (
-        <LibraryExperience savedPages={savedPages} />
+        <LibraryExperience savedPages={savedPages} onReadingChange={setIsReading} />
       ) : active === "Garden" ? (
         <GardenExperience />
       ) : (
@@ -133,7 +135,7 @@ export function HomeExperience() {
             <section className="interview-column" aria-labelledby="today-question">
               <div className="interview-intro">
                 <div className="section-kicker">
-                  <span>Today&apos;s interview</span>
+                  <span>Today&apos;s reflection</span>
                   <span className="issue-number">01</span>
                 </div>
                 <h2 id="today-question">What part of today would you never want to forget?</h2>
@@ -223,7 +225,7 @@ export function HomeExperience() {
         </div>
       )}
 
-      <NavShell active={active} onSelect={selectDestination} />
+      {!isReading ? <NavShell active={active} onSelect={selectDestination} /> : null}
 
       <AnimatePresence>
         {notice ? (
