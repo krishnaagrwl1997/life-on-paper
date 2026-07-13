@@ -193,7 +193,7 @@ export function HomeExperience() {
 
                 <article className="book-cover-card">
                   <div className="book-cover-image">
-                    <Image src="/assets/seaside-memory.png" alt="A quiet coast at the edge of the sea" fill sizes="(max-width: 700px) 92vw, 38vw" priority />
+                    <Image src="/assets/seaside-memory.png" alt="A quiet coast at the edge of the sea" fill unoptimized sizes="(max-width: 700px) 92vw, 38vw" priority />
                     <span className="book-one-mark">Book one</span>
                   </div>
                   <div className="book-cover-copy">
@@ -211,7 +211,7 @@ export function HomeExperience() {
                 </div>
                 <article className="recent-page">
                   <div className="recent-page-image">
-                    <Image src="/assets/domestic-still-life.png" alt="A warm still life near a kitchen window" fill sizes="120px" />
+                    <Image src="/assets/domestic-still-life.png" alt="A warm still life near a kitchen window" fill unoptimized sizes="120px" />
                   </div>
                   <div>
                     <p className="chapter-path">Becoming Someone I Trust</p>

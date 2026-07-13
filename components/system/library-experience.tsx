@@ -122,6 +122,7 @@ export function LibraryExperience({
 
   useEffect(() => {
     onReadingChange?.(view === "reader");
+    if (view === "reader") window.scrollTo({ top: 0, behavior: "auto" });
     return () => onReadingChange?.(false);
   }, [onReadingChange, view]);
 
@@ -163,7 +164,7 @@ export function LibraryExperience({
 
             <div className="library-featured">
               <button type="button" className={`library-cover library-cover--${coverStyle}`} onClick={() => setView("book")} aria-label={`Open Book One, ${bookTitle}`}>
-                <Image src="/assets/seaside-memory.png" alt="A quiet coast under a soft sky" fill sizes="(max-width: 700px) 92vw, 36vw" priority />
+                <Image src="/assets/seaside-memory.png" alt="A quiet coast under a soft sky" fill unoptimized sizes="(max-width: 700px) 92vw, 36vw" priority />
                 <span>Book One</span>
                 <div><small>A memoir in progress</small><strong>{bookTitle}</strong><em>Krishna</em></div>
               </button>
