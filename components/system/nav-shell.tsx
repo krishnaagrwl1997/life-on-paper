@@ -60,11 +60,11 @@ export function NavShell({
               />
             ) : null}
             <IconComponent
-              size={23}
-              weight={emphasized ? "regular" : isActive ? "fill" : "regular"}
+              size={emphasized ? 30 : 25}
+              weight={emphasized ? "light" : isActive ? "bold" : "regular"}
               aria-hidden="true"
             />
-            <span>{label}</span>
+            <span className="nav-label">{label}</span>
           </button>
         );
       })}
