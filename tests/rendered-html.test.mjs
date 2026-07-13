@@ -68,6 +68,14 @@ test("keeps the four-destination memoir shell explicit", async () => {
   assert.match(library, /Reading by lamplight/);
   assert.match(library, /Previous/);
   assert.match(library, /Next/);
+  assert.match(library, /Open Book Studio/);
+  assert.match(library, /Shape the book, without losing the life behind it/);
+  assert.match(library, /Preview complete book/);
+  assert.match(library, /Original memory remains attached/);
+  assert.match(library, /Request-only/);
+  assert.match(library, /Selected previews/);
+  assert.match(library, /Restore/);
+  assert.match(library, /Keep these edits/);
   assert.match(interview, /Add a photo to this moment/);
   assert.match(interview, /Photo attached to this memory/);
   assert.match(garden, /Other lives, opened carefully/);
