@@ -50,7 +50,15 @@ test("keeps the four-destination memoir shell explicit", async () => {
   assert.match(interview, /Change chapter/);
   assert.match(interview, /Create a new chapter/);
   assert.match(interview, /Place in this chapter/);
-  assert.match(interview, /no page has been designed yet/i);
+  assert.match(interview, /Design this page/);
+  assert.match(interview, /Your page is taking shape/);
+  assert.match(interview, /This is how your memory reads/);
+  assert.match(interview, /Change layout/);
+  assert.match(interview, /Keep this page/);
+  assert.match(interview, /Page kept/);
+  for (const layout of ["Story", "Quote", "Illustration", "Little Things", "Letter", "Timeline", "Travel", "People", "Reflection"]) {
+    assert.match(interview, new RegExp(`name: \"${layout}\"`));
+  }
   assert.equal((interview.match(/id: \"trust\"/g) ?? []).length, 1);
   assert.equal((interview.match(/const questions = \[/g) ?? []).length, 1);
   assert.match(layout, /Your life, beautifully remembered/);

@@ -882,8 +882,8 @@ input:focus-visible {
 
 .interview-progress {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  max-width: 38rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-width: 45rem;
   margin: 1.1rem auto 0;
   padding: 0;
   list-style: none;
@@ -1820,6 +1820,459 @@ input:focus-visible {
   line-height: 1.55;
 }
 
+.placed-actions,
+.page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.35rem;
+}
+
+.page-phase h1,
+.page-phase h2,
+.page-assembling strong,
+.layout-decision > strong,
+.layout-option strong,
+.page-kept-note strong,
+.memoir-page p,
+.memoir-page blockquote,
+.memoir-page li {
+  font-family: var(--font-fraunces), serif;
+}
+
+.page-assembling {
+  max-width: 52rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.page-assembling h1,
+.layout-library-heading h1,
+.page-heading h1 {
+  margin: 0.65rem 0 0;
+  font-size: clamp(3rem, 5vw, 5.2rem);
+  font-weight: 420;
+  letter-spacing: -0.055em;
+  line-height: 0.94;
+}
+
+.page-assembling > p:nth-of-type(2),
+.layout-library-heading > div > p:last-child,
+.page-heading > p:last-child {
+  max-width: 38rem;
+  margin: 1rem auto 0;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.page-assembly-stack {
+  position: relative;
+  width: min(100%, 27rem);
+  height: 18rem;
+  margin: 2.2rem auto 0;
+}
+
+.page-assembly-stack > div {
+  position: absolute;
+  inset: 0 2.2rem;
+  border: 1px solid var(--rule);
+  background: var(--sheet);
+  box-shadow: var(--paper-shadow-md);
+}
+
+.page-assembly-stack > div:nth-child(1) {
+  transform: rotate(-2deg);
+}
+
+.page-assembly-stack > div:nth-child(2) {
+  background: var(--sheet-deep);
+  transform: rotate(2deg);
+}
+
+.page-assembly-stack > div:nth-child(3) {
+  display: grid;
+  padding: 2.6rem 2rem;
+  place-content: center;
+  border-top: 3px solid var(--ink);
+  background: var(--paper-raised);
+  transform: none;
+}
+
+.page-assembly-stack span {
+  color: var(--action);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.page-assembly-stack strong {
+  max-width: 18rem;
+  margin-top: 0.75rem;
+  font-size: 2rem;
+  font-weight: 450;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.assembly-steps {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  margin: 1.3rem 0 0;
+  padding: 0;
+  color: var(--ink-muted);
+  list-style: none;
+}
+
+.assembly-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.57rem;
+}
+
+.assembly-steps svg {
+  color: var(--action);
+}
+
+.page-heading {
+  max-width: 50rem;
+}
+
+.page-heading > p:last-child {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.page-heading > p:last-child strong {
+  color: var(--ink);
+}
+
+.page-review-workspace {
+  display: grid;
+  grid-template-columns: minmax(13rem, 0.32fr) minmax(0, 1fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  margin-top: 2rem;
+  align-items: start;
+}
+
+.layout-decision {
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--rule);
+}
+
+.layout-decision > span,
+.layout-option > span,
+.memoir-page header,
+.memoir-page footer,
+.memoir-page-date,
+.memoir-timeline span,
+.page-kept-note > span {
+  color: var(--action);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.layout-decision > strong {
+  display: block;
+  margin-top: 0.55rem;
+  font-size: 2.25rem;
+  font-weight: 430;
+  letter-spacing: -0.045em;
+}
+
+.layout-decision > p {
+  margin: 0.7rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+  line-height: 1.55;
+}
+
+.layout-decision > div {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-muted);
+  font-size: 0.55rem;
+  line-height: 1.45;
+}
+
+.layout-decision svg {
+  flex: 0 0 auto;
+  color: var(--action);
+}
+
+.memoir-page {
+  position: relative;
+  min-height: 46rem;
+  padding: 1.25rem 1.5rem 1rem;
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--ink);
+  background: var(--paper-raised);
+  box-shadow: var(--paper-shadow-md);
+}
+
+.memoir-page header,
+.memoir-page footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--ink-muted);
+}
+
+.memoir-page header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.memoir-page footer {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 1rem;
+  left: 1.5rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--rule);
+}
+
+.memoir-page-content {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 3.2rem 2.2rem 5rem;
+}
+
+.memoir-page-date {
+  margin: 0;
+}
+
+.memoir-page h2 {
+  max-width: 37rem;
+  margin: 1rem 0 0;
+  font-size: clamp(3.4rem, 6vw, 6.4rem);
+  font-weight: 420;
+  letter-spacing: -0.065em;
+  line-height: 0.88;
+}
+
+.memoir-page blockquote {
+  max-width: 34rem;
+  margin: 2rem 0 0;
+  padding: 1.15rem 0 1.15rem 1.4rem;
+  border-left: 3px solid var(--action);
+  font-size: 1.5rem;
+  font-weight: 430;
+  line-height: 1.35;
+}
+
+.memoir-page-body {
+  columns: 2;
+  column-gap: 2.2rem;
+  margin-top: 2rem;
+}
+
+.memoir-page-body p,
+.memoir-timeline p,
+.little-things-list li,
+.memoir-salutation,
+.memoir-signoff {
+  margin: 0 0 1rem;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.62;
+}
+
+.memoir-page--quote .memoir-page-content {
+  display: grid;
+  min-height: 38rem;
+  align-content: center;
+}
+
+.memoir-page--quote h2 {
+  font-size: clamp(2.4rem, 4vw, 4rem);
+}
+
+.memoir-page--quote blockquote {
+  max-width: none;
+  padding-left: 0;
+  border-left: 0;
+  color: var(--action);
+  font-size: clamp(2.3rem, 5vw, 5rem);
+  line-height: 0.98;
+}
+
+.memoir-page--letter .memoir-page-content {
+  max-width: 35rem;
+}
+
+.memoir-salutation {
+  margin-top: 2.2rem;
+  font-size: 1.35rem;
+}
+
+.memoir-signoff {
+  margin-top: 1.8rem;
+  font-style: italic;
+}
+
+.memoir-timeline {
+  display: grid;
+  gap: 0;
+  margin-top: 2rem;
+  border-top: 1px solid var(--rule);
+}
+
+.memoir-timeline p {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 1rem;
+  margin: 0;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.little-things-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: little-things;
+}
+
+.little-things-list li {
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--ink);
+  counter-increment: little-things;
+}
+
+.little-things-list li::before {
+  display: block;
+  margin-bottom: 0.8rem;
+  color: var(--action);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  content: "0" counter(little-things);
+}
+
+.page-actions {
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+.page-kept-note {
+  display: grid;
+  grid-template-columns: 2.6rem auto 1fr;
+  gap: 0.15rem 0.8rem;
+  max-width: 52rem;
+  margin: 1.4rem 0 0 auto;
+  padding: 1rem 1.2rem;
+  border: 1px solid rgba(212, 175, 55, 0.62);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.page-kept-note > div {
+  display: grid;
+  grid-row: 1 / 4;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.72);
+  color: var(--ceremonial);
+}
+
+.page-kept-note > span {
+  grid-column: 2;
+  color: var(--ceremonial);
+}
+
+.page-kept-note strong {
+  grid-column: 3;
+  font-size: 1.15rem;
+  font-weight: 470;
+}
+
+.page-kept-note p {
+  grid-column: 2 / -1;
+  margin: 0.35rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+.layout-library-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.layout-library-heading > div > p:last-child {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.layout-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 2rem;
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+}
+
+.layout-option {
+  position: relative;
+  display: grid;
+  min-height: 9.5rem;
+  align-content: start;
+  gap: 0.45rem;
+  padding: 1rem 3rem 1rem 1rem;
+  border: 0;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
+  text-align: left;
+  transition: background-color 500ms var(--paper-ease);
+}
+
+.layout-option:hover,
+.layout-option--selected {
+  background: var(--paper-raised);
+}
+
+.layout-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.layout-option strong {
+  font-size: 1.45rem;
+  font-weight: 450;
+  letter-spacing: -0.035em;
+}
+
+.layout-option small {
+  color: var(--ink-muted);
+  font-size: 0.6rem;
+  line-height: 1.45;
+}
+
+.layout-option > svg {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: var(--action);
+}
+
 .memory-notice {
   position: fixed;
   z-index: 45;
@@ -2326,6 +2779,242 @@ input:focus-visible {
   .placement-stop-note {
     margin: 0.8rem auto;
     font-size: 0.6rem;
+  }
+
+  .placed-actions {
+    gap: 0.75rem;
+  }
+
+  .placed-actions .interview-primary {
+    min-height: 2.75rem;
+    padding: 0.6rem 0.7rem;
+    font-size: 0.52rem;
+  }
+
+  .page-assembling h1,
+  .layout-library-heading h1,
+  .page-heading h1 {
+    margin-top: 0.4rem;
+    font-size: 2.65rem;
+  }
+
+  .page-assembling > p:nth-of-type(2),
+  .layout-library-heading > div > p:last-child,
+  .page-heading > p:last-child {
+    margin-top: 0.55rem;
+    font-size: 0.67rem;
+    line-height: 1.5;
+  }
+
+  .page-assembly-stack {
+    height: 15rem;
+    margin-top: 1.35rem;
+  }
+
+  .page-assembly-stack > div {
+    right: 1.4rem;
+    left: 1.4rem;
+  }
+
+  .page-assembly-stack > div:nth-child(3) {
+    padding: 1.8rem 1.25rem;
+  }
+
+  .page-assembly-stack strong {
+    font-size: 1.65rem;
+  }
+
+  .assembly-steps {
+    display: grid;
+    gap: 0.35rem;
+    margin-top: 0.8rem;
+    text-align: left;
+  }
+
+  .assembly-steps li {
+    font-size: 0.52rem;
+  }
+
+  .page-review-workspace {
+    display: block;
+    margin-top: 0.9rem;
+  }
+
+  .layout-decision {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.2rem 0.8rem;
+    padding: 0.65rem 0;
+  }
+
+  .layout-decision > strong {
+    grid-column: 1;
+    margin-top: 0.2rem;
+    font-size: 1.4rem;
+  }
+
+  .layout-decision > p {
+    grid-column: 1;
+    margin-top: 0.2rem;
+    font-size: 0.55rem;
+  }
+
+  .layout-decision > div {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    max-width: 7.5rem;
+    margin: 0;
+    padding: 0 0 0 0.65rem;
+    border-top: 0;
+    border-left: 1px solid var(--rule);
+    font-size: 0.47rem;
+  }
+
+  .memoir-page {
+    min-height: 34rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem 0.8rem 0.65rem;
+  }
+
+  .memoir-page header,
+  .memoir-page footer,
+  .memoir-page-date {
+    font-size: 0.42rem;
+  }
+
+  .memoir-page header {
+    padding-bottom: 0.6rem;
+  }
+
+  .memoir-page footer {
+    right: 0.8rem;
+    bottom: 0.65rem;
+    left: 0.8rem;
+    padding-top: 0.55rem;
+  }
+
+  .memoir-page-content {
+    padding: 1.35rem 0.7rem 3.4rem;
+  }
+
+  .memoir-page h2 {
+    margin-top: 0.55rem;
+    font-size: 3rem;
+    line-height: 0.9;
+  }
+
+  .memoir-page blockquote {
+    margin-top: 1rem;
+    padding: 0.7rem 0 0.7rem 0.8rem;
+    font-size: 1.05rem;
+  }
+
+  .memoir-page-body {
+    columns: 1;
+    margin-top: 1rem;
+  }
+
+  .memoir-page-body p,
+  .memoir-timeline p,
+  .little-things-list li,
+  .memoir-salutation,
+  .memoir-signoff {
+    margin-bottom: 0.65rem;
+    font-size: 0.76rem;
+    line-height: 1.52;
+  }
+
+  .memoir-page--quote .memoir-page-content {
+    min-height: 28rem;
+  }
+
+  .memoir-page--quote blockquote {
+    font-size: 2.45rem;
+  }
+
+  .memoir-timeline {
+    margin-top: 1rem;
+  }
+
+  .memoir-timeline p {
+    grid-template-columns: 4.2rem 1fr;
+    gap: 0.65rem;
+    padding: 0.65rem 0;
+  }
+
+  .little-things-list {
+    display: block;
+    margin-top: 1rem;
+  }
+
+  .little-things-list li {
+    margin-bottom: 0.75rem;
+  }
+
+  .page-actions {
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .page-actions .interview-primary {
+    min-height: 2.75rem;
+    padding: 0.6rem 0.7rem;
+    font-size: 0.52rem;
+  }
+
+  .page-kept-note {
+    grid-template-columns: 2.2rem 1fr;
+    margin-top: 0.75rem;
+    padding: 0.7rem;
+  }
+
+  .page-kept-note > div {
+    grid-row: 1 / 4;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .page-kept-note > span,
+  .page-kept-note strong,
+  .page-kept-note p {
+    grid-column: 2;
+  }
+
+  .page-kept-note strong {
+    font-size: 0.95rem;
+  }
+
+  .page-kept-note p {
+    font-size: 0.52rem;
+  }
+
+  .layout-library-heading {
+    gap: 1rem;
+  }
+
+  .layout-library-heading .quiet-action {
+    flex: 0 0 auto;
+  }
+
+  .layout-options {
+    display: block;
+    margin-top: 1rem;
+  }
+
+  .layout-option {
+    width: 100%;
+    min-height: 5.4rem;
+    gap: 0.25rem;
+    padding: 0.65rem 2.4rem 0.65rem 0.75rem;
+  }
+
+  .layout-option strong {
+    font-size: 1.05rem;
+  }
+
+  .layout-option small {
+    font-size: 0.5rem;
   }
 }
 

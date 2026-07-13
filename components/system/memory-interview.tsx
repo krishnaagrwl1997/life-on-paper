@@ -23,8 +23,10 @@ import {
 
 export type CaptureMode = "Write" | "Voice" | "Photo" | "Screenshot" | "File";
 
-type Phase = "capture" | "interview" | "summary" | "placement";
+type Phase = "capture" | "interview" | "summary" | "placement" | "page";
 type PlacementMode = "proposal" | "change" | "create" | "placed";
+type PageMode = "assembling" | "ready" | "layouts";
+type EditorialLayoutId = "story" | "quote" | "illustration" | "little-things" | "letter" | "timeline" | "travel" | "people" | "reflection";
 
 type ChapterPlacement = {
   id: string;
@@ -78,6 +80,18 @@ const chapterOptions: ChapterPlacement[] = [
   },
 ];
 
+const editorialLayouts: Array<{ id: EditorialLayoutId; name: string; note: string }> = [
+  { id: "story", name: "Story", note: "A complete scene with a beginning, turn, and close." },
+  { id: "quote", name: "Quote", note: "One line strong enough to carry the whole page." },
+  { id: "illustration", name: "Illustration", note: "A visual-led page for a memory with an image." },
+  { id: "little-things", name: "Little Things", note: "Small details gathered like keepsakes." },
+  { id: "letter", name: "Letter", note: "A memory written directly to someone—or yourself." },
+  { id: "timeline", name: "Timeline", note: "Several moments arranged in the order they unfolded." },
+  { id: "travel", name: "Travel", note: "A place-led story with movement and atmosphere." },
+  { id: "people", name: "People", note: "A portrait of someone and what they changed in you." },
+  { id: "reflection", name: "Reflection", note: "An inward moment that becomes a lasting lesson." },
+];
+
 function formatTime(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
@@ -105,6 +119,9 @@ export function MemoryInterview({
   const [placementMode, setPlacementMode] = useState<PlacementMode>("proposal");
   const [placement, setPlacement] = useState<ChapterPlacement>(chapterOptions[0]);
   const [newChapterTitle, setNewChapterTitle] = useState("");
+  const [pageMode, setPageMode] = useState<PageMode>("assembling");
+  const [selectedLayout, setSelectedLayout] = useState(editorialLayouts[8]);
+  const [pageSaved, setPageSaved] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const reduceMotion = useReducedMotion();
@@ -120,6 +137,12 @@ export function MemoryInterview({
       if (attachment?.preview) URL.revokeObjectURL(attachment.preview);
     };
   }, [attachment]);
+
+  useEffect(() => {
+    if (phase !== "page" || pageMode !== "assembling") return;
+    const timer = window.setTimeout(() => setPageMode("ready"), reduceMotion ? 150 : 1450);
+    return () => window.clearTimeout(timer);
+  }, [pageMode, phase, reduceMotion]);
 
   const selectMode = (nextMode: CaptureMode) => {
     setMode(nextMode);
@@ -228,6 +251,26 @@ export function MemoryInterview({
     setPlacementMode("proposal");
     setNotice(null);
   };
+
+  const designPage = () => {
+    setSelectedLayout(editorialLayouts[8]);
+    setPageSaved(false);
+    setPageMode("assembling");
+    setPhase("page");
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  };
+
+  const chooseLayout = (layout: (typeof editorialLayouts)[number]) => {
+    setSelectedLayout(layout);
+    setPageSaved(false);
+    setPageMode("ready");
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  };
+
+  const pageSource = memory.trim() || attachment?.name || "A small moment I wanted to remember.";
+  const pageScene = answers[0]?.trim() || "Someone noticed something in me that I had not yet learned to name for myself.";
+  const pageInsight = answers[1]?.trim() || "The appreciation stayed with me because it made an ordinary day feel quietly important.";
+  const pageReflection = answers.at(-1)?.trim() || "I want to remember that becoming often happens in the moments someone else helps us see clearly.";
 
   return (
     <div className="memory-desk">
@@ -423,8 +466,11 @@ export function MemoryInterview({
                   <span>{placement.chapter}</span>
                   <strong>{placement.title}</strong>
                 </div>
-                <p className="placement-stop-note">The memory is placed, but no page has been designed yet. That comes in the next milestone.</p>
-                <button type="button" className="quiet-action" onClick={() => setPlacementMode("proposal")}>Reconsider placement</button>
+                <p className="placement-stop-note">The memory is placed. It is ready to become a page in your book.</p>
+                <div className="placed-actions">
+                  <button type="button" className="quiet-action" onClick={() => setPlacementMode("proposal")}>Reconsider placement</button>
+                  <button type="button" className="interview-primary" onClick={designPage}>Design this page <ArrowRight size={18} weight="bold" aria-hidden="true" /></button>
+                </div>
               </div>
             ) : (
               <>
@@ -512,6 +558,135 @@ export function MemoryInterview({
             )}
           </motion.section>
         ) : null}
+
+        {phase === "page" ? (
+          <motion.section
+            key={`page-${pageMode}-${selectedLayout.id}`}
+            className="memory-phase page-phase"
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: reduceMotion ? 0 : -10 }}
+            transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}
+            aria-labelledby="page-title"
+          >
+            {pageMode === "assembling" ? (
+              <div className="page-assembling" aria-live="polite">
+                <p className="memory-eyebrow">Designing from your words</p>
+                <h1 id="page-title">Your page is taking shape.</h1>
+                <p>I chose a reflective layout because this memory turns a small moment into something you want to carry forward.</p>
+                <div className="page-assembly-stack" aria-hidden="true">
+                  <motion.div initial={{ x: -42, y: 18, rotate: -4, opacity: 0 }} animate={{ x: 0, y: 0, rotate: -2, opacity: 1 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }} />
+                  <motion.div initial={{ x: 38, y: 28, rotate: 5, opacity: 0 }} animate={{ x: 0, y: 0, rotate: 2, opacity: 1 }} transition={{ duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : 0.28, ease: paperEase }} />
+                  <motion.div initial={{ y: 48, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : 0.56, ease: paperEase }}>
+                    <span>Reflection</span>
+                    <strong>The Kind of Person I Was Becoming</strong>
+                  </motion.div>
+                </div>
+                <ol className="assembly-steps">
+                  <li><Check size={14} weight="bold" aria-hidden="true" /> Reading the shape of the memory</li>
+                  <li><Check size={14} weight="bold" aria-hidden="true" /> Choosing the editorial layout</li>
+                  <li><FileText size={14} aria-hidden="true" /> Balancing the final page</li>
+                </ol>
+              </div>
+            ) : pageMode === "layouts" ? (
+              <div className="layout-library">
+                <div className="layout-library-heading">
+                  <div>
+                    <p className="memory-eyebrow">Nine ways a memory can live</p>
+                    <h1 id="page-title">Choose a different page shape.</h1>
+                    <p>Reflection is my recommendation, but the memory is still yours to art-direct.</p>
+                  </div>
+                  <button type="button" className="quiet-action" onClick={() => setPageMode("ready")}>Back to page</button>
+                </div>
+                <div className="layout-options">
+                  {editorialLayouts.map((layout, index) => {
+                    const unavailable = layout.id === "illustration" && !attachment?.preview;
+                    return (
+                      <button
+                        key={layout.id}
+                        type="button"
+                        className={selectedLayout.id === layout.id ? "layout-option layout-option--selected" : "layout-option"}
+                        aria-pressed={selectedLayout.id === layout.id}
+                        disabled={unavailable}
+                        onClick={() => chooseLayout(layout)}
+                      >
+                        <span>{String(index + 1).padStart(2, "0")}</span>
+                        <strong>{layout.name}</strong>
+                        <small>{unavailable ? "Add a photo to use this layout." : layout.note}</small>
+                        {selectedLayout.id === layout.id ? <Check size={18} weight="bold" aria-hidden="true" /> : <ArrowRight size={18} aria-hidden="true" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="page-heading">
+                  <p className="memory-eyebrow">A page in {placement.title}</p>
+                  <h1 id="page-title">This is how your memory reads.</h1>
+                  <p>The AI chose <strong>{selectedLayout.name}</strong> because {selectedLayout.note.toLowerCase()}</p>
+                </div>
+
+                <div className="page-review-workspace">
+                  <aside className="layout-decision">
+                    <span>Layout chosen</span>
+                    <strong>{selectedLayout.name}</strong>
+                    <p>{selectedLayout.note}</p>
+                    <div><Sparkle size={16} weight="fill" aria-hidden="true" /> Chosen from the shape of your interview</div>
+                  </aside>
+
+                  <article className={`memoir-page memoir-page--${selectedLayout.id}`} aria-label={`${selectedLayout.name} memoir page preview`}>
+                    <header>
+                      <span>{placement.book} · {placement.volume}</span>
+                      <span>{placement.chapter}</span>
+                    </header>
+                    <div className="memoir-page-content">
+                      <p className="memoir-page-date">13 July 2026</p>
+                      {selectedLayout.id === "letter" ? <p className="memoir-salutation">Dear future me,</p> : null}
+                      <h2>{selectedLayout.id === "people" ? "The People Who Saw Me" : selectedLayout.id === "travel" ? "What I Carried Home" : selectedLayout.id === "little-things" ? "Three Small Things I Kept" : "The Kind of Person I Was Becoming"}</h2>
+                      <blockquote>{pageReflection}</blockquote>
+                      {selectedLayout.id === "timeline" ? (
+                        <div className="memoir-timeline">
+                          <p><span>Before</span>{pageSource}</p>
+                          <p><span>The moment</span>{pageScene}</p>
+                          <p><span>What stayed</span>{pageInsight}</p>
+                        </div>
+                      ) : selectedLayout.id === "little-things" ? (
+                        <ol className="little-things-list">
+                          <li>{pageSource}</li>
+                          <li>{pageScene}</li>
+                          <li>{pageInsight}</li>
+                        </ol>
+                      ) : (
+                        <div className="memoir-page-body">
+                          <p>{pageSource}</p>
+                          <p>{pageScene}</p>
+                          {selectedLayout.id !== "quote" ? <p>{pageInsight}</p> : null}
+                        </div>
+                      )}
+                      {selectedLayout.id === "letter" ? <p className="memoir-signoff">With gratitude,<br />Me</p> : null}
+                    </div>
+                    <footer><span>Life In Books</span><span>04 · 01</span></footer>
+                  </article>
+                </div>
+
+                {pageSaved ? (
+                  <div className="page-kept-note">
+                    <div><Check size={20} weight="bold" aria-hidden="true" /></div>
+                    <span>Page kept</span>
+                    <strong>Added to {placement.title}</strong>
+                    <p>Your original memory and interview remain attached behind this page.</p>
+                  </div>
+                ) : (
+                  <div className="page-actions">
+                    <button type="button" className="quiet-action" onClick={() => setPageMode("layouts")}>Change layout</button>
+                    <button type="button" className="interview-primary" onClick={() => setPageSaved(true)}>Keep this page <BookmarkSimple size={18} weight="fill" aria-hidden="true" /></button>
+                  </div>
+                )}
+              </>
+            )}
+          </motion.section>
+        ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
@@ -536,8 +711,9 @@ function InterviewProgress({ phase }: { phase: Phase }) {
   const phases: Array<{ id: Phase; number: string; label: string }> = [
     { id: "capture", number: "I", label: "Capture" },
     { id: "interview", number: "II", label: "Interview" },
-    { id: "summary", number: "III", label: "What I heard" },
+    { id: "summary", number: "III", label: "Heard" },
     { id: "placement", number: "IV", label: "Place" },
+    { id: "page", number: "V", label: "Page" },
   ];
   const current = phases.findIndex((item) => item.id === phase);
 
