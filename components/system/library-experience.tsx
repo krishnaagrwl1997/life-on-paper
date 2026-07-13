@@ -172,6 +172,7 @@ export function LibraryExperience({
               <div>
                 <p className="reader-date">{selectedPage.date}</p>
                 <h1>{selectedPage.title}</h1>
+                {selectedPage.photo ? <div className="reader-photo"><Image src={selectedPage.photo} alt="Photograph attached to this memory" fill unoptimized sizes="620px" /></div> : null}
                 <blockquote>{selectedPage.reflection}</blockquote>
                 {selectedPage.body.map((paragraph, index) => <p key={`${selectedPage.id}-${index}`}>{paragraph}</p>)}
               </div>

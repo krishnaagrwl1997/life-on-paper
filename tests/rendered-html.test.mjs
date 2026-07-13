@@ -28,10 +28,11 @@ test("server-renders the Life In Books home experience", async () => {
 });
 
 test("keeps the four-destination memoir shell explicit", async () => {
-  const [home, interview, library, nav, layout] = await Promise.all([
+  const [home, interview, library, garden, nav, layout] = await Promise.all([
     readFile(new URL("../components/system/home-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/memory-interview.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/library-experience.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/system/garden-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/nav-shell.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
   ]);
@@ -67,6 +68,17 @@ test("keeps the four-destination memoir shell explicit", async () => {
   assert.match(library, /Reading by lamplight/);
   assert.match(library, /Previous/);
   assert.match(library, /Next/);
+  assert.match(interview, /Add a photo to this moment/);
+  assert.match(interview, /Photo attached to this memory/);
+  assert.match(garden, /Other lives, opened carefully/);
+  assert.match(garden, /No audience metrics/);
+  assert.match(garden, /Request to read/);
+  assert.match(garden, /Request sent/);
+  assert.match(garden, /Read permitted preview/);
+  assert.match(garden, /Private book/);
+  for (const author of ["Maya Sen", "Jon Bell", "Amina Yusuf", "Elias Hart", "Noor Patel"]) {
+    assert.match(garden, new RegExp(author));
+  }
   assert.equal((interview.match(/id: \"trust\"/g) ?? []).length, 1);
   assert.equal((interview.match(/const questions = \[/g) ?? []).length, 1);
   assert.match(layout, /Your life, beautifully remembered/);

@@ -14,6 +14,7 @@ import {
 import { NavShell } from "@/components/system/nav-shell";
 import { CaptureMode, KeptPage, MemoryInterview } from "@/components/system/memory-interview";
 import { LibraryExperience } from "@/components/system/library-experience";
+import { GardenExperience } from "@/components/system/garden-experience";
 
 type Destination = "Home" | "Library" | "Add Memory" | "Garden";
 type HomeCaptureMode = "Write" | "Voice" | "Photo" | "Screenshot";
@@ -79,8 +80,11 @@ export function HomeExperience() {
       window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
       return;
     }
-    setNotice(`${destination} will be shaped in a later milestone.`);
-    window.setTimeout(() => setNotice(null), 2600);
+    if (destination === "Garden") {
+      setActive("Garden");
+      setNotice(null);
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    }
   };
 
   const beginInterview = () => {
@@ -113,6 +117,8 @@ export function HomeExperience() {
         />
       ) : active === "Library" ? (
         <LibraryExperience savedPages={savedPages} />
+      ) : active === "Garden" ? (
+        <GardenExperience />
       ) : (
         <div className="home-frame">
           <header className="home-header">

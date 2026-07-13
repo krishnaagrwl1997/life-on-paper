@@ -35,6 +35,7 @@ export type KeptPage = {
   chapterTitle: string;
   layout: string;
   date: string;
+  photo?: string;
 };
 
 type Phase = "capture" | "interview" | "summary" | "placement" | "page";
@@ -150,7 +151,7 @@ export function MemoryInterview({
 
   useEffect(() => {
     return () => {
-      if (attachment?.preview) URL.revokeObjectURL(attachment.preview);
+      if (attachment?.preview?.startsWith("blob:")) URL.revokeObjectURL(attachment.preview);
     };
   }, [attachment]);
 
@@ -166,13 +167,13 @@ export function MemoryInterview({
     setRecorded(false);
     setRecordingSeconds(0);
     setIsRecording(false);
-    if (attachment?.preview) URL.revokeObjectURL(attachment.preview);
+    if (attachment?.preview?.startsWith("blob:")) URL.revokeObjectURL(attachment.preview);
     setAttachment(null);
   };
 
   const chooseFile = () => fileRef.current?.click();
 
-  const acceptForMode = mode === "Photo"
+  const acceptForMode = mode === "Photo" || mode === "Write"
     ? "image/*"
     : mode === "Screenshot"
       ? "image/png,image/jpeg,image/webp"
@@ -181,9 +182,16 @@ export function MemoryInterview({
   const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (attachment?.preview) URL.revokeObjectURL(attachment.preview);
-    const preview = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
-    setAttachment({ name: file.name, preview, kind: file.type || "Document" });
+    if (attachment?.preview?.startsWith("blob:")) URL.revokeObjectURL(attachment.preview);
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        setAttachment({ name: file.name, preview: typeof reader.result === "string" ? reader.result : undefined, kind: file.type });
+      });
+      reader.readAsDataURL(file);
+    } else {
+      setAttachment({ name: file.name, kind: file.type || "Document" });
+    }
     if (!memory.trim()) setMemory(`${mode} shared: ${file.name}`);
   };
 
@@ -297,6 +305,7 @@ export function MemoryInterview({
       chapterTitle: placement.title,
       layout: selectedLayout.name,
       date: "13 July 2026",
+      photo: attachment?.preview,
     });
   };
 
@@ -677,6 +686,7 @@ export function MemoryInterview({
                       <p className="memoir-page-date">13 July 2026</p>
                       {selectedLayout.id === "letter" ? <p className="memoir-salutation">Dear future me,</p> : null}
                       <h2>{selectedLayout.id === "people" ? "The People Who Saw Me" : selectedLayout.id === "travel" ? "What I Carried Home" : selectedLayout.id === "little-things" ? "Three Small Things I Kept" : "The Kind of Person I Was Becoming"}</h2>
+                      {selectedLayout.id === "illustration" && attachment?.preview ? <div className="memoir-page-photo"><Image src={attachment.preview} alt="Attached memory" fill unoptimized sizes="680px" /></div> : null}
                       <blockquote>{pageReflection}</blockquote>
                       {selectedLayout.id === "timeline" ? (
                         <div className="memoir-timeline">
@@ -797,6 +807,11 @@ function CaptureSurface({
           rows={8}
           autoFocus
         />
+        <div className={attachment?.preview ? "write-photo-attachment write-photo-attachment--ready" : "write-photo-attachment"}>
+          {attachment?.preview ? <div><Image src={attachment.preview} alt="Photo attached to this memory" fill unoptimized sizes="180px" /></div> : <Camera size={19} aria-hidden="true" />}
+          <span>{attachment ? attachment.name : "Add a photo to this moment"}</span>
+          <button type="button" onClick={chooseFile}>{attachment ? "Change photo" : "Choose photo"}</button>
+        </div>
       </div>
     );
   }
