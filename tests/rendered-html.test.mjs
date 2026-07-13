@@ -28,8 +28,9 @@ test("server-renders the Life In Books home experience", async () => {
 });
 
 test("keeps the four-destination memoir shell explicit", async () => {
-  const [home, nav, layout] = await Promise.all([
+  const [home, interview, nav, layout] = await Promise.all([
     readFile(new URL("../components/system/home-experience.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/system/memory-interview.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/nav-shell.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
   ]);
@@ -41,6 +42,10 @@ test("keeps the four-destination memoir shell explicit", async () => {
   assert.match(home, /Photo/);
   assert.match(home, /Screenshot/);
   assert.match(home, /Write/);
+  assert.match(interview, /File/);
+  assert.match(interview, /Question \{questionIndex \+ 1\} of up to 3/);
+  assert.match(interview, /Here&apos;s what I heard/);
+  assert.equal((interview.match(/const questions = \[/g) ?? []).length, 1);
   assert.match(layout, /Your life, beautifully remembered/);
-  assert.doesNotMatch(home, /dashboard|sign in|log in/i);
+  assert.doesNotMatch(`${home}\n${interview}`, /dashboard|sign in|log in/i);
 });
