@@ -70,8 +70,12 @@ test("keeps the four-destination memoir shell explicit", async () => {
   assert.match(library, /Next/);
   assert.match(interview, /Add a photo to this moment/);
   assert.match(interview, /Photo attached to this memory/);
-  assert.match(garden, /Other lives, opened carefully/);
-  assert.match(garden, /No audience metrics/);
+  assert.match(garden, /Page Three/);
+  assert.match(garden, /Lives &amp; Letters/);
+  assert.match(garden, /This week in lives &amp; letters/);
+  assert.match(garden, /Cover story/);
+  assert.match(garden, /Editor&apos;s note/);
+  assert.match(garden, /No likes, follower counts/);
   assert.match(garden, /Request to read/);
   assert.match(garden, /Request sent/);
   assert.match(garden, /Read permitted preview/);
