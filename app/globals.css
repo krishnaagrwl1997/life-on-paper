@@ -687,7 +687,7 @@ textarea:focus-visible {
 
   .home-layout {
     display: block;
-    padding-top: 2.8rem;
+    padding-top: 2.2rem;
   }
 
   .section-kicker {
@@ -702,13 +702,13 @@ textarea:focus-visible {
 
   .interview-intro > p {
     max-width: 20rem;
-    margin-top: 1.15rem;
+    margin-top: 0.9rem;
     font-size: 0.86rem;
     line-height: 1.55;
   }
 
   .memory-composer {
-    margin-top: 2rem;
+    margin-top: 1.5rem;
   }
 
   .capture-modes {
@@ -724,7 +724,7 @@ textarea:focus-visible {
   }
 
   .memory-composer textarea {
-    min-height: 8.1rem;
+    min-height: 6.55rem;
     padding: 1.15rem;
     font-size: 1.05rem;
   }
