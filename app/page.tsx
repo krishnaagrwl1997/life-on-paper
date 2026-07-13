@@ -1,5 +1,5 @@
-import { FoundationShowcase } from "@/components/system/foundation-showcase";
+import { HomeExperience } from "@/components/system/home-experience";
 
 export default function Home() {
-  return <FoundationShowcase />;
+  return <HomeExperience />;
 }

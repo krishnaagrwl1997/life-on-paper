@@ -16,9 +16,21 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Life In Books — Foundation",
+  metadataBase: new URL("https://life-in-books-foundation.subs334079.chatgpt.site"),
+  title: "Life In Books — Your life, beautifully remembered",
   description:
-    "The editorial design foundation for Life In Books, an AI memoir platform.",
+    "Speak, share, and shape the moments of your life into a memoir you will want to return to.",
+  openGraph: {
+    title: "Life In Books",
+    description: "Your life, beautifully remembered.",
+    images: [{ url: "/og.png", width: 1732, height: 909, alt: "Life In Books — Your life, beautifully remembered." }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Life In Books",
+    description: "Your life, beautifully remembered.",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({
