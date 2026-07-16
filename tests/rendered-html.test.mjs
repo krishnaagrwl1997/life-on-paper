@@ -22,8 +22,8 @@ test("server-renders the Life In Books home experience", async () => {
   const html = await response.text();
   assert.match(html, /Life In Books/);
   assert.match(html, /What part of today would you never want to forget\?/);
-  assert.match(html, /Begin this memory/);
-  assert.match(html, /Your book/);
+  assert.match(html, /Continue with this memory/);
+  assert.match(html, /Current book/);
   assert.match(html, /Recently placed/);
 });
 
@@ -41,10 +41,10 @@ test("keeps the four-destination memoir shell explicit", async () => {
   for (const destination of ["Home", "Library", "Add Memory", "Garden"]) {
     assert.match(nav, new RegExp(`label: \\\"${destination}\\\"`));
   }
-  assert.match(home, /Add a photo/);
-  assert.match(home, /Add a screenshot/);
+  assert.match(home, /Add a photo or screenshot/);
   assert.match(home, /Speak and transcribe/);
-  assert.match(home, /Type or speak\. Your words stay editable/);
+  assert.match(home, /Type or speak/);
+  assert.match(home, /Your words stay editable/);
   assert.match(interview, /Speak and transcribe this answer/);
   assert.match(interview, /Speak and transcribe this memory/);
   assert.match(transcription, /SpeechRecognition/);

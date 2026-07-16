@@ -5,10 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
-  Camera,
   Check,
   ImageSquare,
   Microphone,
+  Sparkle,
   Stop,
 } from "@phosphor-icons/react";
 import { NavShell } from "@/components/system/nav-shell";
@@ -26,6 +26,7 @@ function todayHeading() {
     weekday: "long",
     day: "numeric",
     month: "long",
+    year: "numeric",
   }).format(new Date());
 }
 
@@ -132,18 +133,20 @@ export function HomeExperience() {
         <div className="home-frame">
           <header className="home-header">
             <div>
-              <p className="home-date">{todayHeading()}</p>
               <h1>Life In Books</h1>
+              <p className="home-date">{todayHeading()}</p>
             </div>
-            <button className="profile-mark" type="button" aria-label="Open profile">K</button>
+            <button className="profile-mark" type="button" aria-label="Open profile">
+              <Image src="/assets/profile-portrait.png" alt="" fill unoptimized sizes="48px" priority />
+            </button>
           </header>
 
           <div className="home-layout">
             <section className="interview-column" aria-labelledby="today-question">
               <div className="interview-intro">
                 <div className="section-kicker">
+                  <Sparkle className="reflection-star" size={20} weight="fill" aria-hidden="true" />
                   <span>Today&apos;s reflection</span>
-                  <span className="issue-number">01</span>
                 </div>
                 <h2 id="today-question">What part of today would you never want to forget?</h2>
                 <p>Tell it as it happened. I&apos;ll help you find the story inside it.</p>
@@ -165,8 +168,7 @@ export function HomeExperience() {
 
                 <div className="composer-footer">
                   <div className="composer-tools" aria-label="Ways to add to this memory">
-                    <button type="button" onClick={() => openMemory("Photo")} aria-label="Add a photo"><Camera size={19} aria-hidden="true" /></button>
-                    <button type="button" onClick={() => openMemory("Screenshot")} aria-label="Add a screenshot"><ImageSquare size={19} aria-hidden="true" /></button>
+                    <button type="button" onClick={() => openMemory("Photo")} aria-label="Add a photo or screenshot"><ImageSquare size={23} aria-hidden="true" /></button>
                     <button
                       type="button"
                       className={liveSpeech.isListening ? "composer-mic composer-mic--listening" : "composer-mic"}
@@ -174,13 +176,15 @@ export function HomeExperience() {
                       aria-label={liveSpeech.isListening ? "Stop live transcription" : "Speak and transcribe"}
                       aria-pressed={liveSpeech.isListening}
                     >
-                      {liveSpeech.isListening ? <Stop size={17} weight="fill" aria-hidden="true" /> : <Microphone size={19} weight="fill" aria-hidden="true" />}
+                      {liveSpeech.isListening ? <Stop size={19} weight="fill" aria-hidden="true" /> : <Microphone size={23} weight="regular" aria-hidden="true" />}
                     </button>
-                    <p aria-live="polite">{liveSpeech.isListening ? `Listening${liveSpeech.interimTranscript ? ` · ${liveSpeech.interimTranscript}` : "…"}` : liveSpeech.isSupported ? "Type or speak. Your words stay editable." : "Type your memory here."}</p>
+                    <div className="composer-status" aria-live="polite">
+                      <strong>{liveSpeech.isListening ? "Listening…" : "Type or speak"}</strong>
+                      <span>{liveSpeech.isListening && liveSpeech.interimTranscript ? liveSpeech.interimTranscript : liveSpeech.isSupported ? "Your words stay editable." : "Type your memory here."}</span>
+                    </div>
                   </div>
-                  <button className="begin-memory" type="button" onClick={beginInterview}>
-                    Begin this memory
-                    <ArrowRight size={18} weight="bold" aria-hidden="true" />
+                  <button className="begin-memory" type="button" onClick={beginInterview} aria-label="Continue with this memory">
+                    <ArrowRight size={28} weight="regular" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -189,24 +193,20 @@ export function HomeExperience() {
             <aside className="book-column" aria-label="Your growing memoir">
               <section className="book-section">
                 <div className="section-heading-row">
-                  <div>
-                    <p className="section-label">Your book</p>
-                    <h2>A life, taking shape.</h2>
-                  </div>
-                  <button type="button" onClick={() => selectDestination("Library")}>See library</button>
+                  <p className="section-label">Current book</p>
+                  <button type="button" onClick={() => selectDestination("Library")}>View all</button>
                 </div>
 
-                <article className="book-cover-card">
+                <button className="book-cover-card" type="button" onClick={() => selectDestination("Library")} aria-label="Open Summer of Firsts in the library">
                   <div className="book-cover-image">
-                    <Image src="/assets/seaside-memory.png" alt="A quiet coast at the edge of the sea" fill unoptimized sizes="(max-width: 700px) 92vw, 38vw" priority />
-                    <span className="book-one-mark">Book one</span>
+                    <Image src="/assets/current-book-cover.png" alt="An open handwritten notebook beside old family photographs and tea" fill unoptimized sizes="(max-width: 700px) 92vw, 38vw" priority />
                   </div>
                   <div className="book-cover-copy">
-                    <p>Volume II · Becoming</p>
-                    <h3>The person I am learning to trust</h3>
-                    <div><span>12 memories</span><span>Edited today</span></div>
+                    <h3>Summer of Firsts</h3>
+                    <span className="book-accent" aria-hidden="true" />
+                    <p>12 memories · Last updated today</p>
                   </div>
-                </article>
+                </button>
               </section>
 
               <section className="recent-section">

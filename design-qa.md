@@ -1,43 +1,57 @@
-# Life In Books bottom navigation design QA
+# Design QA — Life In Books Home / Capture
 
-- Source visual truth: `/Users/krishna/Downloads/_ (13).jpeg`
-- Implementation screenshot: `qa/phone-nav-new.png`
+- Source visual truth: `/Users/krishna/.codex/generated_images/019f5a91-1d90-7ac0-96ca-1df94d2ee1fb/exec-ed9e34c4-d7b1-4fb2-a0a3-0abd964b4771.png`
+- Implementation screenshot: `/private/tmp/life-in-books-option1-mobile-final.png`
+- Full-view comparison evidence: `/private/tmp/life-in-books-option1-comparison-final.png`
 - Viewport: 390 × 844
-- State: Home, bottom navigation visible, Home active
-
-## Full-view comparison evidence
-
-The supplied navigation reference and the browser-rendered implementation were opened together. The implementation preserves the existing Life In Books home screen and changes only the persistent navigation. The new dock follows the reference's compact near-black floating surface, icon-only treatment, raised circular primary action, and small active-state dot while retaining the product's ivory and burnt-orange tokens.
-
-## Focused region comparison evidence
-
-The bottom navigation was compared at full image resolution. A separate crop was unnecessary because the complete dock and its spacing are clearly readable in both images. The implementation uses four destinations instead of copying the reference's five because Life In Books has exactly four product destinations.
+- State: Home, composer idle and empty
+- Primary interactions tested: typed a realistic memory, continued into the guided conversation, and verified a contextual follow-up plus feeling choices
+- Console errors checked: yes; none
+- Focused-region comparison: not required because the 390 × 844 side-by-side keeps the full UI legible at native scale
 
 ## Findings
 
-- Fonts and typography: no product typography was changed. Navigation labels remain available to assistive technology but are visually hidden to match the icon-only reference.
-- Spacing and layout rhythm: the dock fits within the 390 px viewport with even four-column spacing, safe side margins, and no horizontal overflow. The Add Memory control rises above the dock without covering content.
-- Colors and visual tokens: near-black, warm ivory, and the existing burnt-orange action token are preserved. No new colors or gradients were introduced.
-- Image quality and asset fidelity: the reference contains no navbar raster assets that need reproduction. Phosphor icons are used consistently; no custom SVG, CSS icon art, or placeholders were introduced.
-- Copy and content: the four existing destinations remain Home, Library, Add Memory, and Garden.
-- Accessibility: every icon button retains an accessible name, active destinations expose `aria-current`, touch targets are at least 55 px high, and the existing reduced-motion behavior remains intact.
-- Responsiveness: the dock is capped at 25rem on larger screens and uses safe mobile margins at 390 px.
+- No actionable P0, P1, or P2 issues remain.
+- Typography: Fraunces and Inter are used consistently; the three-line prompt wrap matches the selected direction.
+- Spacing and layout: the hierarchy matches the reference and there is no horizontal overflow.
+- Color: warm ivory, near-black, burnt orange, and ceremonial gold follow the product tokens. The brighter orange in the source was intentionally mapped to the established brand orange.
+- Imagery: real raster assets are used, with crop, quality, and art direction matched to the reference.
+- Copy: the experience is framed as memoir capture, never as an interview or generic chat.
+- Icons and states: Phosphor icons are consistent; Add Memory is circular and Home has the active state.
+- The source shows an active Listening state. The implementation was captured idle because microphone permission was not exercised during visual QA; the control is present and labelled.
 
 ## Comparison history
 
-1. Initial implementation used a full-cell ivory active background and a rectangular orange Add Memory tile, which did not match the selected floating-dock reference.
-2. Fix: replaced those treatments with an icon-only dark dock, a small active dot, and a raised circular Add Memory action.
-3. Post-fix evidence: `qa/phone-nav-new.png` shows the revised dock at 390 × 844 with the original page design unchanged.
+1. Initial findings
+   - [P2] The prompt was oversized, wrapped to four lines, and pushed the book card too low.
+   - [P1] Add Memory became a rounded square because of a late cascade override.
+   - [P2] The initial still-life image was too generic for the selected art direction.
+2. Fixes
+   - Reduced and constrained the prompt to the intended three-line measure.
+   - Restored the circular Add Memory size and radius.
+   - Replaced the still life with a dedicated notebook, old-photo, tea, pen, and greenery image.
+   - Tightened the current-book card height so its title and metadata remain visible.
+3. Post-fix evidence
+   - `/private/tmp/life-in-books-option1-comparison-final.png`
 
-## Primary interactions tested
+## Open questions
 
-- Home loaded with the correct active navigation state.
-- Library was selected through the new navigation and the Library screen rendered with Library marked active.
-- Accessible names for all four destinations were confirmed in the browser-rendered DOM.
-- The production build completed successfully.
+None.
 
-## Follow-up polish
+## Checklist
 
-- No blocking P0, P1, or P2 findings remain for this scoped navbar change.
+- [x] Full view compared against the source visual truth
+- [x] Typography and wrapping checked
+- [x] Spacing, sizing, and responsive behavior checked
+- [x] Color tokens checked
+- [x] Imagery quality and crop checked
+- [x] Copy and hierarchy checked
+- [x] Icons, active state, and primary controls checked
+- [x] Contextual continuation and feeling selection exercised
+- [x] Console checked for errors
 
-final result: passed
+## Follow-up
+
+- [P3] Exercise and capture the active microphone-permission state during device QA.
+
+Final result: passed.
