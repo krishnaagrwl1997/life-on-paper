@@ -28,22 +28,27 @@ test("server-renders the Life In Books home experience", async () => {
 });
 
 test("keeps the four-destination memoir shell explicit", async () => {
-  const [home, interview, library, garden, nav, layout] = await Promise.all([
+  const [home, interview, library, garden, nav, layout, transcription] = await Promise.all([
     readFile(new URL("../components/system/home-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/memory-interview.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/library-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/garden-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/nav-shell.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/system/use-live-transcription.ts", import.meta.url), "utf8"),
   ]);
 
   for (const destination of ["Home", "Library", "Add Memory", "Garden"]) {
     assert.match(nav, new RegExp(`label: \\\"${destination}\\\"`));
   }
-  assert.match(home, /Voice/);
-  assert.match(home, /Photo/);
-  assert.match(home, /Screenshot/);
-  assert.match(home, /Write/);
+  assert.match(home, /Add a photo/);
+  assert.match(home, /Add a screenshot/);
+  assert.match(home, /Speak and transcribe/);
+  assert.match(home, /Type or speak\. Your words stay editable/);
+  assert.match(interview, /Speak and transcribe this answer/);
+  assert.match(interview, /Speak and transcribe this memory/);
+  assert.match(transcription, /SpeechRecognition/);
+  assert.match(transcription, /interimResults = true/);
   assert.match(interview, /File/);
   assert.match(interview, /Prompt \{questionIndex \+ 1\} of up to 3/);
   assert.match(interview, /function contextualQuestion/);

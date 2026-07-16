@@ -9,24 +9,17 @@ import {
   Check,
   ImageSquare,
   Microphone,
-  PencilSimple,
+  Stop,
 } from "@phosphor-icons/react";
 import { NavShell } from "@/components/system/nav-shell";
 import { CaptureMode, KeptPage, MemoryInterview } from "@/components/system/memory-interview";
 import { LibraryExperience } from "@/components/system/library-experience";
 import { GardenExperience } from "@/components/system/garden-experience";
+import { useLiveTranscription } from "@/components/system/use-live-transcription";
 
 type Destination = "Home" | "Library" | "Add Memory" | "Garden";
-type HomeCaptureMode = "Write" | "Voice" | "Photo" | "Screenshot";
 
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
-
-const captureModes = [
-  { label: "Write" as const, icon: PencilSimple },
-  { label: "Voice" as const, icon: Microphone },
-  { label: "Photo" as const, icon: Camera },
-  { label: "Screenshot" as const, icon: ImageSquare },
-];
 
 function todayHeading() {
   return new Intl.DateTimeFormat("en-GB", {
@@ -38,7 +31,6 @@ function todayHeading() {
 
 export function HomeExperience() {
   const [active, setActive] = useState<Destination>("Home");
-  const [captureMode, setCaptureMode] = useState<HomeCaptureMode>("Write");
   const [memory, setMemory] = useState("");
   const [memorySeed, setMemorySeed] = useState("");
   const [memoryMode, setMemoryMode] = useState<CaptureMode>("Write");
@@ -47,6 +39,7 @@ export function HomeExperience() {
   const [isReading, setIsReading] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const reduceMotion = useReducedMotion();
+  const liveSpeech = useLiveTranscription({ value: memory, onChange: setMemory, onError: setNotice });
 
   useEffect(() => {
     const restore = window.setTimeout(() => {
@@ -114,7 +107,6 @@ export function HomeExperience() {
       return next;
     });
     setMemory("");
-    setCaptureMode("Write");
   };
 
   return (
@@ -158,36 +150,34 @@ export function HomeExperience() {
               </div>
 
               <div className="memory-composer" id="memory-composer">
-                <div className="capture-modes" aria-label="Choose how to share this memory">
-                  {captureModes.map(({ label, icon: Icon }) => (
-                    <button
-                      key={label}
-                      type="button"
-                      className={captureMode === label ? "capture-mode capture-mode--active" : "capture-mode"}
-                      aria-pressed={captureMode === label}
-                      onClick={() => {
-                        setCaptureMode(label);
-                        if (label !== "Write") openMemory(label);
-                      }}
-                    >
-                      <Icon size={19} weight={captureMode === label ? "fill" : "regular"} aria-hidden="true" />
-                      <span>{label}</span>
-                    </button>
-                  ))}
-                </div>
-
                 <label className="sr-only" htmlFor="memory-text">Share today&apos;s memory</label>
                 <textarea
                   id="memory-text"
                   ref={composerRef}
                   value={memory}
-                  onChange={(event) => setMemory(event.target.value)}
+                  onChange={(event) => {
+                    if (liveSpeech.isListening) liveSpeech.stop();
+                    setMemory(event.target.value);
+                  }}
                   placeholder="Someone appreciated me today for…"
                   rows={5}
                 />
 
                 <div className="composer-footer">
-                  <p>A sentence is enough to begin.</p>
+                  <div className="composer-tools" aria-label="Ways to add to this memory">
+                    <button type="button" onClick={() => openMemory("Photo")} aria-label="Add a photo"><Camera size={19} aria-hidden="true" /></button>
+                    <button type="button" onClick={() => openMemory("Screenshot")} aria-label="Add a screenshot"><ImageSquare size={19} aria-hidden="true" /></button>
+                    <button
+                      type="button"
+                      className={liveSpeech.isListening ? "composer-mic composer-mic--listening" : "composer-mic"}
+                      onClick={liveSpeech.isListening ? liveSpeech.stop : liveSpeech.start}
+                      aria-label={liveSpeech.isListening ? "Stop live transcription" : "Speak and transcribe"}
+                      aria-pressed={liveSpeech.isListening}
+                    >
+                      {liveSpeech.isListening ? <Stop size={17} weight="fill" aria-hidden="true" /> : <Microphone size={19} weight="fill" aria-hidden="true" />}
+                    </button>
+                    <p aria-live="polite">{liveSpeech.isListening ? `Listening${liveSpeech.interimTranscript ? ` · ${liveSpeech.interimTranscript}` : "…"}` : liveSpeech.isSupported ? "Type or speak. Your words stay editable." : "Type your memory here."}</p>
+                  </div>
                   <button className="begin-memory" type="button" onClick={beginInterview}>
                     Begin this memory
                     <ArrowRight size={18} weight="bold" aria-hidden="true" />

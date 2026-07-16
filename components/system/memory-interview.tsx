@@ -20,6 +20,7 @@ import {
   Sparkle,
   Stop,
 } from "@phosphor-icons/react";
+import { useLiveTranscription } from "@/components/system/use-live-transcription";
 
 export type CaptureMode = "Write" | "Voice" | "Photo" | "Screenshot" | "File";
 
@@ -168,6 +169,7 @@ export function MemoryInterview({
   const [notice, setNotice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const reduceMotion = useReducedMotion();
+  const answerSpeech = useLiveTranscription({ value: answer, onChange: setAnswer, onError: setNotice });
   const now = new Date();
   const memoryDate = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "long", year: "numeric" }).format(now);
   const memoryFolio = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(now).replaceAll("/", " · ");
@@ -467,14 +469,30 @@ export function MemoryInterview({
                 <small>Optional — choose the closest feeling, even if it is not the whole story.</small>
               </fieldset>
               <label htmlFor="interview-answer">Answer as if you were telling someone who knows you well.</label>
-              <textarea
-                id="interview-answer"
-                value={answer}
-                onChange={(event) => setAnswer(event.target.value)}
-                placeholder="I remember…"
-                rows={4}
-                autoFocus
-              />
+              <div className={answerSpeech.isListening ? "interview-answer-composer interview-answer-composer--listening" : "interview-answer-composer"}>
+                <textarea
+                  id="interview-answer"
+                  value={answer}
+                  onChange={(event) => {
+                    if (answerSpeech.isListening) answerSpeech.stop();
+                    setAnswer(event.target.value);
+                  }}
+                  placeholder="I remember…"
+                  rows={4}
+                  autoFocus
+                />
+                <div>
+                  <span aria-live="polite">{answerSpeech.isListening ? `Listening${answerSpeech.interimTranscript ? ` · ${answerSpeech.interimTranscript}` : "…"}` : "Type or speak your answer"}</span>
+                  <button
+                    type="button"
+                    onClick={answerSpeech.isListening ? answerSpeech.stop : answerSpeech.start}
+                    aria-label={answerSpeech.isListening ? "Stop live transcription" : "Speak and transcribe this answer"}
+                    aria-pressed={answerSpeech.isListening}
+                  >
+                    {answerSpeech.isListening ? <Stop size={16} weight="fill" aria-hidden="true" /> : <Microphone size={18} weight="fill" aria-hidden="true" />}
+                  </button>
+                </div>
+              </div>
               <div className="interview-page-footer">
                 <button type="button" className="quiet-action" onClick={finishEarly}>I&apos;ve said enough</button>
                 <button type="button" className="interview-primary" onClick={keepAnswer}>
@@ -847,6 +865,9 @@ function CaptureSurface({
   startRecording: () => void;
   stopRecording: () => void;
 }) {
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const liveSpeech = useLiveTranscription({ value: memory, onChange: setMemory, onError: setSpeechError });
+
   if (mode === "Write") {
     return (
       <div className="write-surface">
@@ -854,11 +875,25 @@ function CaptureSurface({
         <textarea
           id="new-memory-text"
           value={memory}
-          onChange={(event) => setMemory(event.target.value)}
+          onChange={(event) => {
+            if (liveSpeech.isListening) liveSpeech.stop();
+            setMemory(event.target.value);
+          }}
           placeholder="Today, someone appreciated me for something small…"
           rows={8}
           autoFocus
         />
+        <div className={liveSpeech.isListening ? "write-speech-bar write-speech-bar--listening" : "write-speech-bar"}>
+          <span aria-live="polite">{speechError ?? (liveSpeech.isListening ? `Listening${liveSpeech.interimTranscript ? ` · ${liveSpeech.interimTranscript}` : "…"}` : "Type or speak. The transcript remains editable.")}</span>
+          <button
+            type="button"
+            onClick={liveSpeech.isListening ? liveSpeech.stop : liveSpeech.start}
+            aria-label={liveSpeech.isListening ? "Stop live transcription" : "Speak and transcribe this memory"}
+            aria-pressed={liveSpeech.isListening}
+          >
+            {liveSpeech.isListening ? <Stop size={16} weight="fill" aria-hidden="true" /> : <Microphone size={18} weight="fill" aria-hidden="true" />}
+          </button>
+        </div>
         <div className={attachment?.preview ? "write-photo-attachment write-photo-attachment--ready" : "write-photo-attachment"}>
           {attachment?.preview ? <div><Image src={attachment.preview} alt="Photo attached to this memory" fill unoptimized sizes="180px" /></div> : <Camera size={19} aria-hidden="true" />}
           <span>{attachment ? attachment.name : "Add a photo to this moment"}</span>
