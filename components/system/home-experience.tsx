@@ -16,6 +16,7 @@ import { CaptureMode, KeptPage, MemoryInterview } from "@/components/system/memo
 import { LibraryExperience } from "@/components/system/library-experience";
 import { GardenExperience } from "@/components/system/garden-experience";
 import { useLiveTranscription } from "@/components/system/use-live-transcription";
+import { OnboardingExperience } from "@/components/system/onboarding-experience";
 
 type Destination = "Home" | "Library" | "Add Memory" | "Garden";
 
@@ -31,10 +32,12 @@ function todayHeading() {
 }
 
 export function HomeExperience() {
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [active, setActive] = useState<Destination>("Home");
   const [memory, setMemory] = useState("");
   const [memorySeed, setMemorySeed] = useState("");
   const [memoryMode, setMemoryMode] = useState<CaptureMode>("Write");
+  const [bookTitle, setBookTitle] = useState("Summer of Firsts");
   const [notice, setNotice] = useState<string | null>(null);
   const [savedPages, setSavedPages] = useState<KeptPage[]>([]);
   const [isReading, setIsReading] = useState(false);
@@ -45,6 +48,9 @@ export function HomeExperience() {
   useEffect(() => {
     const restore = window.setTimeout(() => {
       try {
+        const previewOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
+        setShowOnboarding(previewOnboarding || window.localStorage.getItem("life-in-books-onboarding-complete") !== "yes");
+        setBookTitle(window.localStorage.getItem("life-in-books-book-title") || "Summer of Firsts");
         const stored = window.localStorage.getItem("life-in-books-pages");
         if (stored) setSavedPages(JSON.parse(stored) as KeptPage[]);
       } catch {
@@ -53,6 +59,14 @@ export function HomeExperience() {
     }, 0);
     return () => window.clearTimeout(restore);
   }, []);
+
+  const completeOnboarding = (bookTitle: string) => {
+    window.localStorage.setItem("life-in-books-onboarding-complete", "yes");
+    window.localStorage.setItem("life-in-books-book-title", bookTitle);
+    setBookTitle(bookTitle);
+    setShowOnboarding(false);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
 
   const showHome = () => {
     setActive("Home");
@@ -109,6 +123,8 @@ export function HomeExperience() {
     });
     setMemory("");
   };
+
+  if (showOnboarding) return <OnboardingExperience onComplete={completeOnboarding} />;
 
   return (
     <main className={active === "Add Memory" ? "home-app home-app--memory" : "home-app"}>
@@ -197,12 +213,12 @@ export function HomeExperience() {
                   <button type="button" onClick={() => selectDestination("Library")}>View all</button>
                 </div>
 
-                <button className="book-cover-card" type="button" onClick={() => selectDestination("Library")} aria-label="Open Summer of Firsts in the library">
+                <button className="book-cover-card" type="button" onClick={() => selectDestination("Library")} aria-label={`Open ${bookTitle} in the library`}>
                   <div className="book-cover-image">
                     <Image src="/assets/current-book-cover.png" alt="An open handwritten notebook beside old family photographs and tea" fill unoptimized sizes="(max-width: 700px) 92vw, 38vw" priority />
                   </div>
                   <div className="book-cover-copy">
-                    <h3>Summer of Firsts</h3>
+                    <h3>{bookTitle}</h3>
                     <span className="book-accent" aria-hidden="true" />
                     <p>12 memories · Last updated today</p>
                   </div>

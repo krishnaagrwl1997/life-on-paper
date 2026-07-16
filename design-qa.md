@@ -1,57 +1,56 @@
-# Design QA — Life In Books Home / Capture
+# Design QA — Life In Books Onboarding
 
-- Source visual truth: `/Users/krishna/.codex/generated_images/019f5a91-1d90-7ac0-96ca-1df94d2ee1fb/exec-ed9e34c4-d7b1-4fb2-a0a3-0abd964b4771.png`
-- Implementation screenshot: `/private/tmp/life-in-books-option1-mobile-final.png`
-- Full-view comparison evidence: `/private/tmp/life-in-books-option1-comparison-final.png`
-- Viewport: 390 × 844
-- State: Home, composer idle and empty
-- Primary interactions tested: typed a realistic memory, continued into the guided conversation, and verified a contextual follow-up plus feeling choices
+- Source visual truth path: `/Users/krishna/.codex/generated_images/019f5a91-1d90-7ac0-96ca-1df94d2ee1fb/exec-ed9e34c4-d7b1-4fb2-a0a3-0abd964b4771.png`
+- Implementation screenshot path: `/private/tmp/life-in-books-onboarding-mobile.png`
+- Desktop implementation screenshot path: `/private/tmp/life-in-books-onboarding-desktop.png`
+- Full-view comparison evidence: `/private/tmp/life-in-books-onboarding-comparison.png`
+- Viewport: 390 × 844 mobile; responsive desktop checked at the browser default viewport
+- State: onboarding step one, guest user, no login
+- Primary interactions tested: Begin, capture-method multi-select, theme multi-select, Continue, Back availability, book-title editing, live book-cover preview, Open my book, and arrival on Home
 - Console errors checked: yes; none
-- Focused-region comparison: not required because the 390 × 844 side-by-side keeps the full UI legible at native scale
+- Focused-region comparison: not required because the side-by-side comparison preserves readable typography, controls, image crop, spacing, and color at a useful scale
 
 ## Findings
 
 - No actionable P0, P1, or P2 issues remain.
-- Typography: Fraunces and Inter are used consistently; the three-line prompt wrap matches the selected direction.
-- Spacing and layout: the hierarchy matches the reference and there is no horizontal overflow.
-- Color: warm ivory, near-black, burnt orange, and ceremonial gold follow the product tokens. The brighter orange in the source was intentionally mapped to the established brand orange.
-- Imagery: real raster assets are used, with crop, quality, and art direction matched to the reference.
-- Copy: the experience is framed as memoir capture, never as an interview or generic chat.
-- Icons and states: Phosphor icons are consistent; Add Memory is circular and Home has the active state.
-- The source shows an active Listening state. The implementation was captured idle because microphone permission was not exercised during visual QA; the control is present and labelled.
+- Fonts and typography: Fraunces remains exclusive to editorial headings and reading content; Inter remains exclusive to navigation, choices, helper text, and controls. Weight, line height, wrapping, and small-label tracking match the selected direction.
+- Spacing and layout rhythm: the 390 × 844 layout has no horizontal overflow or clipped primary actions. The footer remains visible while the content region can scroll when required. Desktop becomes a balanced editorial split without turning into a dashboard.
+- Colors and visual tokens: warm ivory, near-black, burnt orange, and restrained ceremonial gold follow the existing product tokens. Selected states use a low-opacity orange tint without introducing a new primary color.
+- Image quality and asset fidelity: the established notebook-and-photograph raster asset is reused with an intentional crop and sufficient sharpness. No placeholder, CSS illustration, handmade SVG, or emoji substitutes are present.
+- Copy and content: the promise is memoir-making through conversation, with no interview language, no account wall, and plain explanations of writing, speaking, images, themes, and book creation.
+- Icons and states: Phosphor icons match the existing interface. Selected, unselected, hover, focus, disabled Back, and progress states are distinct and consistent.
+- Accessibility: controls have accessible names, selection uses `aria-pressed`, progress has a step label, inputs have labels, and reduced motion is supported.
 
 ## Comparison history
 
 1. Initial findings
-   - [P2] The prompt was oversized, wrapped to four lines, and pushed the book card too low.
-   - [P1] Add Memory became a rounded square because of a late cascade override.
-   - [P2] The initial still-life image was too generic for the selected art direction.
-2. Fixes
-   - Reduced and constrained the prompt to the intended three-line measure.
-   - Restored the circular Add Memory size and radius.
-   - Replaced the still life with a dedicated notebook, old-photo, tea, pen, and greenery image.
-   - Tightened the current-book card height so its title and metadata remain visible.
-3. Post-fix evidence
-   - `/private/tmp/life-in-books-option1-comparison-final.png`
+   - [P1] On mobile steps with taller choice content, the footer could fall below the 844 px viewport, hiding the primary Continue action.
+2. Fixes made
+   - Allowed the page region—not the entire app shell—to scroll.
+   - Prevented the footer from shrinking and kept it as a stable final row in the mobile frame.
+3. Post-fix visual evidence
+   - `/private/tmp/life-in-books-onboarding-mobile.png`
+   - The capture-method and theme screens were rechecked at 390 × 844 with Continue visible.
 
 ## Open questions
 
 None.
 
-## Checklist
+## Implementation checklist
 
-- [x] Full view compared against the source visual truth
-- [x] Typography and wrapping checked
-- [x] Spacing, sizing, and responsive behavior checked
-- [x] Color tokens checked
-- [x] Imagery quality and crop checked
-- [x] Copy and hierarchy checked
-- [x] Icons, active state, and primary controls checked
-- [x] Contextual continuation and feeling selection exercised
+- [x] Four-step guest onboarding implemented
+- [x] Skip and Back behavior implemented
+- [x] Capture preferences selectable
+- [x] Memory themes selectable
+- [x] Book title editable with live preview
+- [x] Completion persists locally without login
+- [x] Personalized book title is available to Home
+- [x] Mobile and desktop layouts visually checked
+- [x] Main flow exercised from welcome to Home
 - [x] Console checked for errors
 
-## Follow-up
+## Follow-up polish
 
-- [P3] Exercise and capture the active microphone-permission state during device QA.
+- [P3] Add a profile entry point for replaying onboarding once account/profile settings are designed.
 
-Final result: passed.
+final result: passed
