@@ -9,7 +9,9 @@ import {
   BookOpenText,
   Camera,
   Check,
+  CloudCheck,
   Heart,
+  LockKey,
   Microphone,
   Mountains,
   Notebook,
@@ -49,9 +51,10 @@ export function OnboardingExperience({ onComplete }: OnboardingExperienceProps) 
   const [captureMethods, setCaptureMethods] = useState<string[]>(["speak"]);
   const [themes, setThemes] = useState<string[]>(["small-wins"]);
   const [bookTitle, setBookTitle] = useState("The Life I’m Becoming");
+  const [googleNotice, setGoogleNotice] = useState(false);
   const reduceMotion = useReducedMotion();
 
-  const stepMeta = useMemo(() => `${String(step + 1).padStart(2, "0")} / 04`, [step]);
+  const stepMeta = useMemo(() => `${String(step + 1).padStart(2, "0")} / 05`, [step]);
 
   const toggleChoice = (value: string, current: string[], update: (next: string[]) => void) => {
     update(current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
@@ -75,8 +78,8 @@ export function OnboardingExperience({ onComplete }: OnboardingExperienceProps) 
         <button className="onboarding-skip" type="button" onClick={finish}>Skip</button>
       </header>
 
-      <div className="onboarding-progress" aria-label={`Step ${step + 1} of 4`}>
-        <span style={{ width: `${((step + 1) / 4) * 100}%` }} />
+      <div className="onboarding-progress" aria-label={`Step ${step + 1} of 5`}>
+        <span style={{ width: `${((step + 1) / 5) * 100}%` }} />
       </div>
 
       <AnimatePresence mode="wait" initial={false}>
@@ -179,17 +182,56 @@ export function OnboardingExperience({ onComplete }: OnboardingExperienceProps) 
               </div>
             </div>
           ) : null}
+
+          {step === 4 ? (
+            <div className="onboarding-account-step">
+              <div className="onboarding-kicker"><LockKey size={18} aria-hidden="true" /> Keep your book safe</div>
+              <h1>Take your book with you.</h1>
+              <p className="onboarding-lede">Connect an account to continue your memoir on any device. Your memories stay private unless you choose to share them.</p>
+
+              <div className="onboarding-account-card">
+                <div className="onboarding-account-mark"><CloudCheck size={30} weight="duotone" aria-hidden="true" /></div>
+                <div>
+                  <span>Optional account</span>
+                  <h2>{bookTitle.trim() || "My Life In Books"}</h2>
+                  <p>Sync your book, preserve its pages, and return from any device.</p>
+                </div>
+              </div>
+
+              <button className="google-connect" type="button" onClick={() => setGoogleNotice(true)} aria-describedby="google-privacy-note">
+                <Image src="/assets/google-g.svg" alt="" width={20} height={20} unoptimized />
+                <span>Continue with Google</span>
+              </button>
+              <p className="google-privacy" id="google-privacy-note">Nothing will be posted or shared.</p>
+
+              <AnimatePresence>
+                {googleNotice ? (
+                  <motion.div
+                    className="google-connection-note"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}
+                    role="status"
+                  >
+                    <strong>Google connection is the next technical step.</strong>
+                    <span>OAuth credentials are needed before this can securely sign you in. You can continue as a guest for now.</span>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </div>
+          ) : null}
         </motion.section>
       </AnimatePresence>
 
       <footer className="onboarding-footer">
-        <p>{step === 0 ? "No login needed to begin." : step === 3 ? "Your first prompt is waiting." : "You can change this later."}</p>
+        <p>{step === 0 ? "No login needed to begin." : step === 3 ? "One last optional step." : step === 4 ? "You can connect an account later." : "You can change this later."}</p>
         <button
-          className="onboarding-next"
+          className={step === 4 ? "onboarding-next onboarding-next--guest" : "onboarding-next"}
           type="button"
-          onClick={() => step === 3 ? finish() : setStep((current) => current + 1)}
+          onClick={() => step === 4 ? finish() : setStep((current) => current + 1)}
         >
-          <span>{step === 0 ? "Begin" : step === 3 ? "Open my book" : "Continue"}</span>
+          <span>{step === 0 ? "Begin" : step === 4 ? "Continue without account" : "Continue"}</span>
           <ArrowRight size={22} aria-hidden="true" />
         </button>
       </footer>
