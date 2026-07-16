@@ -40,11 +40,13 @@ export function NavShell({
           <button
             key={label}
             type="button"
+            aria-label={label}
             onClick={() => onSelect(label)}
             aria-current={isActive ? "page" : undefined}
             className={cn(
               "nav-destination",
               emphasized && "nav-destination--action",
+              isActive && "nav-destination--current",
               isActive && !emphasized && "nav-destination--active",
             )}
           >
@@ -64,7 +66,7 @@ export function NavShell({
               weight={emphasized ? "light" : isActive ? "bold" : "regular"}
               aria-hidden="true"
             />
-            <span className="nav-label">{label}</span>
+            <span className="nav-label" aria-hidden="true">{label}</span>
           </button>
         );
       })}

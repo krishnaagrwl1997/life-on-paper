@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -24,6 +25,7 @@ type GardenBook = {
   themes: string[];
   access: GardenAccess;
   cover: string;
+  coverImage: string;
   pages: number;
   updated: string;
   previewTitle: string;
@@ -44,6 +46,7 @@ const gardenBooks: GardenBook[] = [
     themes: ["Home", "Friendship", "Starting over"],
     access: "request",
     cover: "clay",
+    coverImage: "/assets/domestic-still-life.png",
     pages: 46,
     updated: "Writing this week",
     previewTitle: "The Key I Left on the Table",
@@ -60,6 +63,7 @@ const gardenBooks: GardenBook[] = [
     themes: ["Travel", "Chance", "Strangers"],
     access: "public",
     cover: "blue",
+    coverImage: "/assets/seaside-memory.png",
     pages: 71,
     updated: "Updated 4 days ago",
     previewTitle: "The Ferry I Was Never Meant to Catch",
@@ -76,6 +80,7 @@ const gardenBooks: GardenBook[] = [
     themes: ["Family", "Inheritance", "Food"],
     access: "request",
     cover: "forest",
+    coverImage: "/assets/botanical-paper-collage.png",
     pages: 58,
     updated: "Updated yesterday",
     previewTitle: "Rain Against the Kitchen Glass",
@@ -92,6 +97,7 @@ const gardenBooks: GardenBook[] = [
     themes: ["Letters", "Fatherhood", "Return"],
     access: "granted",
     cover: "gold",
+    coverImage: "/assets/seaside-memory.png",
     pages: 39,
     updated: "Access shared with you",
     previewTitle: "A Song for the Drive Back",
@@ -108,6 +114,7 @@ const gardenBooks: GardenBook[] = [
     themes: ["Family", "Silence", "Forgiveness"],
     access: "private",
     cover: "ink",
+    coverImage: "/assets/domestic-still-life.png",
     pages: 24,
     updated: "Private book",
     previewTitle: "",
@@ -123,6 +130,7 @@ export function GardenExperience() {
   const reduceMotion = useReducedMotion();
   const selected = gardenBooks.find((book) => book.id === selectedId) ?? gardenBooks[0];
   const requestSent = requests.includes(selected.id);
+  const todayFolio = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(new Date()).replaceAll("/", " · ");
 
   useEffect(() => {
     const restore = window.setTimeout(() => {
@@ -142,6 +150,12 @@ export function GardenExperience() {
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
+  const goToView = (next: GardenView) => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+    setView(next);
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+  };
+
   const sendRequest = () => {
     setRequests((current) => {
       const next = current.includes(selected.id) ? current : [...current, selected.id];
@@ -154,7 +168,7 @@ export function GardenExperience() {
     <div className="garden-experience">
       <header className="garden-header">
         <div><p>Life In Books</p><span>{view === "garden" ? "The Garden" : selected.author}</span></div>
-        {view !== "garden" ? <button type="button" onClick={() => setView(view === "preview" ? "book" : "garden")}><ArrowLeft size={17} weight="bold" aria-hidden="true" />{view === "preview" ? "Book" : "Garden"}</button> : <span>13 · 07 · 26</span>}
+        {view !== "garden" ? <button type="button" onClick={() => goToView(view === "preview" ? "book" : "garden")}><ArrowLeft size={17} weight="bold" aria-hidden="true" />{view === "preview" ? "Book" : "Garden"}</button> : <span>{todayFolio}</span>}
       </header>
 
       <AnimatePresence mode="wait">
@@ -172,6 +186,7 @@ export function GardenExperience() {
               {gardenBooks.map((book, index) => (
                 <article key={book.id} className="garden-card">
                   <button type="button" className={`garden-cover garden-cover--${book.cover}`} onClick={() => openBook(book.id)} aria-label={`Open ${book.title} by ${book.author}`}>
+                    <Image className="garden-cover-image" src={book.coverImage} alt="" fill unoptimized sizes="(max-width: 700px) 92vw, 33vw" />
                     <span>{String(index + 1).padStart(2, "0")}</span>
                     <div><small>{book.author}</small><strong>{book.title}</strong><em>{book.subtitle}</em></div>
                   </button>
@@ -186,13 +201,13 @@ export function GardenExperience() {
           </motion.section>
         ) : view === "book" ? (
           <motion.section key={selected.id} className="garden-book" initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
-            <div className={`garden-book-cover garden-cover--${selected.cover}`}><span>{selected.author}</span><h1>{selected.title}</h1><p>{selected.subtitle}</p></div>
+            <div className={`garden-book-cover garden-cover--${selected.cover}`}><Image className="garden-cover-image" src={selected.coverImage} alt="" fill unoptimized sizes="(max-width: 700px) 92vw, 38vw" /><span>{selected.author}</span><h1>{selected.title}</h1><p>{selected.subtitle}</p></div>
             <div className="garden-book-details">
               <div className="garden-book-author"><span>{selected.initials}</span><div><p>A memoir by</p><h2>{selected.author}</h2></div></div>
               <p className="garden-book-summary">{selected.summary}</p>
+              <AccessAction book={selected} requestSent={requestSent} onRequest={sendRequest} onRead={() => goToView("preview")} />
               <div className="garden-themes">{selected.themes.map((theme) => <span key={theme}>{theme}</span>)}</div>
               <dl><div><dt>Pages</dt><dd>{selected.pages}</dd></div><div><dt>Sharing</dt><dd>{accessLabel(selected.access, requestSent)}</dd></div><div><dt>Status</dt><dd>{selected.updated}</dd></div></dl>
-              <AccessAction book={selected} requestSent={requestSent} onRequest={sendRequest} onRead={() => setView("preview")} />
             </div>
           </motion.section>
         ) : (

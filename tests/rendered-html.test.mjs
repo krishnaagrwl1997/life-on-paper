@@ -49,14 +49,13 @@ test("keeps the four-destination memoir shell explicit", async () => {
   assert.match(interview, /function contextualQuestion/);
   assert.match(interview, /Who noticed this about you/);
   assert.match(interview, /How did this moment feel/);
-  assert.match(interview, /Continue to conversation/);
-  assert.match(interview, /Here&apos;s what I heard/);
+  assert.match(interview, /Review what I heard/);
+  assert.match(interview, /Return to conversation/);
   assert.match(interview, /This memory belongs here/);
   assert.match(interview, /Why this chapter/);
   assert.match(interview, /Change chapter/);
   assert.match(interview, /Create a new chapter/);
-  assert.match(interview, /Place in this chapter/);
-  assert.match(interview, /Design this page/);
+  assert.match(interview, /Place &amp; design this page/);
   assert.match(interview, /Your page is taking shape/);
   assert.match(interview, /This is how your memory reads/);
   assert.match(interview, /Try another layout/);

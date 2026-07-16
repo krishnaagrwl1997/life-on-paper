@@ -78,11 +78,14 @@ function contextualQuestion(memory: string, answers: string[], feeling: string |
   }
 
   if (index === 1) {
-    const firstAnswer = answers[0]?.trim();
-    const anchor = firstAnswer && firstAnswer.length < 96 ? `“${firstAnswer}”` : "what happened";
+    if (/appreciat|compliment|praised|thanked/.test(lower)) {
+      return feeling
+        ? `What made those words feel especially ${feeling.toLowerCase()}?`
+        : "What made those words stay with you after the conversation ended?";
+    }
     return feeling
-      ? `You chose ${feeling.toLowerCase()}. What about ${anchor} made that feeling stronger—or more complicated?`
-      : `When you think about ${anchor}, what did you notice in yourself that you might have missed at the time?`;
+      ? `What made that part of the moment feel especially ${feeling.toLowerCase()}?`
+      : "What did you notice in yourself that you might have missed at the time?";
   }
 
   return `Years from now, when you return to “${shortMemory || "this memory"},” what do you hope it reminds you about who you were becoming?`;
@@ -165,6 +168,9 @@ export function MemoryInterview({
   const [notice, setNotice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const reduceMotion = useReducedMotion();
+  const now = new Date();
+  const memoryDate = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "long", year: "numeric" }).format(now);
+  const memoryFolio = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(now).replaceAll("/", " · ");
 
   useEffect(() => {
     if (!isRecording) return;
@@ -246,7 +252,8 @@ export function MemoryInterview({
     setAnswer("");
     setNotice(null);
     if (questionIndex === 2) {
-      setPhase("summary");
+      setPlacementMode("proposal");
+      setPhase("placement");
     } else {
       setQuestionIndex((index) => Math.min(index + 1, 2));
     }
@@ -258,7 +265,8 @@ export function MemoryInterview({
     setAnswers(nextAnswers);
     setAnswer("");
     setNotice(null);
-    setPhase("summary");
+    setPlacementMode("proposal");
+    setPhase("placement");
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
@@ -328,7 +336,7 @@ export function MemoryInterview({
       chapter: placement.chapter,
       chapterTitle: placement.title,
       layout: selectedLayout.name,
-      date: "13 July 2026",
+      date: memoryDate,
       photo: attachment?.preview,
     });
   };
@@ -355,7 +363,7 @@ export function MemoryInterview({
           <p>Life In Books</p>
           <span>New memory</span>
         </div>
-        <span className="memory-folio">13 · 07 · 26</span>
+        <span className="memory-folio">{memoryFolio}</span>
       </header>
 
       <ConversationProgress phase={phase} />
@@ -464,7 +472,7 @@ export function MemoryInterview({
                 value={answer}
                 onChange={(event) => setAnswer(event.target.value)}
                 placeholder="I remember…"
-                rows={6}
+                rows={4}
                 autoFocus
               />
               <div className="interview-page-footer">
@@ -496,7 +504,7 @@ export function MemoryInterview({
 
             <article className="summary-manuscript">
               <header>
-                <span>Memory · 13 July 2026</span>
+                <span>Memory · {memoryDate}</span>
                 <span>{answers.length} follow-up{answers.length === 1 ? "" : "s"}</span>
               </header>
               <p className="summary-opening">{memory || attachment?.name}</p>
@@ -509,7 +517,7 @@ export function MemoryInterview({
               {saved ? <Check size={21} weight="bold" aria-hidden="true" /> : <FileText size={21} aria-hidden="true" />}
               <div>
                 <strong>{saved ? "Memory kept" : "Nothing has been placed yet"}</strong>
-                <p>{saved ? "It is ready for chapter placement—the next milestone." : "You'll choose its book and chapter in the next step we build."}</p>
+                <p>{saved ? "It is ready for chapter placement." : "Review the memory, then choose where it belongs."}</p>
               </div>
             </aside>
 
@@ -557,6 +565,14 @@ export function MemoryInterview({
                   <h1 id="placement-title">This memory belongs here.</h1>
                   <p>I found the strongest thread in what you shared. You can keep this home or choose another.</p>
                 </div>
+
+                <details className="placement-summary">
+                  <summary>Review what I heard</summary>
+                  <blockquote>{memory || attachment?.name}</blockquote>
+                  {selectedFeeling ? <p><span>Feeling</span><strong>{selectedFeeling}</strong></p> : null}
+                  {answers.map((item, index) => <p key={`placement-answer-${index}`}>{item}</p>)}
+                  <button type="button" className="quiet-action" onClick={editInterview}>Return to conversation</button>
+                </details>
 
                 <div className="placement-workspace">
                   <article className="chapter-proposal">
@@ -629,7 +645,7 @@ export function MemoryInterview({
                 {placementMode === "proposal" ? (
                   <div className="placement-actions">
                     <button type="button" className="quiet-action" onClick={() => setPlacementMode("change")}>Change chapter</button>
-                    <button type="button" className="interview-primary" onClick={() => setPlacementMode("placed")}>Place in this chapter <Check size={18} weight="bold" aria-hidden="true" /></button>
+                    <button type="button" className="interview-primary" onClick={designPage}>Place &amp; design this page <Check size={18} weight="bold" aria-hidden="true" /></button>
                   </div>
                 ) : null}
               </>
@@ -702,7 +718,8 @@ export function MemoryInterview({
                 <div className="page-heading">
                   <p className="memory-eyebrow">A page in {placement.title}</p>
                   <h1 id="page-title">This is how your memory reads.</h1>
-                  <p>The AI chose <strong>{selectedLayout.name}</strong> because {selectedLayout.note.toLowerCase()}</p>
+                  <p><strong>{selectedLayout.name}</strong> suits this memory because {selectedLayout.note.toLowerCase()}</p>
+                  <button type="button" className="quiet-action page-reconsider" onClick={() => { setPlacementMode("proposal"); setPhase("placement"); window.scrollTo({ top: 0, behavior: "auto" }); }}>Reconsider placement</button>
                 </div>
 
                 <div className={pageSaved ? "page-route-card page-route-card--saved" : "page-route-card"}>
@@ -715,20 +732,13 @@ export function MemoryInterview({
                 </div>
 
                 <div className="page-review-workspace">
-                  <aside className="layout-decision">
-                    <span>Layout chosen</span>
-                    <strong>{selectedLayout.name}</strong>
-                    <p>{selectedLayout.note}</p>
-                    <div><Sparkle size={16} weight="fill" aria-hidden="true" /> Chosen from the shape of your answers</div>
-                  </aside>
-
                   <article className={`memoir-page memoir-page--${selectedLayout.id}`} aria-label={`${selectedLayout.name} memoir page preview`}>
                     <header>
                       <span>{placement.book} · {placement.volume}</span>
                       <span>{placement.chapter}</span>
                     </header>
                     <div className="memoir-page-content">
-                      <p className="memoir-page-date">13 July 2026</p>
+                      <p className="memoir-page-date">{memoryDate}</p>
                       {selectedLayout.id === "letter" ? <p className="memoir-salutation">Dear future me,</p> : null}
                       <h2>{selectedLayout.id === "people" ? "The People Who Saw Me" : selectedLayout.id === "travel" ? "What I Carried Home" : selectedLayout.id === "little-things" ? "Three Small Things I Kept" : "The Kind of Person I Was Becoming"}</h2>
                       {selectedLayout.id === "illustration" && attachment?.preview ? <div className="memoir-page-photo"><Image src={attachment.preview} alt="Attached memory" fill unoptimized sizes="680px" /></div> : null}
@@ -794,21 +804,23 @@ function ConversationProgress({ phase }: { phase: Phase }) {
   const phases: Array<{ id: Phase; number: string; label: string }> = [
     { id: "capture", number: "I", label: "Capture" },
     { id: "interview", number: "II", label: "Explore" },
-    { id: "summary", number: "III", label: "Gathered" },
-    { id: "placement", number: "IV", label: "Place" },
-    { id: "page", number: "V", label: "Page" },
+    { id: "placement", number: "III", label: "Review & Place" },
+    { id: "page", number: "IV", label: "Page Ready" },
   ];
-  const current = phases.findIndex((item) => item.id === phase);
+  const current = Math.max(0, phases.findIndex((item) => item.id === (phase === "summary" ? "placement" : phase)));
 
   return (
-    <ol className="interview-progress" aria-label="Memory conversation progress">
-      {phases.map((item, index) => (
-        <li key={item.id} className={index === current ? "interview-progress--active" : index < current ? "interview-progress--complete" : ""}>
-          <span>{index < current ? <Check size={13} weight="bold" aria-hidden="true" /> : item.number}</span>
-          <strong>{item.label}</strong>
-        </li>
-      ))}
-    </ol>
+    <>
+      <div className="interview-progress-mobile" aria-hidden="true"><strong>{phases[current].label}</strong><span>{current + 1} of {phases.length}</span></div>
+      <ol className="interview-progress" aria-label="Memory conversation progress">
+        {phases.map((item, index) => (
+          <li key={item.id} className={index === current ? "interview-progress--active" : index < current ? "interview-progress--complete" : ""}>
+            <span>{index < current ? <Check size={13} weight="bold" aria-hidden="true" /> : item.number}</span>
+            <strong>{item.label}</strong>
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }
 

@@ -28,6 +28,14 @@ const captureModes = [
   { label: "Screenshot" as const, icon: ImageSquare },
 ];
 
+function todayHeading() {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date());
+}
+
 export function HomeExperience() {
   const [active, setActive] = useState<Destination>("Home");
   const [captureMode, setCaptureMode] = useState<HomeCaptureMode>("Write");
@@ -54,6 +62,7 @@ export function HomeExperience() {
 
   const showHome = () => {
     setActive("Home");
+    setMemorySeed("");
     setNotice(null);
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
@@ -104,6 +113,8 @@ export function HomeExperience() {
       window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));
       return next;
     });
+    setMemory("");
+    setCaptureMode("Write");
   };
 
   return (
@@ -115,7 +126,11 @@ export function HomeExperience() {
           initialMemory={memorySeed}
           onBack={showHome}
           onPageKept={keepPageInLibrary}
-          onOpenLibrary={() => setActive("Library")}
+          onOpenLibrary={() => {
+            setMemorySeed("");
+            setActive("Library");
+            window.scrollTo({ top: 0, behavior: "auto" });
+          }}
         />
       ) : active === "Library" ? (
         <LibraryExperience savedPages={savedPages} onReadingChange={setIsReading} />
@@ -125,7 +140,7 @@ export function HomeExperience() {
         <div className="home-frame">
           <header className="home-header">
             <div>
-              <p className="home-date">Sunday, 13 July</p>
+              <p className="home-date">{todayHeading()}</p>
               <h1>Life In Books</h1>
             </div>
             <button className="profile-mark" type="button" aria-label="Open profile">K</button>

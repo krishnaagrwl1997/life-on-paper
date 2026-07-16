@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft,
@@ -12,9 +12,10 @@ import {
   Check,
   Eye,
   GearSix,
-  LampPendant,
   PencilSimple,
   Plus,
+  SunDim,
+  TextAa,
   Trash,
 } from "@phosphor-icons/react";
 import type { KeptPage } from "@/components/system/memory-interview";
@@ -97,7 +98,12 @@ export function LibraryExperience({
   const [selectedPageId, setSelectedPageId] = useState(pages[0]?.id ?? samplePages[0].id);
   const [lamplight, setLamplight] = useState(false);
   const [readerScale, setReaderScale] = useState<"small" | "medium" | "large">("medium");
+  const [readerSpacing, setReaderSpacing] = useState<"comfortable" | "open">("comfortable");
+  const [readerChrome, setReaderChrome] = useState(true);
+  const [readerSettingsOpen, setReaderSettingsOpen] = useState(false);
+  const pointerStart = useRef<number | null>(null);
   const reduceMotion = useReducedMotion();
+  const todayFolio = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(new Date()).replaceAll("/", " · ");
   const activePages = pages.filter((page) => !removedPageIds.includes(page.id));
   const selectedPage = activePages.find((page) => page.id === selectedPageId) ?? activePages[0] ?? pages[0];
 
@@ -105,9 +111,14 @@ export function LibraryExperience({
     const restore = window.setTimeout(() => {
       try {
         const stored = window.localStorage.getItem("life-in-books-studio");
-        if (!stored) return;
-        const studio = JSON.parse(stored) as { pages?: KeptPage[]; removedPageIds?: string[]; bookTitle?: string; bookVisibility?: BookVisibility; coverStyle?: CoverStyle; extraVolumes?: string[] };
-        if (studio.pages?.length) setPages(studio.pages);
+        const studio = stored ? JSON.parse(stored) as { pages?: KeptPage[]; removedPageIds?: string[]; bookTitle?: string; bookVisibility?: BookVisibility; coverStyle?: CoverStyle; extraVolumes?: string[] } : {};
+        const studioPages = studio.pages ?? [];
+        const merged = [
+          ...savedPages,
+          ...studioPages.filter((page) => !savedPages.some((savedPage) => savedPage.id === page.id || savedPage.title === page.title)),
+          ...samplePages.filter((sample) => !savedPages.some((page) => page.title === sample.title) && !studioPages.some((page) => page.title === sample.title)),
+        ];
+        setPages(merged);
         if (studio.removedPageIds) setRemovedPageIds(studio.removedPageIds);
         if (studio.bookTitle) setBookTitle(studio.bookTitle);
         if (studio.bookVisibility) setBookVisibility(studio.bookVisibility);
@@ -118,7 +129,7 @@ export function LibraryExperience({
       }
     }, 0);
     return () => window.clearTimeout(restore);
-  }, []);
+  }, [savedPages]);
 
   useEffect(() => {
     onReadingChange?.(view === "reader");
@@ -129,6 +140,16 @@ export function LibraryExperience({
   const persistStudio = (next: { pages?: KeptPage[]; removedPageIds?: string[]; bookTitle?: string; bookVisibility?: BookVisibility; coverStyle?: CoverStyle; extraVolumes?: string[] }) => {
     const state = { pages, removedPageIds, bookTitle, bookVisibility, coverStyle, extraVolumes, ...next };
     window.localStorage.setItem("life-in-books-studio", JSON.stringify(state));
+  };
+
+  const goToView = (next: LibraryView) => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+    setView(next);
+    if (next === "reader") {
+      setReaderChrome(true);
+      setReaderSettingsOpen(false);
+    }
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   };
 
   const movePage = (direction: -1 | 1) => {
@@ -146,11 +167,11 @@ export function LibraryExperience({
           <span>{view === "shelf" ? "Your library" : view === "book" ? "Book One" : view === "studio" ? "Book Studio" : selectedPage.chapterTitle}</span>
         </div>
         {view !== "shelf" ? (
-          <button type="button" onClick={() => setView(view === "reader" || view === "studio" ? "book" : "shelf")}>
+          <button type="button" onClick={() => goToView(view === "reader" || view === "studio" ? "book" : "shelf")}>
             <ArrowLeft size={17} weight="bold" aria-hidden="true" />
             {view === "reader" || view === "studio" ? "Contents" : "Library"}
           </button>
-        ) : <span className="library-folio">13 · 07 · 26</span>}
+        ) : <span className="library-folio">{todayFolio}</span>}
       </header> : null}
 
       <AnimatePresence mode="wait">
@@ -163,7 +184,7 @@ export function LibraryExperience({
             </div>
 
             <div className="library-featured">
-              <button type="button" className={`library-cover library-cover--${coverStyle}`} onClick={() => setView("book")} aria-label={`Open Book One, ${bookTitle}`}>
+              <button type="button" className={`library-cover library-cover--${coverStyle}`} onClick={() => goToView("book")} aria-label={`Open Book One, ${bookTitle}`}>
                 <Image src="/assets/seaside-memory.png" alt="A quiet coast under a soft sky" fill unoptimized sizes="(max-width: 700px) 92vw, 36vw" priority />
                 <span>Book One</span>
                 <div><small>A memoir in progress</small><strong>{bookTitle}</strong><em>Krishna</em></div>
@@ -177,7 +198,7 @@ export function LibraryExperience({
                   <div><dt>Chapters</dt><dd>6</dd></div>
                   <div><dt>Pages</dt><dd>{activePages.length}</dd></div>
                 </dl>
-                <button type="button" className="library-primary" onClick={() => setView("book")}>Open this book <ArrowRight size={18} weight="bold" aria-hidden="true" /></button>
+                <button type="button" className="library-primary" onClick={() => goToView("book")}>Open this book <ArrowRight size={18} weight="bold" aria-hidden="true" /></button>
               </div>
             </div>
 
@@ -185,7 +206,7 @@ export function LibraryExperience({
               <div><p className="section-label">Recently bound</p><span>{savedPages.length ? "Saved on this device" : "Sample pages"}</span></div>
               <div className="library-recent-grid">
                 {activePages.slice(0, 3).map((page, index) => (
-                  <button key={page.id} type="button" onClick={() => { setSelectedPageId(page.id); setView("reader"); }}>
+                  <button key={page.id} type="button" onClick={() => { setSelectedPageId(page.id); goToView("reader"); }}>
                     <span>{String(index + 1).padStart(2, "0")}</span><small>{page.chapterTitle}</small><strong>{page.title}</strong><p>{page.excerpt}</p>
                   </button>
                 ))}
@@ -198,17 +219,17 @@ export function LibraryExperience({
               <p className="memory-eyebrow">Book One · A memoir in progress</p>
               <h1>{bookTitle}</h1>
               <p>Choose a chapter, then enter the page as you would open a book.</p>
-              <button type="button" className="studio-entry" onClick={() => setView("studio")}><GearSix size={18} weight="fill" aria-hidden="true" /> Open Book Studio</button>
+              <button type="button" className="studio-entry" onClick={() => goToView("studio")}><GearSix size={18} weight="fill" aria-hidden="true" /> Open Book Studio</button>
             </div>
 
             <div className="volume-list">
               <section>
                 <header><span>Volume I</span><h2>Elsewhere</h2><small>1 page</small></header>
-                {activePages.filter((page) => page.volume.includes("Elsewhere")).map((page) => <PageRow key={page.id} page={page} onOpen={() => { setSelectedPageId(page.id); setView("reader"); }} />)}
+                {activePages.filter((page) => page.volume.includes("Elsewhere")).map((page) => <PageRow key={page.id} page={page} onOpen={() => { setSelectedPageId(page.id); goToView("reader"); }} />)}
               </section>
               <section>
                 <header><span>Volume II</span><h2>Becoming</h2><small>{activePages.filter((page) => page.volume.includes("Becoming")).length} pages</small></header>
-                {activePages.filter((page) => page.volume.includes("Becoming")).map((page) => <PageRow key={page.id} page={page} onOpen={() => { setSelectedPageId(page.id); setView("reader"); }} />)}
+                {activePages.filter((page) => page.volume.includes("Becoming")).map((page) => <PageRow key={page.id} page={page} onOpen={() => { setSelectedPageId(page.id); goToView("reader"); }} />)}
               </section>
             </div>
           </motion.section>
@@ -227,25 +248,43 @@ export function LibraryExperience({
             onVisibilityChange={(next) => { setBookVisibility(next); persistStudio({ bookVisibility: next }); }}
             onCoverChange={(next) => { setCoverStyle(next); persistStudio({ coverStyle: next }); }}
             onVolumesChange={(next) => { setExtraVolumes(next); persistStudio({ extraVolumes: next }); }}
-            onPreview={() => { if (activePages[0]) setSelectedPageId(activePages[0].id); setView("reader"); }}
+            onPreview={() => { if (activePages[0]) setSelectedPageId(activePages[0].id); goToView("reader"); }}
           />
         ) : (
           <motion.section key={selectedPage.id} className="reader-view reader-view--kindle" initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
-            <header className="reader-kindle-bar">
-              <button type="button" onClick={() => setView("book")}><ArrowLeft size={17} weight="bold" aria-hidden="true" /> Contents</button>
-              <div><strong>{bookTitle}</strong><span>{selectedPage.chapterTitle}</span></div>
-              <div className="reader-type-controls" aria-label="Reading appearance">
-                <button type="button" aria-label="Use smaller text" aria-pressed={readerScale === "small"} onClick={() => setReaderScale("small")}>A</button>
-                <button type="button" aria-label="Use medium text" aria-pressed={readerScale === "medium"} onClick={() => setReaderScale("medium")}>A</button>
-                <button type="button" aria-label="Use larger text" aria-pressed={readerScale === "large"} onClick={() => setReaderScale("large")}>A</button>
-                <button type="button" aria-label="Toggle reading by lamplight" aria-pressed={lamplight} onClick={() => setLamplight((value) => !value)}><LampPendant size={18} weight={lamplight ? "fill" : "regular"} aria-hidden="true" /></button>
-              </div>
-            </header>
+            <AnimatePresence>
+              {readerChrome ? <motion.header className="reader-kindle-bar" initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -18 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
+                <button type="button" onClick={() => goToView("book")}><ArrowLeft size={17} weight="bold" aria-hidden="true" /> Contents</button>
+                <div><strong>{bookTitle}</strong><span>{selectedPage.chapterTitle}</span></div>
+                <div className="reader-type-controls" aria-label="Reading appearance">
+                  <button type="button" aria-label="Open reading settings" aria-expanded={readerSettingsOpen} onClick={() => setReaderSettingsOpen((value) => !value)}><TextAa size={19} weight="bold" aria-hidden="true" /></button>
+                  <button type="button" aria-label="Toggle reading by lamplight" aria-pressed={lamplight} onClick={() => setLamplight((value) => !value)}><SunDim size={20} weight={lamplight ? "fill" : "regular"} aria-hidden="true" /></button>
+                </div>
+              </motion.header> : null}
+            </AnimatePresence>
+            <AnimatePresence>
+              {readerChrome && readerSettingsOpen ? <motion.aside className="reader-settings" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }} aria-label="Reading settings">
+                <div><span>Text size</span>{(["small", "medium", "large"] as const).map((size) => <button key={size} type="button" aria-pressed={readerScale === size} onClick={() => setReaderScale(size)}>{size === "small" ? "Small" : size === "medium" ? "Medium" : "Large"}</button>)}</div>
+                <div><span>Line spacing</span>{(["comfortable", "open"] as const).map((spacing) => <button key={spacing} type="button" aria-pressed={readerSpacing === spacing} onClick={() => setReaderSpacing(spacing)}>{spacing === "comfortable" ? "Comfortable" : "Open"}</button>)}</div>
+              </motion.aside> : null}
+            </AnimatePresence>
             <aside className="reader-margin">
               <p>{selectedPage.volume}</p><strong>{selectedPage.chapterTitle}</strong><span>{selectedPage.layout} layout</span>
               <p className="reader-time">About 2 minutes left in this page</p>
             </aside>
-            <article className={`reader-page reader-page--${readerScale}`}>
+            <button type="button" className="reader-edge reader-edge--previous" aria-label="Previous page" onClick={() => movePage(-1)}><ArrowLeft size={20} aria-hidden="true" /></button>
+            <article
+              className={`reader-page reader-page--${readerScale} reader-page--spacing-${readerSpacing}`}
+              onPointerDown={(event) => { pointerStart.current = event.clientX; }}
+              onPointerUp={(event) => {
+                const start = pointerStart.current;
+                pointerStart.current = null;
+                if (start === null) return;
+                const distance = event.clientX - start;
+                if (Math.abs(distance) > 52) movePage(distance < 0 ? 1 : -1);
+                else { setReaderChrome((value) => !value); setReaderSettingsOpen(false); }
+              }}
+            >
               <header><span>{selectedPage.book} · {selectedPage.volume}</span><span>{selectedPage.chapter}</span></header>
               <div>
                 <p className="reader-date">{selectedPage.date}</p>
@@ -256,7 +295,8 @@ export function LibraryExperience({
               </div>
               <footer><span>Life In Books</span><span>04 · {String(activePages.findIndex((page) => page.id === selectedPage.id) + 1).padStart(2, "0")}</span></footer>
             </article>
-            <nav className="reader-controls" aria-label="Page controls">
+            <button type="button" className="reader-edge reader-edge--next" aria-label="Next page" onClick={() => movePage(1)}><ArrowRight size={20} aria-hidden="true" /></button>
+            <nav className={readerChrome ? "reader-controls reader-controls--floating" : "reader-controls reader-controls--floating reader-controls--hidden"} aria-label="Page controls">
               <button type="button" onClick={() => movePage(-1)}><ArrowLeft size={17} weight="bold" aria-hidden="true" /> Previous</button>
               <span>{activePages.findIndex((page) => page.id === selectedPage.id) + 1} of {activePages.length}</span>
               <button type="button" onClick={() => movePage(1)}>Next <ArrowRight size={17} weight="bold" aria-hidden="true" /></button>
