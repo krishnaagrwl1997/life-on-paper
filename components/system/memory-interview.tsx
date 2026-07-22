@@ -131,6 +131,42 @@ const editorialLayouts: Array<{ id: EditorialLayoutId; name: string; note: strin
   { id: "reflection", name: "Reflection", note: "An inward moment that becomes a lasting lesson." },
 ];
 
+function recommendPlacement(memory: string): ChapterPlacement {
+  const lower = memory.toLowerCase();
+  if (/travel|trip|journey|solo|flight|train|road|city|country|beach|mountain/.test(lower)) {
+    return {
+      id: "carried-home",
+      book: "Book One",
+      volume: "Volume I · Elsewhere",
+      chapter: "Chapter Five",
+      title: "Places I Carried Home",
+      reason: "This memory is rooted in a place or journey that changed what you carried back with you.",
+    };
+  }
+  if (/mother|father|friend|partner|teacher|mentor|someone|person|appreciat|compliment|thanked/.test(lower)) return chapterOptions[1];
+  if (/small|ordinary|tea|coffee|window|morning|evening|tiny|little/.test(lower)) return chapterOptions[2];
+  return chapterOptions[0];
+}
+
+function recommendLayout(memory: string, hasPhoto: boolean) {
+  const lower = memory.toLowerCase();
+  if (hasPhoto) return editorialLayouts.find((layout) => layout.id === "illustration") ?? editorialLayouts[8];
+  if (/travel|trip|journey|solo|flight|train|road|city|country/.test(lower)) return editorialLayouts.find((layout) => layout.id === "travel") ?? editorialLayouts[8];
+  if (/mother|father|friend|partner|teacher|mentor|someone|person/.test(lower)) return editorialLayouts.find((layout) => layout.id === "people") ?? editorialLayouts[8];
+  if (/small|ordinary|tea|coffee|window|morning|evening|tiny|little/.test(lower)) return editorialLayouts.find((layout) => layout.id === "little-things") ?? editorialLayouts[8];
+  if (/said|told|words|quote|appreciat|compliment/.test(lower)) return editorialLayouts.find((layout) => layout.id === "quote") ?? editorialLayouts[8];
+  return editorialLayouts[8];
+}
+
+function titleForLayout(layout: EditorialLayoutId) {
+  if (layout === "people") return "The People Who Saw Me";
+  if (layout === "travel") return "What I Carried Home";
+  if (layout === "little-things") return "Three Small Things I Kept";
+  if (layout === "quote") return "The Words That Stayed";
+  if (layout === "letter") return "A Note to the Person I Was";
+  return "The Kind of Person I Was Becoming";
+}
+
 function formatTime(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
@@ -165,6 +201,7 @@ export function MemoryInterview({
   const [newChapterTitle, setNewChapterTitle] = useState("");
   const [pageMode, setPageMode] = useState<PageMode>("assembling");
   const [selectedLayout, setSelectedLayout] = useState(editorialLayouts[8]);
+  const [pageTitle, setPageTitle] = useState(titleForLayout("reflection"));
   const [pageSaved, setPageSaved] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -256,6 +293,7 @@ export function MemoryInterview({
     setAnswers(nextAnswers);
     setAnswer("");
     setNotice(null);
+    setPlacement(recommendPlacement(memory || attachment?.name || ""));
     setPlacementMode("proposal");
     setPhase("placement");
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
@@ -266,6 +304,7 @@ export function MemoryInterview({
     setAnswers(nextAnswers);
     setAnswer("");
     setNotice(null);
+    setPlacement(recommendPlacement(memory || attachment?.name || ""));
     setPlacementMode("proposal");
     setPhase("placement");
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
@@ -309,7 +348,9 @@ export function MemoryInterview({
   };
 
   const designPage = () => {
-    setSelectedLayout(editorialLayouts[8]);
+    const recommended = recommendLayout(memory || attachment?.name || "", Boolean(attachment?.preview));
+    setSelectedLayout(recommended);
+    setPageTitle(titleForLayout(recommended.id));
     setPageSaved(false);
     setPageMode("assembling");
     setPhase("page");
@@ -318,6 +359,7 @@ export function MemoryInterview({
 
   const chooseLayout = (layout: (typeof editorialLayouts)[number]) => {
     setSelectedLayout(layout);
+    setPageTitle(titleForLayout(layout.id));
     setPageSaved(false);
     setPageMode("ready");
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
@@ -328,7 +370,7 @@ export function MemoryInterview({
     setPageSaved(true);
     onPageKept?.({
       id: `kept-${selectedLayout.id}-${memory.trim().slice(0, 24).toLowerCase().replace(/[^a-z0-9]+/g, "-") || "memory"}`,
-      title: selectedLayout.id === "people" ? "The People Who Saw Me" : selectedLayout.id === "travel" ? "What I Carried Home" : selectedLayout.id === "little-things" ? "Three Small Things I Kept" : "The Kind of Person I Was Becoming",
+      title: pageTitle.trim() || titleForLayout(selectedLayout.id),
       excerpt: pageReflection,
       body: [pageSource, pageScene, pageInsight],
       reflection: pageReflection,
@@ -589,7 +631,7 @@ export function MemoryInterview({
                 <p className="placement-stop-note">The memory is placed. It is ready to become a page in your book.</p>
                 <div className="placed-actions">
                   <button type="button" className="quiet-action" onClick={() => setPlacementMode("proposal")}>Reconsider placement</button>
-                  <button type="button" className="interview-primary" onClick={designPage}>Design this page <ArrowRight size={18} weight="bold" aria-hidden="true" /></button>
+                  <button type="button" className="interview-primary" onClick={designPage}>Create the page <ArrowRight size={18} weight="bold" aria-hidden="true" /></button>
                 </div>
               </div>
             ) : (
@@ -660,7 +702,7 @@ export function MemoryInterview({
                 {placementMode === "proposal" ? (
                   <div className="placement-actions">
                     <button type="button" className="quiet-action" onClick={() => setPlacementMode("change")}>Choose another</button>
-                    <button type="button" className="interview-primary" onClick={designPage}>Place here <Check size={18} weight="bold" aria-hidden="true" /></button>
+                    <button type="button" className="interview-primary" onClick={designPage}>Place &amp; create <Check size={18} weight="bold" aria-hidden="true" /></button>
                   </div>
                 ) : null}
               </>
@@ -737,10 +779,15 @@ export function MemoryInterview({
                   <button type="button" className="quiet-action page-reconsider" onClick={() => { setPlacementMode("proposal"); setPhase("placement"); window.scrollTo({ top: 0, behavior: "auto" }); }}>Reconsider placement</button>
                 </div>
 
+                <label className="page-title-editor" htmlFor="page-title-input">
+                  <span>Page title</span>
+                  <input id="page-title-input" value={pageTitle} onChange={(event) => setPageTitle(event.target.value)} />
+                </label>
+
                 <div className={pageSaved ? "page-route-card page-route-card--saved" : "page-route-card"}>
                   <div><span>{pageSaved ? "Your page is safely kept" : "Your page is ready"}</span><strong>{pageSaved ? "Continue to your Library to read it in the book." : "Keep it now, or try another editorial shape first."}</strong></div>
                   {pageSaved ? (
-                    <button type="button" className="interview-primary" onClick={onOpenLibrary}>Open in Library <Books size={18} weight="bold" aria-hidden="true" /></button>
+                    <button type="button" className="interview-primary" onClick={onBack}>See it in Contents <Books size={18} weight="bold" aria-hidden="true" /></button>
                   ) : (
                     <div><button type="button" className="quiet-action" onClick={() => setPageMode("layouts")}>Try another layout</button><button type="button" className="interview-primary" onClick={keepPage}>Keep this page <BookmarkSimple size={18} weight="fill" aria-hidden="true" /></button></div>
                   )}
@@ -755,7 +802,7 @@ export function MemoryInterview({
                     <div className="memoir-page-content">
                       <p className="memoir-page-date">{memoryDate}</p>
                       {selectedLayout.id === "letter" ? <p className="memoir-salutation">Dear future me,</p> : null}
-                      <h2>{selectedLayout.id === "people" ? "The People Who Saw Me" : selectedLayout.id === "travel" ? "What I Carried Home" : selectedLayout.id === "little-things" ? "Three Small Things I Kept" : "The Kind of Person I Was Becoming"}</h2>
+                      <h2>{pageTitle.trim() || titleForLayout(selectedLayout.id)}</h2>
                       {selectedLayout.id === "illustration" && attachment?.preview ? <div className="memoir-page-photo"><Image src={attachment.preview} alt="Attached memory" fill unoptimized sizes="680px" /></div> : null}
                       <blockquote>{pageReflection}</blockquote>
                       {selectedLayout.id === "timeline" ? (

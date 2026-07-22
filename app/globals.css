@@ -8269,3 +8269,164 @@ input:focus-visible {
     box-shadow: var(--paper-shadow-md);
   }
 }
+
+/* Core memory loop: compact, book-like, and rewarding on a phone. */
+.page-title-editor {
+  display: grid;
+  max-width: 48rem;
+  margin: 1rem auto 0;
+  gap: 0.45rem;
+}
+
+.page-title-editor span {
+  color: var(--ink-muted);
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.page-title-editor input {
+  width: 100%;
+  padding: 0.7rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-fraunces), serif;
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  font-weight: 430;
+  letter-spacing: -0.035em;
+}
+
+.contents-page-new {
+  position: relative;
+  color: var(--action);
+  animation: page-bound-in 700ms var(--paper-ease) both;
+}
+
+.contents-page-new::before {
+  position: absolute;
+  left: -0.55rem;
+  color: var(--action);
+  content: "New";
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.42rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: translateX(-100%);
+}
+
+@keyframes page-bound-in {
+  from { opacity: 0; transform: translateY(0.8rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .home-app--memory,
+  .memory-desk {
+    min-height: 100svh;
+    padding-bottom: 1.25rem;
+  }
+
+  .memory-desk {
+    padding-right: 1.15rem;
+    padding-left: 1.15rem;
+  }
+
+  .memory-header {
+    min-height: 3.6rem;
+    padding-bottom: 0.7rem;
+  }
+
+  .memory-journey-progress {
+    margin-top: 0.65rem;
+  }
+
+  .memory-phase {
+    padding-top: 1.25rem;
+  }
+
+  .memory-phase-intro h1 {
+    max-width: 9ch;
+    font-size: clamp(2.6rem, 12vw, 3.2rem);
+    line-height: 0.92;
+  }
+
+  .capture-methods {
+    overflow-x: auto;
+    grid-template-columns: repeat(5, minmax(4.2rem, 1fr));
+    border-top-color: var(--rule);
+    scrollbar-width: none;
+  }
+
+  .capture-methods::-webkit-scrollbar {
+    display: none;
+  }
+
+  .capture-sheet {
+    border-top-width: 1px;
+    border-radius: 0.25rem;
+    box-shadow: 0 14px 34px rgba(43, 38, 32, 0.08);
+  }
+
+  .capture-sheet-footer p {
+    display: none;
+  }
+
+  .interview-page.interview-page--chat {
+    padding: 0.2rem 0 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .conversation-prompt {
+    padding: 0.9rem 0 0;
+  }
+
+  .interview-page--chat .conversation-prompt h1 {
+    font-size: clamp(2rem, 9.5vw, 2.5rem);
+    line-height: 0.98;
+  }
+
+  .conversation-context {
+    margin-top: 1rem;
+  }
+
+  .feeling-picker button {
+    min-height: 2.55rem;
+    padding-right: 0.8rem;
+    padding-left: 0.8rem;
+  }
+
+  .conversation-composer {
+    margin-top: 0.8rem;
+    border-radius: 0.25rem;
+    box-shadow: 0 12px 28px rgba(43, 38, 32, 0.08);
+  }
+
+  .placement-heading h1,
+  .page-heading h1 {
+    font-size: clamp(2.55rem, 12vw, 3.25rem);
+    line-height: 0.92;
+  }
+
+  .page-title-editor {
+    margin-top: 0.75rem;
+  }
+
+  .page-route-card {
+    margin-top: 1rem;
+  }
+
+  .page-route-card .interview-primary {
+    width: 100%;
+  }
+
+  .contents-page-new::before {
+    display: none;
+  }
+}

@@ -63,18 +63,22 @@ test("keeps the balanced five-destination memoir shell explicit", async () => {
   assert.match(interview, /I&apos;d place this in/);
   assert.match(interview, /Choose another/);
   assert.match(interview, /Create a new chapter/);
-  assert.match(interview, /Place here/);
+  assert.match(interview, /Place &amp; create/);
+  assert.match(interview, /function recommendPlacement/);
+  assert.match(interview, /function recommendLayout/);
   assert.match(interview, /Your page is taking shape/);
   assert.match(interview, /This is how your memory reads/);
   assert.match(interview, /Try another layout/);
   assert.match(interview, /Keep this page/);
   assert.match(interview, /Your page is ready/);
-  assert.match(interview, /Open in Library/);
+  assert.match(interview, /See it in Contents/);
+  assert.match(interview, /Page title/);
   assert.match(interview, /Page kept/);
   for (const layout of ["Story", "Quote", "Illustration", "Little Things", "Letter", "Timeline", "Travel", "People", "Reflection"]) {
     assert.match(interview, new RegExp(`name: \"${layout}\"`));
   }
   assert.match(home, /life-in-books-pages/);
+  assert.match(home, /contents-page-new/);
   assert.match(home, /A note from your life/);
   assert.match(home, /active !== "Add Memory"/);
   assert.match(library, /A library only you could have written/);

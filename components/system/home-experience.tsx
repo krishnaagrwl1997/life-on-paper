@@ -95,6 +95,8 @@ export function HomeExperience() {
     });
   };
 
+  const latestPage = savedPages[0];
+
   if (showOnboarding) return <OnboardingExperience onComplete={completeOnboarding} />;
 
   return (
@@ -148,6 +150,9 @@ export function HomeExperience() {
                 <span className="contents-roman">I</span><span className="contents-dot">·</span><strong>Becoming</strong><i aria-hidden="true" /><span className="contents-page">12</span>
               </button>
               <div className="contents-pages">
+                {latestPage ? (
+                  <button className="contents-page-new" type="button" onClick={() => openLibraryAt("reader", latestPage.id)}><strong>{latestPage.title}</strong><i aria-hidden="true" /><span>46</span></button>
+                ) : null}
                 <button type="button" onClick={() => openLibraryAt("reader", "quiet-strength")}><strong>The Patience Someone Else Noticed</strong><i aria-hidden="true" /><span>38</span></button>
                 <button type="button" onClick={() => openLibraryAt("reader", "kitchen-light")}><strong>What the Kitchen Window Taught Me</strong><i aria-hidden="true" /><span>42</span></button>
               </div>
