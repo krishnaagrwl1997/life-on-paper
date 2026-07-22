@@ -21,13 +21,14 @@ test("server-renders the Life In Books home experience", async () => {
 
   const html = await response.text();
   assert.match(html, /Life In Books/);
-  assert.match(html, /What part of today would you never want to forget\?/);
-  assert.match(html, /Continue with this memory/);
-  assert.match(html, /Current book/);
-  assert.match(html, /Recently placed/);
+  assert.match(html, /Contents/);
+  assert.match(html, /Your life, organized by chapters/);
+  assert.match(html, /Add today/);
+  assert.match(html, /Continue reading/);
+  assert.match(html, /People Who Changed Me/);
 });
 
-test("keeps the four-destination memoir shell explicit", async () => {
+test("keeps the balanced five-destination memoir shell explicit", async () => {
   const [home, interview, library, garden, nav, layout, transcription] = await Promise.all([
     readFile(new URL("../components/system/home-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/memory-interview.tsx", import.meta.url), "utf8"),
@@ -38,29 +39,31 @@ test("keeps the four-destination memoir shell explicit", async () => {
     readFile(new URL("../components/system/use-live-transcription.ts", import.meta.url), "utf8"),
   ]);
 
-  for (const destination of ["Home", "Library", "Add Memory", "Garden"]) {
+  for (const destination of ["Home", "Library", "Add Memory", "Garden", "Profile"]) {
     assert.match(nav, new RegExp(`label: \\\"${destination}\\\"`));
   }
-  assert.match(home, /Add a photo or screenshot/);
-  assert.match(home, /Speak and transcribe/);
-  assert.match(home, /Type or speak/);
-  assert.match(home, /Your words stay editable/);
+  assert.match(home, /Add today&apos;s memory/);
+  assert.match(home, /The Patience Someone Else Noticed/);
+  assert.match(home, /What the Kitchen Window Taught Me/);
+  assert.match(home, /initialView/);
   assert.match(interview, /Speak and transcribe this answer/);
   assert.match(interview, /Speak and transcribe this memory/);
   assert.match(transcription, /SpeechRecognition/);
   assert.match(transcription, /interimResults = true/);
   assert.match(interview, /File/);
-  assert.match(interview, /Prompt \{questionIndex \+ 1\} of up to 3/);
+  assert.match(interview, /One thoughtful follow-up/);
+  assert.match(interview, /Select all that fit/);
+  assert.match(interview, /selectedFeelings\.includes\(feeling\)/);
+  assert.match(interview, /Continue to chapter placement/);
   assert.match(interview, /function contextualQuestion/);
   assert.match(interview, /Who noticed this about you/);
-  assert.match(interview, /How did this moment feel/);
+  assert.match(interview, /What did you feel/);
   assert.match(interview, /Review what I heard/);
   assert.match(interview, /Return to conversation/);
-  assert.match(interview, /This memory belongs here/);
-  assert.match(interview, /Why this chapter/);
-  assert.match(interview, /Change chapter/);
+  assert.match(interview, /I&apos;d place this in/);
+  assert.match(interview, /Choose another/);
   assert.match(interview, /Create a new chapter/);
-  assert.match(interview, /Place &amp; design this page/);
+  assert.match(interview, /Place here/);
   assert.match(interview, /Your page is taking shape/);
   assert.match(interview, /This is how your memory reads/);
   assert.match(interview, /Try another layout/);
@@ -72,6 +75,8 @@ test("keeps the four-destination memoir shell explicit", async () => {
     assert.match(interview, new RegExp(`name: \"${layout}\"`));
   }
   assert.match(home, /life-in-books-pages/);
+  assert.match(home, /A note from your life/);
+  assert.match(home, /active !== "Add Memory"/);
   assert.match(library, /A library only you could have written/);
   assert.match(library, /Volume I/);
   assert.match(library, /Volume II/);

@@ -65,7 +65,7 @@ const captureModes = [
 
 const feelings = ["Happy", "Proud", "Grateful", "Surprised", "Disappointed", "Hurt", "Hopeful", "Unsure"];
 
-function contextualQuestion(memory: string, answers: string[], feeling: string | null, index: number) {
+function contextualQuestion(memory: string, answers: string[], selectedFeelings: string[], index: number) {
   const source = memory.trim();
   const lower = source.toLowerCase();
   const shortMemory = source.length > 82 ? `${source.slice(0, 79).trim()}…` : source;
@@ -80,12 +80,12 @@ function contextualQuestion(memory: string, answers: string[], feeling: string |
 
   if (index === 1) {
     if (/appreciat|compliment|praised|thanked/.test(lower)) {
-      return feeling
-        ? `What made those words feel especially ${feeling.toLowerCase()}?`
+      return selectedFeelings.length
+        ? `What made those words feel ${selectedFeelings.map((feeling) => feeling.toLowerCase()).join(" and ")}?`
         : "What made those words stay with you after the conversation ended?";
     }
-    return feeling
-      ? `What made that part of the moment feel especially ${feeling.toLowerCase()}?`
+    return selectedFeelings.length
+      ? `What made that part of the moment feel ${selectedFeelings.map((feeling) => feeling.toLowerCase()).join(" and ")}?`
       : "What did you notice in yourself that you might have missed at the time?";
   }
 
@@ -154,7 +154,7 @@ export function MemoryInterview({
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answer, setAnswer] = useState("");
   const [answers, setAnswers] = useState<string[]>([]);
-  const [selectedFeeling, setSelectedFeeling] = useState<string | null>(null);
+  const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
   const [attachment, setAttachment] = useState<{ name: string; preview?: string; kind: string } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recorded, setRecorded] = useState(false);
@@ -188,7 +188,10 @@ export function MemoryInterview({
 
   useEffect(() => {
     if (phase !== "page" || pageMode !== "assembling") return;
-    const timer = window.setTimeout(() => setPageMode("ready"), reduceMotion ? 150 : 1450);
+    const timer = window.setTimeout(() => {
+      setPageMode("ready");
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }, reduceMotion ? 150 : 1450);
     return () => window.clearTimeout(timer);
   }, [pageMode, phase, reduceMotion]);
 
@@ -253,12 +256,8 @@ export function MemoryInterview({
     setAnswers(nextAnswers);
     setAnswer("");
     setNotice(null);
-    if (questionIndex === 2) {
-      setPlacementMode("proposal");
-      setPhase("placement");
-    } else {
-      setQuestionIndex((index) => Math.min(index + 1, 2));
-    }
+    setPlacementMode("proposal");
+    setPhase("placement");
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
@@ -275,7 +274,7 @@ export function MemoryInterview({
   const editInterview = () => {
     setSaved(false);
     setPhase("interview");
-    setQuestionIndex(Math.max(0, Math.min(answers.length, 2)));
+    setQuestionIndex(0);
     setAnswer("");
   };
 
@@ -349,10 +348,14 @@ export function MemoryInterview({
   const finalAnswer = answers.at(-1)?.trim() || "";
   const pageReflection = finalAnswer.length > 12 && !/^(nothing|none|no|idk|i don'?t know)$/i.test(finalAnswer)
     ? finalAnswer
-    : selectedFeeling
-      ? `I want to remember how ${selectedFeeling.toLowerCase()} this moment felt—and what it revealed about the person I was becoming.`
+    : selectedFeelings.length
+      ? `I want to remember how ${selectedFeelings.map((feeling) => feeling.toLowerCase()).join(" and ")} this moment felt—and what it revealed about the person I was becoming.`
       : "I want to remember that becoming often happens in the moments someone else helps us see clearly.";
-  const currentQuestion = contextualQuestion(memory || attachment?.name || "", answers, selectedFeeling, questionIndex);
+  const currentQuestion = contextualQuestion(memory || attachment?.name || "", answers, selectedFeelings, questionIndex);
+
+  const toggleFeeling = (feeling: string) => {
+    setSelectedFeelings((current) => current.includes(feeling) ? current.filter((item) => item !== feeling) : [...current, feeling]);
+  };
 
   return (
     <div className="memory-desk">
@@ -438,38 +441,42 @@ export function MemoryInterview({
         {phase === "interview" ? (
           <motion.section
             key={`interview-${questionIndex}`}
-            className="memory-phase interview-phase"
+            className="memory-phase interview-phase interview-phase--chat"
             initial={{ opacity: 0, y: reduceMotion ? 0 : 18, rotate: reduceMotion ? 0 : -0.25 }}
             animate={{ opacity: 1, y: 0, rotate: 0 }}
             exit={{ opacity: 0, y: reduceMotion ? 0 : -12 }}
             transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}
             aria-labelledby="interview-question"
           >
-            <div className="interview-margin-note">
-              <p>What you shared</p>
-              <blockquote>{memory || attachment?.name}</blockquote>
-              {attachment?.preview ? (
-                <div className="interview-thumb">
-                  <Image src={attachment.preview} alt="Attached memory preview" fill unoptimized sizes="160px" />
-                </div>
-              ) : null}
-              <span>{mode} · Original kept</span>
-            </div>
-
-            <article className="interview-page">
+            <article className="interview-page interview-page--chat">
               <div className="question-count">
-                <span>Guided conversation</span>
-                <span>Prompt {questionIndex + 1} of up to 3</span>
+                <span>One thoughtful follow-up</span>
+                <span>About a minute</span>
               </div>
-              <div className="interviewer-mark"><Sparkle size={18} weight="fill" aria-hidden="true" /></div>
-              <h1 id="interview-question">{currentQuestion}</h1>
-              <fieldset className="feeling-picker">
-                <legend>How did this moment feel?</legend>
-                <div>{feelings.map((feeling) => <button key={feeling} type="button" aria-pressed={selectedFeeling === feeling} onClick={() => setSelectedFeeling(selectedFeeling === feeling ? null : feeling)}>{feeling}</button>)}</div>
-                <small>Optional — choose the closest feeling, even if it is not the whole story.</small>
+              <div className="conversation-prompt">
+                <div className="conversation-avatar"><Sparkle size={18} weight="fill" aria-hidden="true" /></div>
+                <div>
+                  <span>Life In Books</span>
+                  <h1 id="interview-question">{currentQuestion}</h1>
+                </div>
+              </div>
+
+              <details className="conversation-context">
+                <summary>See what you shared</summary>
+                <blockquote>{memory || attachment?.name}</blockquote>
+                {attachment?.preview ? (
+                  <div className="interview-thumb"><Image src={attachment.preview} alt="Attached memory preview" fill unoptimized sizes="160px" /></div>
+                ) : null}
+              </details>
+
+              <fieldset className="feeling-picker feeling-picker--multi">
+                <legend>What did you feel? <span>Select all that fit</span></legend>
+                <div>{feelings.map((feeling) => <button key={feeling} type="button" aria-pressed={selectedFeelings.includes(feeling)} onClick={() => toggleFeeling(feeling)}>{feeling}</button>)}</div>
+                {selectedFeelings.length ? <small>{selectedFeelings.length} selected · tap again to remove</small> : <small>Optional — emotions can be mixed.</small>}
               </fieldset>
-              <label htmlFor="interview-answer">Answer as if you were telling someone who knows you well.</label>
-              <div className={answerSpeech.isListening ? "interview-answer-composer interview-answer-composer--listening" : "interview-answer-composer"}>
+
+              <label className="sr-only" htmlFor="interview-answer">Add what you remember</label>
+              <div className={answerSpeech.isListening ? "conversation-composer conversation-composer--listening" : "conversation-composer"}>
                 <textarea
                   id="interview-answer"
                   value={answer}
@@ -477,28 +484,37 @@ export function MemoryInterview({
                     if (answerSpeech.isListening) answerSpeech.stop();
                     setAnswer(event.target.value);
                   }}
-                  placeholder="I remember…"
+                  placeholder="Add what you remember…"
                   rows={4}
                   autoFocus
                 />
-                <div>
-                  <span aria-live="polite">{answerSpeech.isListening ? `Listening${answerSpeech.interimTranscript ? ` · ${answerSpeech.interimTranscript}` : "…"}` : "Type or speak your answer"}</span>
+                <div className="conversation-composer-tools">
+                  <div>
+                    <button type="button" onClick={chooseFile} aria-label="Add a photo to this answer"><Paperclip size={18} aria-hidden="true" /></button>
+                    <button
+                      type="button"
+                      onClick={answerSpeech.isListening ? answerSpeech.stop : answerSpeech.start}
+                      aria-label={answerSpeech.isListening ? "Stop live transcription" : "Speak and transcribe this answer"}
+                      aria-pressed={answerSpeech.isListening}
+                    >
+                      {answerSpeech.isListening ? <Stop size={16} weight="fill" aria-hidden="true" /> : <Microphone size={18} weight="fill" aria-hidden="true" />}
+                    </button>
+                    <span aria-live="polite">{answerSpeech.isListening ? `Listening${answerSpeech.interimTranscript ? ` · ${answerSpeech.interimTranscript}` : "…"}` : "Type or speak"}</span>
+                  </div>
                   <button
                     type="button"
-                    onClick={answerSpeech.isListening ? answerSpeech.stop : answerSpeech.start}
-                    aria-label={answerSpeech.isListening ? "Stop live transcription" : "Speak and transcribe this answer"}
-                    aria-pressed={answerSpeech.isListening}
+                    className="conversation-send"
+                    onClick={keepAnswer}
+                    aria-label="Continue to chapter placement"
                   >
-                    {answerSpeech.isListening ? <Stop size={16} weight="fill" aria-hidden="true" /> : <Microphone size={18} weight="fill" aria-hidden="true" />}
+                    <ArrowRight size={20} weight="bold" aria-hidden="true" />
                   </button>
                 </div>
               </div>
-              <div className="interview-page-footer">
-                <button type="button" className="quiet-action" onClick={finishEarly}>I&apos;ve said enough</button>
-                <button type="button" className="interview-primary" onClick={keepAnswer}>
-                  {questionIndex === 2 ? "Show what you heard" : "Keep this answer"}
-                  <ArrowRight size={18} weight="bold" aria-hidden="true" />
-                </button>
+              <input ref={fileRef} className="sr-only" type="file" accept={acceptForMode} onChange={handleFile} />
+              <div className="conversation-skip">
+                <button type="button" className="quiet-action" onClick={finishEarly}>Skip this question</button>
+                <span>Next: confirm the chapter and create your page.</span>
               </div>
             </article>
           </motion.section>
@@ -526,7 +542,7 @@ export function MemoryInterview({
                 <span>{answers.length} follow-up{answers.length === 1 ? "" : "s"}</span>
               </header>
               <p className="summary-opening">{memory || attachment?.name}</p>
-              {selectedFeeling ? <p className="summary-feeling"><span>Feeling</span>{selectedFeeling}</p> : null}
+              {selectedFeelings.length ? <p className="summary-feeling"><span>Feelings</span>{selectedFeelings.join(" · ")}</p> : null}
               {answers.map((item, index) => <p key={`${index}-${item}`}>{item}</p>)}
               <div className="summary-rule"><span>End of conversation</span></div>
             </article>
@@ -578,44 +594,25 @@ export function MemoryInterview({
               </div>
             ) : (
               <>
-                <div className="placement-heading">
+                <div className="placement-heading placement-heading--simple">
                   <p className="memory-eyebrow">A place in your story</p>
-                  <h1 id="placement-title">This memory belongs here.</h1>
-                  <p>I found the strongest thread in what you shared. You can keep this home or choose another.</p>
+                  <h1 id="placement-title">I&apos;d place this in</h1>
                 </div>
 
                 <details className="placement-summary">
                   <summary>Review what I heard</summary>
                   <blockquote>{memory || attachment?.name}</blockquote>
-                  {selectedFeeling ? <p><span>Feeling</span><strong>{selectedFeeling}</strong></p> : null}
+                  {selectedFeelings.length ? <p><span>Feelings</span><strong>{selectedFeelings.join(" · ")}</strong></p> : null}
                   {answers.map((item, index) => <p key={`placement-answer-${index}`}>{item}</p>)}
                   <button type="button" className="quiet-action" onClick={editInterview}>Return to conversation</button>
                 </details>
 
-                <div className="placement-workspace">
-                  <article className="chapter-proposal">
-                    <header>
-                      <span>Suggested home</span>
-                      <span>Arranged from your conversation</span>
-                    </header>
-                    <div className="chapter-hierarchy">
-                      <div><span>Book</span><strong>{placement.book}</strong></div>
-                      <div><span>Volume</span><strong>{placement.volume}</strong></div>
-                      <div className="chapter-hierarchy-main"><span>{placement.chapter}</span><h2>{placement.title}</h2></div>
-                    </div>
-                    <footer><BookmarkSimple size={17} weight="fill" aria-hidden="true" /><span>One memory ready to place</span></footer>
-                  </article>
-
-                  <aside className="placement-reason">
-                    <div className="reason-mark"><Sparkle size={17} weight="fill" aria-hidden="true" /></div>
-                    <p>Why this chapter</p>
-                    <blockquote>{placement.reason}</blockquote>
-                    <div className="placement-memory-line">
-                      <span>From your memory</span>
-                      <q>{memory || attachment?.name}</q>
-                    </div>
-                  </aside>
-                </div>
+                <article className="chapter-proposal chapter-proposal--simple">
+                  <div className="chapter-proposal-mark"><BookmarkSimple size={22} weight="fill" aria-hidden="true" /></div>
+                  <span>{placement.volume} · {placement.chapter}</span>
+                  <h2>{placement.title}</h2>
+                  <p>{placement.reason}</p>
+                </article>
 
                 {placementMode === "change" ? (
                   <section className="chapter-picker" aria-labelledby="change-chapter-title">
@@ -662,8 +659,8 @@ export function MemoryInterview({
 
                 {placementMode === "proposal" ? (
                   <div className="placement-actions">
-                    <button type="button" className="quiet-action" onClick={() => setPlacementMode("change")}>Change chapter</button>
-                    <button type="button" className="interview-primary" onClick={designPage}>Place &amp; design this page <Check size={18} weight="bold" aria-hidden="true" /></button>
+                    <button type="button" className="quiet-action" onClick={() => setPlacementMode("change")}>Choose another</button>
+                    <button type="button" className="interview-primary" onClick={designPage}>Place here <Check size={18} weight="bold" aria-hidden="true" /></button>
                   </div>
                 ) : null}
               </>
@@ -819,26 +816,19 @@ export function MemoryInterview({
 }
 
 function ConversationProgress({ phase }: { phase: Phase }) {
-  const phases: Array<{ id: Phase; number: string; label: string }> = [
-    { id: "capture", number: "I", label: "Capture" },
-    { id: "interview", number: "II", label: "Explore" },
-    { id: "placement", number: "III", label: "Review & Place" },
-    { id: "page", number: "IV", label: "Page Ready" },
+  const phases: Array<{ id: "capture" | "interview" | "placement"; label: string }> = [
+    { id: "capture", label: "Share" },
+    { id: "interview", label: "Add meaning" },
+    { id: "placement", label: "Create" },
   ];
-  const current = Math.max(0, phases.findIndex((item) => item.id === (phase === "summary" ? "placement" : phase)));
+  const activePhase = phase === "capture" ? "capture" : phase === "interview" ? "interview" : "placement";
+  const current = Math.max(0, phases.findIndex((item) => item.id === activePhase));
 
   return (
-    <>
-      <div className="interview-progress-mobile" aria-hidden="true"><strong>{phases[current].label}</strong><span>{current + 1} of {phases.length}</span></div>
-      <ol className="interview-progress" aria-label="Memory conversation progress">
-        {phases.map((item, index) => (
-          <li key={item.id} className={index === current ? "interview-progress--active" : index < current ? "interview-progress--complete" : ""}>
-            <span>{index < current ? <Check size={13} weight="bold" aria-hidden="true" /> : item.number}</span>
-            <strong>{item.label}</strong>
-          </li>
-        ))}
-      </ol>
-    </>
+    <div className="memory-journey-progress" aria-label={`Step ${current + 1} of ${phases.length}: ${phases[current].label}`}>
+      <div><strong>{phases[current].label}</strong><span>{current + 1} of {phases.length}</span></div>
+      <span className="memory-journey-track" aria-hidden="true"><i style={{ width: `${((current + 1) / phases.length) * 100}%` }} /></span>
+    </div>
   );
 }
 

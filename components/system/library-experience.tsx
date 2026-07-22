@@ -82,9 +82,13 @@ const samplePages: KeptPage[] = [
 
 export function LibraryExperience({
   savedPages,
+  initialView = "shelf",
+  initialPageId,
   onReadingChange,
 }: {
   savedPages: KeptPage[];
+  initialView?: "shelf" | "book" | "reader";
+  initialPageId?: string;
   onReadingChange?: (reading: boolean) => void;
 }) {
   const initialPages = [...savedPages, ...samplePages.filter((sample) => !savedPages.some((page) => page.title === sample.title))];
@@ -94,8 +98,8 @@ export function LibraryExperience({
   const [bookVisibility, setBookVisibility] = useState<BookVisibility>("request");
   const [coverStyle, setCoverStyle] = useState<CoverStyle>("coast");
   const [extraVolumes, setExtraVolumes] = useState<string[]>([]);
-  const [view, setView] = useState<LibraryView>("shelf");
-  const [selectedPageId, setSelectedPageId] = useState(pages[0]?.id ?? samplePages[0].id);
+  const [view, setView] = useState<LibraryView>(initialView);
+  const [selectedPageId, setSelectedPageId] = useState(initialPageId ?? pages[0]?.id ?? samplePages[0].id);
   const [lamplight, setLamplight] = useState(false);
   const [readerScale, setReaderScale] = useState<"small" | "medium" | "large">("medium");
   const [readerSpacing, setReaderSpacing] = useState<"comfortable" | "open">("comfortable");

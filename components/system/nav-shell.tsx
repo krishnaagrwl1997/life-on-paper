@@ -5,12 +5,13 @@ import {
   HouseLine,
   Leaf,
   Plus,
+  UserCircle,
   type Icon,
 } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-type Destination = "Home" | "Library" | "Add Memory" | "Garden";
+export type Destination = "Home" | "Library" | "Add Memory" | "Garden" | "Profile";
 
 const destinations: Array<{
   label: Destination;
@@ -21,6 +22,7 @@ const destinations: Array<{
   { label: "Library", icon: Books },
   { label: "Add Memory", icon: Plus, emphasized: true },
   { label: "Garden", icon: Leaf },
+  { label: "Profile", icon: UserCircle },
 ];
 
 export function NavShell({

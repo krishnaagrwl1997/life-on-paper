@@ -1,49 +1,30 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import {
-  ArrowRight,
-  Check,
-  ImageSquare,
-  Microphone,
-  Sparkle,
-  Stop,
-} from "@phosphor-icons/react";
-import { NavShell } from "@/components/system/nav-shell";
+import { CaretRight, Plus, Sparkle } from "@phosphor-icons/react";
+import { Destination, NavShell } from "@/components/system/nav-shell";
 import { CaptureMode, KeptPage, MemoryInterview } from "@/components/system/memory-interview";
 import { LibraryExperience } from "@/components/system/library-experience";
 import { GardenExperience } from "@/components/system/garden-experience";
-import { useLiveTranscription } from "@/components/system/use-live-transcription";
+import { ProfileExperience } from "@/components/system/profile-experience";
 import { OnboardingExperience } from "@/components/system/onboarding-experience";
 
-type Destination = "Home" | "Library" | "Add Memory" | "Garden";
-
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
-
-function todayHeading() {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date());
-}
 
 export function HomeExperience() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [active, setActive] = useState<Destination>("Home");
-  const [memory, setMemory] = useState("");
   const [memorySeed, setMemorySeed] = useState("");
   const [memoryMode, setMemoryMode] = useState<CaptureMode>("Write");
   const [bookTitle, setBookTitle] = useState("Summer of Firsts");
   const [notice, setNotice] = useState<string | null>(null);
   const [savedPages, setSavedPages] = useState<KeptPage[]>([]);
   const [isReading, setIsReading] = useState(false);
-  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const [showForYou, setShowForYou] = useState(false);
+  const [libraryEntry, setLibraryEntry] = useState<"shelf" | "book" | "reader">("shelf");
+  const [libraryPage, setLibraryPage] = useState<string | undefined>();
   const reduceMotion = useReducedMotion();
-  const liveSpeech = useLiveTranscription({ value: memory, onChange: setMemory, onError: setNotice });
 
   useEffect(() => {
     const restore = window.setTimeout(() => {
@@ -60,10 +41,10 @@ export function HomeExperience() {
     return () => window.clearTimeout(restore);
   }, []);
 
-  const completeOnboarding = (bookTitle: string) => {
+  const completeOnboarding = (title: string) => {
     window.localStorage.setItem("life-in-books-onboarding-complete", "yes");
-    window.localStorage.setItem("life-in-books-book-title", bookTitle);
-    setBookTitle(bookTitle);
+    window.localStorage.setItem("life-in-books-book-title", title);
+    setBookTitle(title);
     setShowOnboarding(false);
     window.scrollTo({ top: 0, behavior: "auto" });
   };
@@ -72,6 +53,7 @@ export function HomeExperience() {
     setActive("Home");
     setMemorySeed("");
     setNotice(null);
+    setShowForYou(false);
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
@@ -80,39 +62,29 @@ export function HomeExperience() {
     setMemorySeed(seed);
     setActive("Add Memory");
     setNotice(null);
+    setShowForYou(false);
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  };
+
+  const openLibraryAt = (view: "shelf" | "book" | "reader", pageId?: string) => {
+    setLibraryEntry(view);
+    setLibraryPage(pageId);
+    setActive("Library");
+    setShowForYou(false);
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
   const selectDestination = (destination: Destination) => {
-    if (destination === "Home") {
-      showHome();
-      return;
-    }
-    if (destination === "Add Memory") {
-      openMemory();
-      return;
-    }
+    if (destination === "Home") return showHome();
+    if (destination === "Add Memory") return openMemory();
+    setNotice(null);
+    setShowForYou(false);
     if (destination === "Library") {
-      setActive("Library");
-      setNotice(null);
-      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-      return;
+      setLibraryEntry("shelf");
+      setLibraryPage(undefined);
     }
-    if (destination === "Garden") {
-      setActive("Garden");
-      setNotice(null);
-      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-    }
-  };
-
-  const beginInterview = () => {
-    if (!memory.trim()) {
-      setNotice("Start with one small detail. A sentence is enough.");
-      window.setTimeout(() => composerRef.current?.focus(), 40);
-      window.setTimeout(() => setNotice(null), 2600);
-      return;
-    }
-    openMemory("Write", memory.trim());
+    setActive(destination);
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
   const keepPageInLibrary = (page: KeptPage) => {
@@ -121,7 +93,6 @@ export function HomeExperience() {
       window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));
       return next;
     });
-    setMemory("");
   };
 
   if (showOnboarding) return <OnboardingExperience onComplete={completeOnboarding} />;
@@ -135,133 +106,67 @@ export function HomeExperience() {
           initialMemory={memorySeed}
           onBack={showHome}
           onPageKept={keepPageInLibrary}
-          onOpenLibrary={() => {
-            setMemorySeed("");
-            setActive("Library");
-            window.scrollTo({ top: 0, behavior: "auto" });
-          }}
+          onOpenLibrary={() => openLibraryAt("shelf")}
         />
       ) : active === "Library" ? (
-        <LibraryExperience savedPages={savedPages} onReadingChange={setIsReading} />
+        <LibraryExperience
+          key={`${libraryEntry}-${libraryPage ?? "first"}`}
+          savedPages={savedPages}
+          initialView={libraryEntry}
+          initialPageId={libraryPage}
+          onReadingChange={setIsReading}
+        />
       ) : active === "Garden" ? (
         <GardenExperience />
+      ) : active === "Profile" ? (
+        <ProfileExperience bookTitle={bookTitle} memoryCount={savedPages.length} onOpenGarden={() => selectDestination("Garden")} />
       ) : (
-        <div className="home-frame">
-          <header className="home-header">
-            <div>
-              <h1>Life In Books</h1>
-              <p className="home-date">{todayHeading()}</p>
+        <div className="contents-home">
+          <header className="contents-running-head">
+            <h1>Life In Books</h1>
+            <div className="for-you-wrap contents-folio-wrap">
+              <button className="contents-folio" type="button" aria-expanded={showForYou} aria-controls="for-you-notes" onClick={() => setShowForYou((current) => !current)} aria-label="Open a note from your life">17</button>
+              <AnimatePresence>
+                {showForYou ? (
+                  <motion.aside id="for-you-notes" className="for-you-notes contents-note" initial={{ opacity: 0, y: -8, rotate: -0.4 }} animate={{ opacity: 1, y: 0, rotate: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }} aria-label="Notes from your life">
+                    <p><Sparkle size={13} weight="fill" aria-hidden="true" /> A note from your life</p>
+                    <button type="button" onClick={() => openLibraryAt("reader", "quiet-strength")}><span>Worth returning to</span><strong>Someone once noticed the patience you had almost forgotten.</strong></button>
+                  </motion.aside>
+                ) : null}
+              </AnimatePresence>
             </div>
-            <button className="profile-mark" type="button" aria-label="Open profile">
-              <Image src="/assets/profile-portrait.png" alt="" fill unoptimized sizes="48px" priority />
-            </button>
           </header>
 
-          <div className="home-layout">
-            <section className="interview-column" aria-labelledby="today-question">
-              <div className="interview-intro">
-                <div className="section-kicker">
-                  <Sparkle className="reflection-star" size={20} weight="fill" aria-hidden="true" />
-                  <span>Today&apos;s reflection</span>
-                </div>
-                <h2 id="today-question">What part of today would you never want to forget?</h2>
-                <p>Tell it as it happened. I&apos;ll help you find the story inside it.</p>
+          <section className="contents-intro">
+            <h2>Contents</h2>
+            <p>Your life, organized by chapters.</p>
+          </section>
+
+          <section className="contents-list" aria-label={`${bookTitle} contents`}>
+            <div className="contents-chapter contents-chapter--active">
+              <button type="button" onClick={() => openLibraryAt("book")} aria-label="Open chapter one, Becoming">
+                <span className="contents-roman">I</span><span className="contents-dot">·</span><strong>Becoming</strong><i aria-hidden="true" /><span className="contents-page">12</span>
+              </button>
+              <div className="contents-pages">
+                <button type="button" onClick={() => openLibraryAt("reader", "quiet-strength")}><strong>The Patience Someone Else Noticed</strong><i aria-hidden="true" /><span>38</span></button>
+                <button type="button" onClick={() => openLibraryAt("reader", "kitchen-light")}><strong>What the Kitchen Window Taught Me</strong><i aria-hidden="true" /><span>42</span></button>
               </div>
+            </div>
+            <div className="contents-chapter">
+              <button type="button" onClick={() => openLibraryAt("book")}><span className="contents-roman">II</span><span className="contents-dot">·</span><strong>People Who Changed Me</strong><i aria-hidden="true" /><span className="contents-page">28</span></button>
+            </div>
+            <div className="contents-chapter">
+              <button type="button" onClick={() => openLibraryAt("book")}><span className="contents-roman">III</span><span className="contents-dot">·</span><strong>Places I Carried Home</strong><i aria-hidden="true" /><span className="contents-page">44</span></button>
+            </div>
+            <button className="contents-add" type="button" onClick={() => openMemory()}><Plus size={24} weight="light" aria-hidden="true" /><strong>Add today&apos;s memory</strong><CaretRight size={20} weight="bold" aria-hidden="true" /></button>
+          </section>
 
-              <div className="memory-composer" id="memory-composer">
-                <label className="sr-only" htmlFor="memory-text">Share today&apos;s memory</label>
-                <textarea
-                  id="memory-text"
-                  ref={composerRef}
-                  value={memory}
-                  onChange={(event) => {
-                    if (liveSpeech.isListening) liveSpeech.stop();
-                    setMemory(event.target.value);
-                  }}
-                  placeholder="Someone appreciated me today for…"
-                  rows={5}
-                />
-
-                <div className="composer-footer">
-                  <div className="composer-tools" aria-label="Ways to add to this memory">
-                    <button type="button" onClick={() => openMemory("Photo")} aria-label="Add a photo or screenshot"><ImageSquare size={23} aria-hidden="true" /></button>
-                    <button
-                      type="button"
-                      className={liveSpeech.isListening ? "composer-mic composer-mic--listening" : "composer-mic"}
-                      onClick={liveSpeech.isListening ? liveSpeech.stop : liveSpeech.start}
-                      aria-label={liveSpeech.isListening ? "Stop live transcription" : "Speak and transcribe"}
-                      aria-pressed={liveSpeech.isListening}
-                    >
-                      {liveSpeech.isListening ? <Stop size={19} weight="fill" aria-hidden="true" /> : <Microphone size={23} weight="regular" aria-hidden="true" />}
-                    </button>
-                    <div className="composer-status" aria-live="polite">
-                      <strong>{liveSpeech.isListening ? "Listening…" : "Type or speak"}</strong>
-                      <span>{liveSpeech.isListening && liveSpeech.interimTranscript ? liveSpeech.interimTranscript : liveSpeech.isSupported ? "Your words stay editable." : "Type your memory here."}</span>
-                    </div>
-                  </div>
-                  <button className="begin-memory" type="button" onClick={beginInterview} aria-label="Continue with this memory">
-                    <ArrowRight size={28} weight="regular" aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <aside className="book-column" aria-label="Your growing memoir">
-              <section className="book-section">
-                <div className="section-heading-row">
-                  <p className="section-label">Current book</p>
-                  <button type="button" onClick={() => selectDestination("Library")}>View all</button>
-                </div>
-
-                <button className="book-cover-card" type="button" onClick={() => selectDestination("Library")} aria-label={`Open ${bookTitle} in the library`}>
-                  <div className="book-cover-image">
-                    <Image src="/assets/current-book-cover.png" alt="An open handwritten notebook beside old family photographs and tea" fill unoptimized sizes="(max-width: 700px) 92vw, 38vw" priority />
-                  </div>
-                  <div className="book-cover-copy">
-                    <h3>{bookTitle}</h3>
-                    <span className="book-accent" aria-hidden="true" />
-                    <p>12 memories · Last updated today</p>
-                  </div>
-                </button>
-              </section>
-
-              <section className="recent-section">
-                <div className="section-heading-row section-heading-row--compact">
-                  <p className="section-label">Recently placed</p>
-                  <span>Page 34</span>
-                </div>
-                <article className="recent-page">
-                  <div className="recent-page-image">
-                    <Image src="/assets/domestic-still-life.png" alt="A warm still life near a kitchen window" fill unoptimized sizes="120px" />
-                  </div>
-                  <div>
-                    <p className="chapter-path">Becoming Someone I Trust</p>
-                    <h3>“They noticed the patience I had almost forgotten I possessed.”</h3>
-                    <p className="recent-meta"><Check size={14} weight="bold" aria-hidden="true" /> Added to Chapter Four</p>
-                  </div>
-                </article>
-              </section>
-            </aside>
-          </div>
+          <button className="contents-continue" type="button" onClick={() => openLibraryAt("reader", "quiet-strength")}><span><strong>Continue reading</strong> · page 38</span><CaretRight size={20} weight="bold" aria-hidden="true" /></button>
         </div>
       )}
 
-      {!isReading ? <NavShell active={active} onSelect={selectDestination} /> : null}
-
-      <AnimatePresence>
-        {notice ? (
-          <motion.p
-            className="home-notice"
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}
-            role="status"
-          >
-            {notice}
-          </motion.p>
-        ) : null}
-      </AnimatePresence>
+      {!isReading && active !== "Add Memory" ? <NavShell active={active} onSelect={selectDestination} /> : null}
+      <AnimatePresence>{notice ? <motion.p className="home-notice" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }} role="status">{notice}</motion.p> : null}</AnimatePresence>
     </main>
   );
 }
