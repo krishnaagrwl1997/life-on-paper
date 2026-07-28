@@ -171,9 +171,9 @@ export function LibraryExperience({
           <span>{view === "shelf" ? "Your library" : view === "book" ? "Book One" : view === "studio" ? "Book Studio" : selectedPage.chapterTitle}</span>
         </div>
         {view !== "shelf" ? (
-          <button type="button" onClick={() => goToView(view === "reader" || view === "studio" ? "book" : "shelf")}>
+          <button type="button" onClick={() => goToView(view === "studio" ? "book" : "shelf")}>
             <ArrowLeft size={17} weight="bold" aria-hidden="true" />
-            {view === "reader" || view === "studio" ? "Contents" : "Library"}
+            {view === "studio" ? "Contents" : "Library"}
           </button>
         ) : <span className="library-folio">{todayFolio}</span>}
       </header> : null}

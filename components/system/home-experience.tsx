@@ -9,10 +9,12 @@ import { LibraryExperience } from "@/components/system/library-experience";
 import { GardenExperience } from "@/components/system/garden-experience";
 import { ProfileExperience } from "@/components/system/profile-experience";
 import { OnboardingExperience } from "@/components/system/onboarding-experience";
+import { createClient } from "@/lib/supabase/client";
+import type { AccountSummary } from "@/lib/supabase/account";
 
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
 
-export function HomeExperience() {
+export function HomeExperience({ initialAccount }: { initialAccount: AccountSummary | null }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [active, setActive] = useState<Destination>("Home");
   const [memorySeed, setMemorySeed] = useState("");
@@ -24,7 +26,40 @@ export function HomeExperience() {
   const [showForYou, setShowForYou] = useState(false);
   const [libraryEntry, setLibraryEntry] = useState<"shelf" | "book" | "reader">("shelf");
   const [libraryPage, setLibraryPage] = useState<string | undefined>();
+  const [account, setAccount] = useState(initialAccount);
+  const [authPending, setAuthPending] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
+
+  const signInWithGoogle = async () => {
+    setAuthPending(true);
+    setAuthError(null);
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=/`,
+          queryParams: { access_type: "offline", prompt: "select_account" },
+        },
+      });
+
+      if (error) throw error;
+    } catch {
+      setAuthPending(false);
+      setAuthError("You can keep exploring as a guest and connect your account later.");
+    }
+  };
+
+  const signOut = async () => {
+    setAuthPending(true);
+    setAuthError(null);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setAccount(null);
+    setAuthPending(false);
+  };
 
   useEffect(() => {
     const restore = window.setTimeout(() => {
@@ -97,7 +132,17 @@ export function HomeExperience() {
 
   const latestPage = savedPages[0];
 
-  if (showOnboarding) return <OnboardingExperience onComplete={completeOnboarding} />;
+  if (showOnboarding) {
+    return (
+      <OnboardingExperience
+        onComplete={completeOnboarding}
+        account={account}
+        authPending={authPending}
+        authError={authError}
+        onGoogleSignIn={signInWithGoogle}
+      />
+    );
+  }
 
   return (
     <main className={active === "Add Memory" ? "home-app home-app--memory" : "home-app"}>
@@ -121,16 +166,30 @@ export function HomeExperience() {
       ) : active === "Garden" ? (
         <GardenExperience />
       ) : active === "Profile" ? (
-        <ProfileExperience bookTitle={bookTitle} memoryCount={savedPages.length} onOpenGarden={() => selectDestination("Garden")} />
+        <ProfileExperience
+          bookTitle={bookTitle}
+          memoryCount={savedPages.length}
+          account={account}
+          authPending={authPending}
+          onOpenGarden={() => selectDestination("Garden")}
+          onGoogleSignIn={signInWithGoogle}
+          onSignOut={signOut}
+        />
       ) : (
-        <div className="contents-home">
-          <header className="contents-running-head">
-            <h1>Life In Books</h1>
-            <div className="for-you-wrap contents-folio-wrap">
-              <button className="contents-folio" type="button" aria-expanded={showForYou} aria-controls="for-you-notes" onClick={() => setShowForYou((current) => !current)} aria-label="Open a note from your life">17</button>
+        <div className="reader-home">
+          <header className="reader-home__header">
+            <div>
+              <h1>Life on Paper</h1>
+              <p>Your life, one page at a time</p>
+            </div>
+            <div className="for-you-wrap reader-home__note-wrap">
+              <button className="reader-home__note" type="button" aria-expanded={showForYou} aria-controls="for-you-notes" onClick={() => setShowForYou((current) => !current)} aria-label="Open a note from your life">
+                <span aria-hidden="true"><i /></span>
+                <strong>A note from<br />your life</strong>
+              </button>
               <AnimatePresence>
                 {showForYou ? (
-                  <motion.aside id="for-you-notes" className="for-you-notes contents-note" initial={{ opacity: 0, y: -8, rotate: -0.4 }} animate={{ opacity: 1, y: 0, rotate: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }} aria-label="Notes from your life">
+                  <motion.aside id="for-you-notes" className="for-you-notes reader-home__note-card" initial={{ opacity: 0, y: -8, rotate: -0.4 }} animate={{ opacity: 1, y: 0, rotate: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }} aria-label="Notes from your life">
                     <p><Sparkle size={13} weight="fill" aria-hidden="true" /> A note from your life</p>
                     <button type="button" onClick={() => openLibraryAt("reader", "quiet-strength")}><span>Worth returning to</span><strong>Someone once noticed the patience you had almost forgotten.</strong></button>
                   </motion.aside>
@@ -139,34 +198,62 @@ export function HomeExperience() {
             </div>
           </header>
 
-          <section className="contents-intro">
-            <h2>Contents</h2>
-            <p>Your life, organized by chapters.</p>
+          <section className="reader-home__book-heading">
+            <span>Your book</span>
+            <strong>{bookTitle}</strong>
           </section>
 
-          <section className="contents-list" aria-label={`${bookTitle} contents`}>
-            <div className="contents-chapter contents-chapter--active">
+          <motion.article
+            className="reader-home__page-stack"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}
+          >
+            <button className="reader-home__page" type="button" onClick={() => openLibraryAt("reader", latestPage?.id ?? "quiet-strength")} aria-label={`Continue reading ${latestPage?.title ?? "The Patience Someone Else Noticed"}`}>
+              <span className="reader-home__page-meta">
+                <span>Latest page · {latestPage?.chapterTitle ?? "Becoming"}</span>
+                <span>— {latestPage ? "46" : "38"}</span>
+              </span>
+              <strong className="reader-home__page-title">{latestPage?.title ?? "The Patience Someone Else Noticed"}</strong>
+              <span className="reader-home__excerpt">
+                <i aria-hidden="true">{(latestPage?.excerpt ?? "It was such a small thing to be seen for.").charAt(0)}</i>
+                {(latestPage?.excerpt ?? "It was such a small thing to be seen for. I had almost missed it myself—the pause before answering, the choice to stay gentle. But someone else noticed, and for a moment I met the quieter person I was becoming.").slice(1)}
+              </span>
+              <span className="reader-home__continue">
+                <strong>Continue reading <CaretRight size={15} weight="bold" aria-hidden="true" /></strong>
+                <span>Page {latestPage ? "46" : "38"} <i aria-hidden="true"><b /></i></span>
+              </span>
+            </button>
+          </motion.article>
+
+          <section className="reader-home__chapters" aria-label={`${bookTitle} chapters`}>
+            <div className="reader-home__section-title">
+              <h2>Inside this book</h2>
+              <span>{savedPages.length + 6} pages</span>
+            </div>
+            <div className="reader-home__chapter-list">
               <button type="button" onClick={() => openLibraryAt("book")} aria-label="Open chapter one, Becoming">
-                <span className="contents-roman">I</span><span className="contents-dot">·</span><strong>Becoming</strong><i aria-hidden="true" /><span className="contents-page">12</span>
+                <span className="reader-home__chapter-no">I</span>
+                <span><strong>Becoming</strong><small>{latestPage ? "4" : "3"} memories</small></span>
+                <CaretRight size={18} weight="bold" aria-hidden="true" />
               </button>
-              <div className="contents-pages">
-                {latestPage ? (
-                  <button className="contents-page-new" type="button" onClick={() => openLibraryAt("reader", latestPage.id)}><strong>{latestPage.title}</strong><i aria-hidden="true" /><span>46</span></button>
-                ) : null}
-                <button type="button" onClick={() => openLibraryAt("reader", "quiet-strength")}><strong>The Patience Someone Else Noticed</strong><i aria-hidden="true" /><span>38</span></button>
-                <button type="button" onClick={() => openLibraryAt("reader", "kitchen-light")}><strong>What the Kitchen Window Taught Me</strong><i aria-hidden="true" /><span>42</span></button>
-              </div>
+              <button type="button" onClick={() => openLibraryAt("book")} aria-label="Open chapter two, People Who Changed Me">
+                <span className="reader-home__chapter-no">II</span>
+                <span><strong>People Who Changed Me</strong><small>2 memories</small></span>
+                <CaretRight size={18} weight="bold" aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => openLibraryAt("book")} aria-label="Open chapter three, Places I Carried Home">
+                <span className="reader-home__chapter-no">III</span>
+                <span><strong>Places I Carried Home</strong><small>1 memory</small></span>
+                <CaretRight size={18} weight="bold" aria-hidden="true" />
+              </button>
             </div>
-            <div className="contents-chapter">
-              <button type="button" onClick={() => openLibraryAt("book")}><span className="contents-roman">II</span><span className="contents-dot">·</span><strong>People Who Changed Me</strong><i aria-hidden="true" /><span className="contents-page">28</span></button>
-            </div>
-            <div className="contents-chapter">
-              <button type="button" onClick={() => openLibraryAt("book")}><span className="contents-roman">III</span><span className="contents-dot">·</span><strong>Places I Carried Home</strong><i aria-hidden="true" /><span className="contents-page">44</span></button>
-            </div>
-            <button className="contents-add" type="button" onClick={() => openMemory()}><Plus size={24} weight="light" aria-hidden="true" /><strong>Add today&apos;s memory</strong><CaretRight size={20} weight="bold" aria-hidden="true" /></button>
+            <button className="reader-home__add" type="button" onClick={() => openMemory()}>
+              <span className="reader-home__add-icon"><Plus size={25} weight="light" aria-hidden="true" /></span>
+              <span><strong>Add a memory</strong><small>Speak, write, or add a photo</small></span>
+              <CaretRight size={20} weight="bold" aria-hidden="true" />
+            </button>
           </section>
-
-          <button className="contents-continue" type="button" onClick={() => openLibraryAt("reader", "quiet-strength")}><span><strong>Continue reading</strong> · page 38</span><CaretRight size={20} weight="bold" aria-hidden="true" /></button>
         </div>
       )}
 

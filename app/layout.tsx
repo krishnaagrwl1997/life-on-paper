@@ -1,33 +1,20 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/system/theme-provider";
 import "./globals.css";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  metadataBase: new URL("https://life-in-books-foundation.subs334079.chatgpt.site"),
-  title: "Life In Books — Your life, beautifully remembered",
+  metadataBase: new URL("https://lifeonpaper.app"),
+  title: "Life on Paper — Your life, beautifully remembered",
   description:
     "Speak, share, and shape the moments of your life into a memoir you will want to return to.",
   openGraph: {
-    title: "Life In Books",
+    title: "Life on Paper",
     description: "Your life, beautifully remembered.",
-    images: [{ url: "/og.png", width: 1732, height: 909, alt: "Life In Books — Your life, beautifully remembered." }],
+    images: [{ url: "/og.png", width: 1732, height: 909, alt: "Life on Paper — Your life, beautifully remembered." }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Life In Books",
+    title: "Life on Paper",
     description: "Your life, beautifully remembered.",
     images: ["/og.png"],
   },
@@ -40,7 +27,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fraunces.variable} ${inter.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400..700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

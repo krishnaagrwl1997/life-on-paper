@@ -3,17 +3,27 @@
 import Image from "next/image";
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, BookOpenText, Sparkle } from "@phosphor-icons/react";
+import { ArrowRight, BookOpenText, Check, Sparkle } from "@phosphor-icons/react";
+import type { AccountSummary } from "@/lib/supabase/account";
 
 type OnboardingExperienceProps = {
   onComplete: (bookTitle: string) => void;
+  account: AccountSummary | null;
+  authPending: boolean;
+  authError: string | null;
+  onGoogleSignIn: () => void;
 };
 
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
 
-export function OnboardingExperience({ onComplete }: OnboardingExperienceProps) {
+export function OnboardingExperience({
+  onComplete,
+  account,
+  authPending,
+  authError,
+  onGoogleSignIn,
+}: OnboardingExperienceProps) {
   const [bookTitle, setBookTitle] = useState("The Life I’m Becoming");
-  const [googleNotice, setGoogleNotice] = useState(false);
   const reduceMotion = useReducedMotion();
   const finish = () => onComplete(bookTitle.trim() || "My Life In Books");
 
@@ -52,31 +62,38 @@ export function OnboardingExperience({ onComplete }: OnboardingExperienceProps) 
                 <small>You can change this anytime.</small>
               </label>
 
+              {account ? (
+                <div className="onboarding-signed-in" role="status">
+                  <span><Check size={16} weight="bold" aria-hidden="true" /></span>
+                  <div><strong>Signed in as {account.name}</strong><small>{account.email}</small></div>
+                </div>
+              ) : (
+                <>
+                  <button className="google-connect" type="button" onClick={onGoogleSignIn} disabled={authPending} aria-describedby="google-privacy-note">
+                    <Image src="/assets/google-g.svg" alt="" width={20} height={20} unoptimized />
+                    <span>{authPending ? "Opening Google…" : "Continue with Google"}</span>
+                  </button>
+                  <p className="google-privacy" id="google-privacy-note">Your book stays private. Nothing is posted or shared.</p>
+                </>
+              )}
+
               <button className="onboarding-next onboarding-next--primary" type="button" onClick={finish}>
-                <span>Start my first memory</span>
+                <span>{account ? "Start my first memory" : "Try it without an account"}</span>
                 <ArrowRight size={22} aria-hidden="true" />
               </button>
 
-              <div className="onboarding-or"><span>or</span></div>
-
-              <button className="google-connect" type="button" onClick={() => setGoogleNotice(true)} aria-describedby="google-privacy-note">
-                <Image src="/assets/google-g.svg" alt="" width={20} height={20} unoptimized />
-                <span>Continue with Google</span>
-              </button>
-              <p className="google-privacy" id="google-privacy-note">Optional. Nothing is posted or shared.</p>
-
               <AnimatePresence>
-                {googleNotice ? (
+                {authError ? (
                   <motion.div
-                    className="google-connection-note"
+                    className="google-connection-note google-connection-note--error"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 6 }}
                     transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}
-                    role="status"
+                    role="alert"
                   >
-                    <strong>Google connection is ready for credentials.</strong>
-                    <span>You can still begin as a guest and connect later.</span>
+                    <strong>Google sign-in could not start.</strong>
+                    <span>{authError}</span>
                   </motion.div>
                 ) : null}
               </AnimatePresence>

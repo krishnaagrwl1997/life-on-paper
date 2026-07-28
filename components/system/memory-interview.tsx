@@ -1,21 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
   BookmarkSimple,
   Books,
-  Camera,
   Check,
   FileText,
   ImageSquare,
   Microphone,
-  Paperclip,
-  Pause,
-  PencilSimple,
   Plus,
   Sparkle,
   Stop,
@@ -54,14 +50,6 @@ type ChapterPlacement = {
 };
 
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
-
-const captureModes = [
-  { label: "Write" as const, icon: PencilSimple, note: "Start in your own words" },
-  { label: "Voice" as const, icon: Microphone, note: "Speak naturally" },
-  { label: "Photo" as const, icon: Camera, note: "Share a photograph" },
-  { label: "Screenshot" as const, icon: ImageSquare, note: "Keep what you saw" },
-  { label: "File" as const, icon: Paperclip, note: "Bring in a document" },
-];
 
 const feelings = ["Happy", "Proud", "Grateful", "Surprised", "Disappointed", "Hurt", "Hopeful", "Unsure"];
 
@@ -167,10 +155,6 @@ function titleForLayout(layout: EditorialLayoutId) {
   return "The Kind of Person I Was Becoming";
 }
 
-function formatTime(seconds: number) {
-  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
 export function MemoryInterview({
   initialMemory = "",
   initialMode = "Write",
@@ -192,9 +176,6 @@ export function MemoryInterview({
   const [answers, setAnswers] = useState<string[]>([]);
   const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
   const [attachment, setAttachment] = useState<{ name: string; preview?: string; kind: string } | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recorded, setRecorded] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [saved, setSaved] = useState(false);
   const [placementMode, setPlacementMode] = useState<PlacementMode>("proposal");
   const [placement, setPlacement] = useState<ChapterPlacement>(chapterOptions[0]);
@@ -206,16 +187,9 @@ export function MemoryInterview({
   const [notice, setNotice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const reduceMotion = useReducedMotion();
-  const answerSpeech = useLiveTranscription({ value: answer, onChange: setAnswer, onError: setNotice });
   const now = new Date();
   const memoryDate = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "long", year: "numeric" }).format(now);
   const memoryFolio = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(now).replaceAll("/", " · ");
-
-  useEffect(() => {
-    if (!isRecording) return;
-    const timer = window.setInterval(() => setRecordingSeconds((seconds) => seconds + 1), 1000);
-    return () => window.clearInterval(timer);
-  }, [isRecording]);
 
   useEffect(() => {
     return () => {
@@ -232,19 +206,12 @@ export function MemoryInterview({
     return () => window.clearTimeout(timer);
   }, [pageMode, phase, reduceMotion]);
 
-  const selectMode = (nextMode: CaptureMode) => {
-    setMode(nextMode);
-    setNotice(null);
-    setRecorded(false);
-    setRecordingSeconds(0);
-    setIsRecording(false);
-    if (attachment?.preview?.startsWith("blob:")) URL.revokeObjectURL(attachment.preview);
-    setAttachment(null);
+  const chooseFile = (nextMode?: CaptureMode) => {
+    if (nextMode) setMode(nextMode);
+    window.setTimeout(() => fileRef.current?.click(), 0);
   };
 
-  const chooseFile = () => fileRef.current?.click();
-
-  const acceptForMode = mode === "Photo" || mode === "Write"
+  const acceptForMode = mode === "Photo"
     ? "image/*"
     : mode === "Screenshot"
       ? "image/png,image/jpeg,image/webp"
@@ -266,13 +233,7 @@ export function MemoryInterview({
     if (!memory.trim()) setMemory(`${mode} shared: ${file.name}`);
   };
 
-  const stopRecording = () => {
-    setIsRecording(false);
-    setRecorded(true);
-    if (!memory.trim()) setMemory(`Voice memory recorded for ${formatTime(Math.max(recordingSeconds, 1))}.`);
-  };
-
-  const canContinue = memory.trim().length > 0 || Boolean(attachment) || recorded;
+  const canContinue = memory.trim().length > 0 || Boolean(attachment);
 
   const startInterview = () => {
     if (!canContinue) {
@@ -427,54 +388,23 @@ export function MemoryInterview({
             aria-labelledby="capture-title"
           >
             <div className="memory-phase-intro">
-              <p className="memory-eyebrow">First, the raw material</p>
-              <h1 id="capture-title">Begin with what happened.</h1>
-              <p>Don&apos;t make it beautiful yet. Speak, type, or share whatever helps you remember.</p>
+              <p className="memory-eyebrow">A new memory</p>
+              <h1 id="capture-title">Tell it naturally.</h1>
+              <p>Type or tap the microphone and speak. Your words appear here live and become part of your book.</p>
             </div>
 
-            <div className="capture-workspace">
-              <div className="capture-methods" aria-label="Choose a memory format">
-                {captureModes.map(({ label, icon: Icon, note }) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className={mode === label ? "capture-method capture-method--active" : "capture-method"}
-                    aria-pressed={mode === label}
-                    onClick={() => selectMode(label)}
-                  >
-                    <Icon size={23} weight={mode === label ? "fill" : "regular"} aria-hidden="true" />
-                    <strong>{label}</strong>
-                    <span>{note}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="capture-sheet">
+            <div className="capture-workspace capture-workspace--composer">
+              <div className="capture-sheet capture-sheet--composer">
                 <CaptureSurface
                   mode={mode}
                   memory={memory}
                   setMemory={setMemory}
                   attachment={attachment}
                   chooseFile={chooseFile}
-                  isRecording={isRecording}
-                  recorded={recorded}
-                  recordingSeconds={recordingSeconds}
-                  startRecording={() => {
-                    setRecordingSeconds(0);
-                    setRecorded(false);
-                    setIsRecording(true);
-                  }}
-                  stopRecording={stopRecording}
+                  onContinue={startInterview}
                 />
 
                 <input ref={fileRef} className="sr-only" type="file" accept={acceptForMode} onChange={handleFile} />
-                <div className="capture-sheet-footer">
-                  <p>Your original stays attached to this memory.</p>
-                  <button type="button" className="interview-primary" onClick={startInterview}>
-                    Continue to conversation
-                    <ArrowRight size={18} weight="bold" aria-hidden="true" />
-                  </button>
-                </div>
               </div>
             </div>
           </motion.section>
@@ -517,42 +447,17 @@ export function MemoryInterview({
                 {selectedFeelings.length ? <small>{selectedFeelings.length} selected · tap again to remove</small> : <small>Optional — emotions can be mixed.</small>}
               </fieldset>
 
-              <label className="sr-only" htmlFor="interview-answer">Add what you remember</label>
-              <div className={answerSpeech.isListening ? "conversation-composer conversation-composer--listening" : "conversation-composer"}>
-                <textarea
-                  id="interview-answer"
-                  value={answer}
-                  onChange={(event) => {
-                    if (answerSpeech.isListening) answerSpeech.stop();
-                    setAnswer(event.target.value);
-                  }}
-                  placeholder="Add what you remember…"
-                  rows={4}
-                  autoFocus
-                />
-                <div className="conversation-composer-tools">
-                  <div>
-                    <button type="button" onClick={chooseFile} aria-label="Add a photo to this answer"><Paperclip size={18} aria-hidden="true" /></button>
-                    <button
-                      type="button"
-                      onClick={answerSpeech.isListening ? answerSpeech.stop : answerSpeech.start}
-                      aria-label={answerSpeech.isListening ? "Stop live transcription" : "Speak and transcribe this answer"}
-                      aria-pressed={answerSpeech.isListening}
-                    >
-                      {answerSpeech.isListening ? <Stop size={16} weight="fill" aria-hidden="true" /> : <Microphone size={18} weight="fill" aria-hidden="true" />}
-                    </button>
-                    <span aria-live="polite">{answerSpeech.isListening ? `Listening${answerSpeech.interimTranscript ? ` · ${answerSpeech.interimTranscript}` : "…"}` : "Type or speak"}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="conversation-send"
-                    onClick={keepAnswer}
-                    aria-label="Continue to chapter placement"
-                  >
-                    <ArrowRight size={20} weight="bold" aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
+              <MemoryComposer
+                id="interview-answer"
+                value={answer}
+                onChange={setAnswer}
+                onSubmit={keepAnswer}
+                onAddAttachment={() => chooseFile("Photo")}
+                onError={setNotice}
+                placeholder="Add what you remember…"
+                submitLabel="Continue to chapter placement"
+                autoFocus
+              />
               <input ref={fileRef} className="sr-only" type="file" accept={acceptForMode} onChange={handleFile} />
               <div className="conversation-skip">
                 <button type="button" className="quiet-action" onClick={finishEarly}>Skip this question</button>
@@ -885,91 +790,172 @@ function CaptureSurface({
   setMemory,
   attachment,
   chooseFile,
-  isRecording,
-  recorded,
-  recordingSeconds,
-  startRecording,
-  stopRecording,
+  onContinue,
 }: {
   mode: CaptureMode;
   memory: string;
   setMemory: (value: string) => void;
   attachment: { name: string; preview?: string; kind: string } | null;
-  chooseFile: () => void;
-  isRecording: boolean;
-  recorded: boolean;
-  recordingSeconds: number;
-  startRecording: () => void;
-  stopRecording: () => void;
+  chooseFile: (mode?: CaptureMode) => void;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="capture-composer-surface">
+      {attachment ? (
+        <div className="composer-attachment">
+          {attachment.preview ? (
+            <div className="composer-attachment-preview">
+              <Image src={attachment.preview} alt="Attached to this memory" fill unoptimized sizes="96px" />
+            </div>
+          ) : (
+            <span className="composer-file-icon"><FileText size={20} aria-hidden="true" /></span>
+          )}
+          <div>
+            <strong>{attachment.name}</strong>
+            <span>{attachment.kind || mode}</span>
+          </div>
+          <button type="button" onClick={() => chooseFile(mode)}>Replace</button>
+        </div>
+      ) : null}
+
+      <MemoryComposer
+        id="new-memory-text"
+        value={memory}
+        onChange={setMemory}
+        onSubmit={onContinue}
+        onAddAttachment={() => chooseFile("File")}
+        onAddPhoto={() => chooseFile("Photo")}
+        placeholder="Share a moment from your life…"
+        submitLabel="Use this memory"
+        allowAttachment={Boolean(attachment)}
+        autoFocus
+      />
+
+      <div className="capture-composer-hint">
+        <span><Microphone size={15} weight="fill" aria-hidden="true" /> Tap the microphone to see your words appear live.</span>
+        <span>Press Enter to continue · Shift + Enter for a new line</span>
+      </div>
+    </div>
+  );
+}
+
+function MemoryComposer({
+  id,
+  value,
+  onChange,
+  onSubmit,
+  onAddAttachment,
+  onAddPhoto,
+  onError,
+  placeholder,
+  submitLabel,
+  allowAttachment = false,
+  autoFocus = false,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  onAddAttachment: () => void;
+  onAddPhoto?: () => void;
+  onError?: (message: string) => void;
+  placeholder: string;
+  submitLabel: string;
+  allowAttachment?: boolean;
+  autoFocus?: boolean;
 }) {
   const [speechError, setSpeechError] = useState<string | null>(null);
-  const liveSpeech = useLiveTranscription({ value: memory, onChange: setMemory, onError: setSpeechError });
+  const speech = useLiveTranscription({
+    value,
+    onChange,
+    onError: (message) => {
+      setSpeechError(message);
+      onError?.(message);
+    },
+  });
+  const canSubmit = Boolean(value.trim()) || allowAttachment;
 
-  if (mode === "Write") {
-    return (
-      <div className="write-surface">
-        <label htmlFor="new-memory-text">Tell me what happened</label>
-        <textarea
-          id="new-memory-text"
-          value={memory}
-          onChange={(event) => {
-            if (liveSpeech.isListening) liveSpeech.stop();
-            setMemory(event.target.value);
-          }}
-          placeholder="Today, someone appreciated me for something small…"
-          rows={8}
-          autoFocus
-        />
-        <div className={liveSpeech.isListening ? "write-speech-bar write-speech-bar--listening" : "write-speech-bar"}>
-          <span aria-live="polite">{speechError ?? (liveSpeech.isListening ? `Listening${liveSpeech.interimTranscript ? ` · ${liveSpeech.interimTranscript}` : "…"}` : "Type or speak. The transcript remains editable.")}</span>
-          <button
-            type="button"
-            onClick={liveSpeech.isListening ? liveSpeech.stop : liveSpeech.start}
-            aria-label={liveSpeech.isListening ? "Stop live transcription" : "Speak and transcribe this memory"}
-            aria-pressed={liveSpeech.isListening}
-          >
-            {liveSpeech.isListening ? <Stop size={16} weight="fill" aria-hidden="true" /> : <Microphone size={18} weight="fill" aria-hidden="true" />}
-          </button>
-        </div>
-        <div className={attachment?.preview ? "write-photo-attachment write-photo-attachment--ready" : "write-photo-attachment"}>
-          {attachment?.preview ? <div><Image src={attachment.preview} alt="Photo attached to this memory" fill unoptimized sizes="180px" /></div> : <Camera size={19} aria-hidden="true" />}
-          <span>{attachment ? attachment.name : "Add a photo to this moment"}</span>
-          <button type="button" onClick={chooseFile}>{attachment ? "Change photo" : "Choose photo"}</button>
-        </div>
-      </div>
-    );
-  }
+  const submit = () => {
+    if (speech.isListening) speech.stop();
+    onSubmit();
+  };
 
-  if (mode === "Voice") {
-    return (
-      <div className={isRecording ? "voice-surface voice-surface--recording" : "voice-surface"}>
-        <div className="voice-symbol">
-          {isRecording ? <Pause size={30} weight="fill" aria-hidden="true" /> : <Microphone size={30} weight="fill" aria-hidden="true" />}
-        </div>
-        <p>{isRecording ? "Listening to your memory" : recorded ? "Your voice memory is ready" : "Speak as naturally as you would to a friend."}</p>
-        <strong>{formatTime(recordingSeconds)}</strong>
-        <button type="button" onClick={isRecording ? stopRecording : startRecording}>
-          {isRecording ? <Stop size={16} weight="fill" aria-hidden="true" /> : <Microphone size={16} weight="fill" aria-hidden="true" />}
-          {isRecording ? "Stop recording" : recorded ? "Record again" : "Start recording"}
-        </button>
-      </div>
-    );
-  }
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    if (canSubmit) submit();
+  };
+
+  const toggleSpeech = () => {
+    setSpeechError(null);
+    if (speech.isListening) speech.stop();
+    else speech.start();
+  };
 
   return (
-    <div className="upload-surface">
-      {attachment?.preview ? (
-        <div className="upload-preview"><Image src={attachment.preview} alt="Selected memory" fill unoptimized sizes="460px" /></div>
-      ) : (
-        <div className="upload-symbol">
-          {mode === "File" ? <FileText size={36} aria-hidden="true" /> : mode === "Screenshot" ? <ImageSquare size={36} aria-hidden="true" /> : <Camera size={36} aria-hidden="true" />}
-        </div>
-      )}
-      <div>
-        <p>{attachment ? attachment.name : mode === "Photo" ? "Choose a photograph that brings the moment back." : mode === "Screenshot" ? "Add the screenshot exactly as you received it." : "Bring in a note, document, image, or audio file."}</p>
-        {attachment ? <span>{attachment.kind}</span> : null}
+    <div className={speech.isListening ? "conversation-composer conversation-composer--listening conversation-composer--unified" : "conversation-composer conversation-composer--unified"}>
+      <label className="sr-only" htmlFor={id}>Tell us about this memory</label>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(event) => {
+          if (speech.isListening) speech.stop();
+          setSpeechError(null);
+          onChange(event.target.value);
+        }}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        rows={3}
+        autoFocus={autoFocus}
+      />
+
+      <div className="conversation-live-status" aria-live="polite">
+        {speech.isListening ? (
+          <>
+            <span className="live-transcript-dot" aria-hidden="true" />
+            <strong>Listening live</strong>
+            <span>{speech.interimTranscript || "Start speaking — your words will appear above."}</span>
+          </>
+        ) : speechError ? (
+          <span>{speechError}</span>
+        ) : null}
       </div>
-      <button type="button" onClick={chooseFile}>{attachment ? "Choose another" : `Choose ${mode.toLowerCase()}`}</button>
+
+      <div className="conversation-composer-tools">
+        <div className="composer-actions">
+          <button type="button" onClick={onAddAttachment} aria-label="Attach a file">
+            <Plus size={19} weight="bold" aria-hidden="true" />
+          </button>
+          {onAddPhoto ? (
+            <button type="button" onClick={onAddPhoto} aria-label="Add a photo">
+              <ImageSquare size={19} aria-hidden="true" />
+            </button>
+          ) : null}
+          <span>{speech.isListening ? "Transcribing as you speak" : "Add a photo, file, or speak"}</span>
+        </div>
+
+        <div className="composer-primary-actions">
+          <button
+            type="button"
+            className={speech.isListening ? "composer-mic composer-mic--active" : "composer-mic"}
+            onClick={toggleSpeech}
+            aria-label={speech.isListening ? "Stop live transcription" : "Start live transcription"}
+            aria-pressed={speech.isListening}
+            disabled={!speech.isSupported}
+          >
+            {speech.isListening ? <Stop size={16} weight="fill" aria-hidden="true" /> : <Microphone size={19} weight="fill" aria-hidden="true" />}
+          </button>
+          <button
+            type="button"
+            className="conversation-send"
+            onClick={submit}
+            aria-label={submitLabel}
+            disabled={!canSubmit}
+          >
+            <ArrowRight size={20} weight="bold" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
