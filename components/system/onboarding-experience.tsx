@@ -25,12 +25,12 @@ export function OnboardingExperience({
 }: OnboardingExperienceProps) {
   const [bookTitle, setBookTitle] = useState("The Life I’m Becoming");
   const reduceMotion = useReducedMotion();
-  const finish = () => onComplete(bookTitle.trim() || "My Life In Books");
+  const finish = () => onComplete(bookTitle.trim() || "My Life on Paper");
 
   return (
     <main className="onboarding-shell onboarding-shell--simple">
       <header className="onboarding-header onboarding-header--simple">
-        <p className="onboarding-wordmark">Life In Books</p>
+        <p className="onboarding-wordmark">Life on Paper</p>
         <span>Your memoir begins here</span>
       </header>
 

@@ -52,22 +52,23 @@ export function NavShell({
               isActive && !emphasized && "nav-destination--active",
             )}
           >
-            {isActive && !emphasized ? (
-              <motion.span
-                layoutId="nav-active-marker"
-                className="nav-active-marker"
-                transition={
-                  reduceMotion
-                    ? { duration: 0 }
-                    : { duration: 0.5, ease: [0.22, 0.72, 0.26, 1] }
-                }
+            <span className="nav-icon-wrap" aria-hidden="true">
+              {isActive && !emphasized ? (
+                <motion.span
+                  layoutId="nav-active-marker"
+                  className="nav-active-marker"
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { duration: 0.5, ease: [0.22, 0.72, 0.26, 1] }
+                  }
+                />
+              ) : null}
+              <IconComponent
+                size={emphasized ? 30 : 25}
+                weight={emphasized ? "light" : isActive ? "bold" : "regular"}
               />
-            ) : null}
-            <IconComponent
-              size={emphasized ? 30 : 25}
-              weight={emphasized ? "light" : isActive ? "bold" : "regular"}
-              aria-hidden="true"
-            />
+            </span>
             <span className="nav-label" aria-hidden="true">{label}</span>
           </button>
         );

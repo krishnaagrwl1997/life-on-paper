@@ -41,23 +41,29 @@ export function useLiveTranscription({
   value,
   onChange,
   onError,
+  language,
 }: {
   value: string;
   onChange: (value: string) => void;
   onError?: (message: string) => void;
+  language?: string;
 }) {
   const [isListening, setIsListening] = useState(false);
-  const [isSupported, setIsSupported] = useState(true);
+  const isSupported = typeof window === "undefined" ? true : Boolean(recognitionConstructor());
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<Recognition | null>(null);
   const baseTextRef = useRef("");
+  const shouldListenRef = useRef(false);
 
   useEffect(() => {
-    setIsSupported(Boolean(recognitionConstructor()));
-    return () => recognitionRef.current?.abort();
+    return () => {
+      shouldListenRef.current = false;
+      recognitionRef.current?.abort();
+    };
   }, []);
 
   const stop = useCallback(() => {
+    shouldListenRef.current = false;
     recognitionRef.current?.stop();
     setIsListening(false);
     setInterimTranscript("");
@@ -66,17 +72,18 @@ export function useLiveTranscription({
   const start = useCallback(() => {
     const RecognitionApi = recognitionConstructor();
     if (!RecognitionApi) {
-      setIsSupported(false);
       onError?.("Live transcription is not available in this browser. You can still type your memory.");
       return;
     }
 
+    shouldListenRef.current = false;
     recognitionRef.current?.abort();
+    shouldListenRef.current = true;
     baseTextRef.current = value.trim();
     const recognition = new RecognitionApi();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-IN";
+    if (language) recognition.lang = language;
     recognition.onstart = () => setIsListening(true);
     recognition.onresult = (event) => {
       let finalText = "";
@@ -91,6 +98,7 @@ export function useLiveTranscription({
       onChange([baseTextRef.current, spokenText].filter(Boolean).join(baseTextRef.current && spokenText ? " " : ""));
     };
     recognition.onerror = (event) => {
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") shouldListenRef.current = false;
       const message = event.error === "not-allowed" || event.error === "service-not-allowed"
         ? "Microphone access is off. Allow it in your browser, or keep typing."
         : event.error === "no-speech"
@@ -103,6 +111,16 @@ export function useLiveTranscription({
     recognition.onend = () => {
       setIsListening(false);
       setInterimTranscript("");
+      if (shouldListenRef.current) {
+        window.setTimeout(() => {
+          if (!shouldListenRef.current) return;
+          try {
+            recognition.start();
+          } catch {
+            shouldListenRef.current = false;
+          }
+        }, 180);
+      }
     };
     recognitionRef.current = recognition;
 
@@ -111,7 +129,7 @@ export function useLiveTranscription({
     } catch {
       onError?.("The microphone is already starting. Give it a moment, then speak naturally.");
     }
-  }, [onChange, onError, value]);
+  }, [language, onChange, onError, value]);
 
   return { interimTranscript, isListening, isSupported, start, stop };
 }

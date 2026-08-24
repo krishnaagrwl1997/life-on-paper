@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-page-custom-font */
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/system/theme-provider";
 import "./globals.css";

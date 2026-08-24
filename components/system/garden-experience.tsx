@@ -167,7 +167,7 @@ export function GardenExperience() {
   return (
     <div className="garden-experience">
       <header className="garden-header">
-        <div><p>Life In Books</p><span>{view === "garden" ? "The Garden" : selected.author}</span></div>
+        <div><p>Life on Paper</p><span>{view === "garden" ? "The Garden" : selected.author}</span></div>
         {view !== "garden" ? <button type="button" onClick={() => goToView(view === "preview" ? "book" : "garden")}><ArrowLeft size={17} weight="bold" aria-hidden="true" />{view === "preview" ? "Book" : "Garden"}</button> : <span>{todayFolio}</span>}
       </header>
 
@@ -193,7 +193,9 @@ export function GardenExperience() {
                   <div className="garden-card-copy">
                     <div className="garden-author"><span>{book.initials}</span><div><strong>{book.author}</strong><small>{accessLabel(book.access, requests.includes(book.id))}</small></div></div>
                     <p>{book.summary}</p>
-                    <button type="button" onClick={() => openBook(book.id)}>See this book <ArrowRight size={16} weight="bold" aria-hidden="true" /></button>
+                    <button type="button" className="garden-card-action" onClick={() => openBook(book.id)} aria-label={`Read about ${book.title}`}>
+                      Read about this book <ArrowRight size={16} weight="bold" aria-hidden="true" />
+                    </button>
                   </div>
                 </article>
               ))}
@@ -216,7 +218,7 @@ export function GardenExperience() {
             <article>
               <header><span>{selected.author}</span><span>Shared with permission</span></header>
               <div><p>From {selected.title}</p><h1>{selected.previewTitle}</h1><blockquote>{selected.previewQuote}</blockquote>{selected.previewBody.map((paragraph, index) => <p key={`${selected.id}-${index}`}>{paragraph}</p>)}</div>
-              <footer><span>Life In Books</span><span>Preview · 01</span></footer>
+              <footer><span>Life on Paper</span><span>Preview · 01</span></footer>
             </article>
           </motion.section>
         )}

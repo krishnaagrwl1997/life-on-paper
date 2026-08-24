@@ -4,7 +4,13 @@ import { getSupabaseConfig } from "./config";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const { url, publishableKey } = getSupabaseConfig();
+  let url: string;
+  let publishableKey: string;
+  try {
+    ({ url, publishableKey } = getSupabaseConfig());
+  } catch {
+    return response;
+  }
 
   const supabase = createServerClient(url, publishableKey, {
     cookies: {

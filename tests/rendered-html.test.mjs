@@ -14,102 +14,62 @@ async function render() {
   );
 }
 
-test("server-renders the Life In Books home experience", async () => {
+test("server-renders the guest Life on Paper home", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /Life In Books/);
-  assert.match(html, /Contents/);
-  assert.match(html, /Your life, organized by chapters/);
-  assert.match(html, /Add today/);
-  assert.match(html, /Continue reading/);
-  assert.match(html, /People Who Changed Me/);
+  assert.match(html, /Life on Paper/);
+  assert.match(html, /Speak naturally\. Keep the page forever\./);
+  assert.match(html, /Personal memoir/);
+  assert.match(html, /See contents/);
+  assert.match(html, /Write the (?:first|next) page/);
 });
 
-test("keeps the balanced five-destination memoir shell explicit", async () => {
-  const [home, interview, library, garden, nav, layout, transcription] = await Promise.all([
+test("keeps the five-destination memoir shell and core flows explicit", async () => {
+  const [home, memory, library, garden, nav, profile, transcription] = await Promise.all([
     readFile(new URL("../components/system/home-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/memory-interview.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/library-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/garden-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/nav-shell.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/system/profile-experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/system/use-live-transcription.ts", import.meta.url), "utf8"),
   ]);
 
   for (const destination of ["Home", "Library", "Add Memory", "Garden", "Profile"]) {
     assert.match(nav, new RegExp(`label: \\\"${destination}\\\"`));
   }
-  assert.match(home, /Add today&apos;s memory/);
-  assert.match(home, /The Patience Someone Else Noticed/);
-  assert.match(home, /What the Kitchen Window Taught Me/);
-  assert.match(home, /initialView/);
-  assert.match(interview, /Speak and transcribe this answer/);
-  assert.match(interview, /Speak and transcribe this memory/);
-  assert.match(transcription, /SpeechRecognition/);
-  assert.match(transcription, /interimResults = true/);
-  assert.match(interview, /File/);
-  assert.match(interview, /One thoughtful follow-up/);
-  assert.match(interview, /Select all that fit/);
-  assert.match(interview, /selectedFeelings\.includes\(feeling\)/);
-  assert.match(interview, /Continue to chapter placement/);
-  assert.match(interview, /function contextualQuestion/);
-  assert.match(interview, /Who noticed this about you/);
-  assert.match(interview, /What did you feel/);
-  assert.match(interview, /Review what I heard/);
-  assert.match(interview, /Return to conversation/);
-  assert.match(interview, /I&apos;d place this in/);
-  assert.match(interview, /Choose another/);
-  assert.match(interview, /Create a new chapter/);
-  assert.match(interview, /Place &amp; create/);
-  assert.match(interview, /function recommendPlacement/);
-  assert.match(interview, /function recommendLayout/);
-  assert.match(interview, /Your page is taking shape/);
-  assert.match(interview, /This is how your memory reads/);
-  assert.match(interview, /Try another layout/);
-  assert.match(interview, /Keep this page/);
-  assert.match(interview, /Your page is ready/);
-  assert.match(interview, /See it in Contents/);
-  assert.match(interview, /Page title/);
-  assert.match(interview, /Page kept/);
-  for (const layout of ["Story", "Quote", "Illustration", "Little Things", "Letter", "Timeline", "Travel", "People", "Reflection"]) {
-    assert.match(interview, new RegExp(`name: \"${layout}\"`));
-  }
-  assert.match(home, /life-in-books-pages/);
-  assert.match(home, /contents-page-new/);
+
+  assert.match(home, /starterQuestions/);
+  assert.match(home, /Another question/);
   assert.match(home, /A note from your life/);
-  assert.match(home, /active !== "Add Memory"/);
-  assert.match(library, /A library only you could have written/);
-  assert.match(library, /Volume I/);
-  assert.match(library, /Volume II/);
+  assert.match(home, /Write the next page/);
+  assert.match(memory, /What&apos;s on your mind, buddy\?/);
+  assert.match(memory, /Let’s talk about it/);
+  assert.match(memory, /And how did that make you feel\?/);
+  assert.match(memory, /Pick one, a few, or leave it for now/);
+  assert.match(memory, /Turn this into a page/);
+  assert.match(memory, /See exactly what changed\./);
+  assert.match(memory, /Keep in my book/);
+  assert.match(transcription, /interimResults = true/);
+  assert.match(library, /Open book contents/);
+  assert.match(library, /Scroll inside the paper to read/);
   assert.match(library, /Toggle reading by lamplight/);
-  assert.match(library, /About 2 minutes left in this page/);
-  assert.match(library, /reader-type-controls/);
-  assert.match(library, /Previous/);
-  assert.match(library, /Next/);
-  assert.match(library, /Open Book Studio/);
-  assert.match(library, /Shape the book, without losing the life behind it/);
-  assert.match(library, /Preview complete book/);
-  assert.match(library, /Original memory remains attached/);
-  assert.match(library, /Request-only/);
-  assert.match(library, /Selected previews/);
-  assert.match(library, /Restore/);
-  assert.match(library, /Keep these edits/);
-  assert.match(interview, /Add a photo to this moment/);
-  assert.match(interview, /Photo attached to this memory/);
-  assert.match(garden, /Other lives, opened carefully/);
-  assert.match(garden, /No audience metrics/);
   assert.match(garden, /Request to read/);
-  assert.match(garden, /Request sent/);
-  assert.match(garden, /Read permitted preview/);
-  assert.match(garden, /Private book/);
-  for (const author of ["Maya Sen", "Jon Bell", "Amina Yusuf", "Elias Hart", "Noor Patel"]) {
-    assert.match(garden, new RegExp(author));
-  }
-  assert.equal((interview.match(/id: \"trust\"/g) ?? []).length, 1);
-  assert.equal((interview.match(/const feelings = \[/g) ?? []).length, 1);
-  assert.match(layout, /Your life, beautifully remembered/);
-  assert.doesNotMatch(`${home}\n${interview}`, /dashboard|sign in|log in/i);
+  assert.match(profile, /Google/);
+});
+
+test("guards Hinglish memories with named people against generic questions and titles", async () => {
+  const guardrails = await readFile(new URL("../lib/ai/editorial-guardrails.ts", import.meta.url), "utf8");
+  const memory = await readFile(new URL("../components/system/memory-interview.tsx", import.meta.url), "utf8");
+
+  assert.match(guardrails, /ne\|ney/);
+  assert.match(guardrails, /bola\|boli\|kaha/);
+  assert.match(guardrails, /ne tumhare kaam ke baare mein exactly kya kaha tha/);
+  assert.match(guardrails, /What \$\{grounding\.person\} Noticed in My Work/);
+  assert.match(guardrails, /I was like/);
+  assert.match(guardrails, /matlab/);
+  assert.match(memory, /What \$\{personName\} Noticed in My Work/);
 });
