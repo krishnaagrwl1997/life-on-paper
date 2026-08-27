@@ -2115,7 +2115,7 @@ input:focus-visible {
 }
 
 .feeling-picker--multi button {
-  min-height: 2.55rem;
+  min-height: 2.75rem;
   border: 1px solid var(--rule);
   border-radius: 0.45rem;
   background: transparent;
@@ -2257,7 +2257,7 @@ input:focus-visible {
   }
 
   .feeling-picker--multi button {
-    min-height: 2.35rem;
+    min-height: 2.75rem;
     padding-right: 0.25rem;
     padding-left: 0.25rem;
     font-size: 0.54rem;
@@ -3748,7 +3748,7 @@ input:focus-visible {
 .feeling-picker legend {
   padding: 0;
   color: var(--ink-muted);
-  font-size: 0.58rem;
+  font-size: 0.64rem;
   font-weight: 650;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -3787,7 +3787,7 @@ input:focus-visible {
   display: block;
   margin-top: 0.65rem;
   color: var(--ink-muted);
-  font-size: 0.51rem;
+  font-size: 0.62rem;
   line-height: 1.4;
 }
 
@@ -8195,7 +8195,7 @@ input:focus-visible {
   }
 
   .feeling-picker small {
-    font-size: 0.56rem;
+    font-size: 0.64rem;
   }
 
   .interview-page textarea {
