@@ -7054,6 +7054,64 @@ input:focus-visible {
   border-bottom: 1px solid var(--ink);
 }
 
+.studio-delete-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(193, 89, 43, 0.4);
+  border-radius: 0.35rem;
+  background: rgba(252, 248, 241, 0.96);
+  box-shadow: var(--paper-shadow-sm);
+}
+
+.studio-delete-confirm > div:first-child {
+  min-width: 0;
+}
+
+.studio-delete-confirm strong {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--ink);
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.05rem;
+}
+
+.studio-delete-confirm > div:first-child span {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.studio-delete-confirm__actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.studio-delete-confirm__danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.4rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--action);
+  border-radius: 0.25rem;
+  background: var(--action);
+  color: var(--paper-raised);
+  font-weight: 620;
+  transition: background-color 500ms var(--paper-ease), border-color 500ms var(--paper-ease);
+}
+
+.studio-delete-confirm__danger:hover {
+  background: var(--action-deep);
+  border-color: var(--action-deep);
+}
+
 .studio-page-row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -7279,6 +7337,8 @@ input:focus-visible {
   .studio-workbench-heading { align-items: start; }
   .studio-page-select { grid-template-columns: 1.7rem 1fr; padding-left: 0.25rem; }
   .studio-row-actions { gap: 0.15rem; }
+  .studio-delete-confirm { flex-direction: column; align-items: stretch; gap: 0.85rem; }
+  .studio-delete-confirm__actions { justify-content: flex-end; }
   .studio-row-actions button { width: 1.75rem; height: 1.75rem; }
   .studio-editor > header { align-items: start; flex-direction: column; }
   .studio-editor > header > strong { max-width: 100%; }

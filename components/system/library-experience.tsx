@@ -434,7 +434,6 @@ export function LibraryExperience({
               await onCommitPages?.(pages.filter((page) => !removedPageIds.includes(page.id)));
             }}
             onDelete={async (page) => {
-              if (!window.confirm(`Remove “${page.title}” from your book? This cannot be undone.`)) return;
               const next = pages.filter((item) => item.id !== page.id);
               setPages(next);
               persistStudio({ pages: next, removedPageIds: removedPageIds.filter((id) => id !== page.id) });
@@ -634,6 +633,7 @@ function BookStudio({
   const [newVolume, setNewVolume] = useState("");
   const [savedNotice, setSavedNotice] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const selected = pages.find((page) => page.id === selectedId) ?? activePages[0] ?? pages[0];
   const volumes = ["Volume I · Elsewhere", "Volume II · Becoming", ...extraVolumes];
 
@@ -723,11 +723,31 @@ function BookStudio({
               {activePages.map((page, index) => (
                 <motion.article key={page.id} layout initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: reduceMotion ? 0 : 40 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }} className={selected?.id === page.id ? "studio-page-row studio-page-row--selected" : "studio-page-row"}>
                   <button type="button" className="studio-page-select" onClick={() => setSelectedId(page.id)}><span>{String(index + 1).padStart(2, "0")}</span><div><small>{page.volume} · {page.chapter}</small><strong>{page.title}</strong><p>{page.chapterTitle}</p></div></button>
-                  <div className="studio-row-actions"><button type="button" aria-label={`Move ${page.title} earlier`} disabled={index === 0} onClick={() => reorder(page.id, -1)}><ArrowUp size={16} aria-hidden="true" /></button><button type="button" aria-label={`Move ${page.title} later`} disabled={index === activePages.length - 1} onClick={() => reorder(page.id, 1)}><ArrowDown size={16} aria-hidden="true" /></button><button type="button" aria-label={`Delete ${page.title}`} onClick={() => void onDelete(page)}><Trash size={16} aria-hidden="true" /></button></div>
+                  <div className="studio-row-actions"><button type="button" aria-label={`Move ${page.title} earlier`} disabled={index === 0} onClick={() => reorder(page.id, -1)}><ArrowUp size={16} aria-hidden="true" /></button><button type="button" aria-label={`Move ${page.title} later`} disabled={index === activePages.length - 1} onClick={() => reorder(page.id, 1)}><ArrowDown size={16} aria-hidden="true" /></button><button type="button" aria-label={`Delete ${page.title}`} onClick={() => setPendingDeleteId(page.id)}><Trash size={16} aria-hidden="true" /></button></div>
                 </motion.article>
               ))}
             </AnimatePresence>
           </div>
+
+          <AnimatePresence>
+            {pendingDeleteId ? (
+              <motion.div
+                className="studio-delete-confirm"
+                initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
+                transition={{ duration: reduceMotion ? 0 : 0.4, ease: paperEase }}
+                role="alert"
+                aria-live="polite"
+              >
+                <div><strong>Move “{pages.find((page) => page.id === pendingDeleteId)?.title ?? "this page"}” out of your book?</strong><span>It will be set aside from this book. You can restore it from the removed pages if you change your mind.</span></div>
+                <div className="studio-delete-confirm__actions">
+                  <button type="button" className="quiet-action" onClick={() => setPendingDeleteId(null)}>Keep it</button>
+                  <button type="button" className="studio-delete-confirm__danger" onClick={() => { const page = pages.find((item) => item.id === pendingDeleteId); setPendingDeleteId(null); if (page) void onDelete(page); }}>Move out <Trash size={15} weight="bold" aria-hidden="true" /></button>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
 
           {selected && !removedPageIds.includes(selected.id) ? (
             <motion.section key={selected.id} className="studio-editor" initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
