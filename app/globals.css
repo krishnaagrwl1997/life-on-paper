@@ -562,7 +562,7 @@ input:focus-visible {
   position: fixed;
   z-index: 30;
   left: 50%;
-  bottom: 1rem;
+  bottom: max(1rem, env(safe-area-inset-bottom));
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   width: min(calc(100% - 2rem), 25rem);
@@ -813,7 +813,7 @@ input:focus-visible {
   }
 
   .nav-shell {
-    bottom: 0.65rem;
+    bottom: max(0.65rem, env(safe-area-inset-bottom));
     width: calc(100% - 1.5rem);
     min-height: 4.35rem;
     padding: 0.4rem 0.5rem;
@@ -837,7 +837,7 @@ input:focus-visible {
   }
 
   .home-notice {
-    bottom: 5.5rem;
+    bottom: max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom)));
     text-align: center;
   }
 }
@@ -4664,6 +4664,11 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.page-route-card .page-route-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .page-route-card--saved {

@@ -606,6 +606,20 @@ export function MemoryInterview({
     return () => window.clearTimeout(timer);
   }, [pageMode, phase, reduceMotion]);
 
+  // Reset scroll to the top on every major phase transition. Opening the
+  // next screen mid-scroll makes the header feel cropped and untrustworthy.
+  const previousPhase = useRef<Phase>(phase);
+  useEffect(() => {
+    const previous = previousPhase.current;
+    if (previous !== phase) {
+      // Use "auto" so the scroll reset is immediate rather than animating
+      // underneath the new phase and leaving the header visually cropped.
+      window.scrollTo({ top: 0, behavior: "auto" });
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+    }
+    previousPhase.current = phase;
+  }, [phase]);
+
   const chooseFile = (nextMode?: CaptureMode) => {
     if (nextMode) setMode(nextMode);
     window.setTimeout(() => fileRef.current?.click(), 0);
@@ -744,6 +758,27 @@ export function MemoryInterview({
     setAnswer("");
     setAnswerHint("");
     void loadAiQuestion([], 0);
+  };
+
+  // Reset back to a fresh capture sheet after saving, so the completed draft
+  // is never silently kept as a future duplicate.
+  const startNewMemory = () => {
+    setMemory("");
+    setAnswers([]);
+    setAnswer("");
+    setAnswerHint("");
+    setSelectedFeelings([]);
+    setAttachment(null);
+    setSaved(false);
+    setPageSaved(false);
+    setQuestionIndex(0);
+    setAiQuestion(null);
+    setAiPage(null);
+    setAiStatus("idle");
+    setEditedBookDraft("");
+    setPlacementMode("proposal");
+    setPhase("capture");
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
 
   const openPlacement = () => {
@@ -1366,7 +1401,10 @@ export function MemoryInterview({
                 <div className={pageSaved ? "page-route-card page-route-card--saved" : "page-route-card"}>
                   <div><span>{pageSaved ? "Saved in your book" : "Page ready"}</span><strong>{pageSaved ? "Continue to your Library to read it." : "Keep it when it feels true to you."}</strong></div>
                   {pageSaved ? (
-                    <button type="button" className="interview-primary" onClick={onOpenLibrary ?? onBack}>See it in Contents <Books size={18} weight="bold" aria-hidden="true" /></button>
+                    <div className="page-route-actions">
+                      <button type="button" className="interview-primary" onClick={onOpenLibrary ?? onBack}>See it in Contents <Books size={18} weight="bold" aria-hidden="true" /></button>
+                      <button type="button" className="quiet-action" onClick={startNewMemory}>Write another</button>
+                    </div>
                   ) : (
                     <div><button type="button" className="quiet-action" onClick={editInterview}>Back</button><button type="button" className="interview-primary" onClick={keepPage}>Keep in my book <BookmarkSimple size={18} weight="fill" aria-hidden="true" /></button></div>
                   )}

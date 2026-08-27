@@ -260,7 +260,7 @@ export function LibraryExperience({
               <div><p className="section-label">{activePages.length ? "Recently bound" : "A fresh beginning"}</p><span>{activePages.length ? syncLabel : "No pages yet"}</span></div>
               {activePages.length ? (
                 <div className="library-recent-grid">
-                  {[...activePages].slice(-3).reverse().map((page, index) => (
+                  {[...activePages].slice(0, 3).map((page, index) => (
                     <button key={page.id} type="button" onClick={() => { setSelectedPageId(page.id); goToView("reader"); }}>
                       <span>{String(index + 1).padStart(2, "0")}</span><small>{page.chapterTitle}</small><strong>{page.title}</strong><p>{page.excerpt}</p>
                     </button>
