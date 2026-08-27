@@ -4,17 +4,32 @@ on:
   push:
     branches: [main]
 
+env:
+  VERCEL_ORG_ID: team_ZwqcatAquvcaHPsyfe2pINuD
+  VERCEL_PROJECT_ID: prj_ePUg3nGNY7fCfTkCX6NtxBGkX294
+
 jobs:
-  deploy:
+  deploy-to-vercel:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to Vercel Production
-        uses: vercel/vercel-action@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v4
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: team_ZwqcatAquvcaHPsyfe2pINuD
-          vercel-project-id: prj_ePUg3nGNY7fCfTkCX6NtxBGkX294
-          vercel-args: --prod
-          working-directory: .
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Pull Vercel environment information
+        run: |
+          npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: |
+          npx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Project Artifacts to Vercel
+        run: |
+          npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
