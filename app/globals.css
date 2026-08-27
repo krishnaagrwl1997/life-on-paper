@@ -10533,6 +10533,36 @@ input:focus-visible {
   padding: clamp(1.4rem, 5vw, 2.25rem);
 }
 
+.library-empty-mark {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  margin-bottom: 1.1rem;
+  color: var(--action);
+}
+
+.library-empty-mark span {
+  display: block;
+  width: 0.5rem;
+  border-radius: 0.3rem;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.library-empty-mark span:nth-child(1) { height: 0.9rem; }
+.library-empty-mark span:nth-child(2) { height: 1.5rem; }
+.library-empty-mark span:nth-child(3) { height: 1.1rem; }
+
+.library-empty-mark::after {
+  content: "";
+  width: 2.2rem;
+  height: 1px;
+  align-self: center;
+  margin-left: 0.15rem;
+  background: linear-gradient(90deg, currentColor, transparent);
+  opacity: 0.4;
+}
+
 .library-empty strong,
 .contents-empty strong,
 .reader-empty h1 {

@@ -268,6 +268,11 @@ export function LibraryExperience({
                 </div>
               ) : (
                 <div className="library-empty">
+                  <div className="library-empty-mark" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
                   <strong>Your first page will appear here.</strong>
                   <p>Share one moment—spoken, written, or photographed—and Life on Paper will begin arranging your book.</p>
                   {onAddMemory ? <button type="button" onClick={onAddMemory}>Begin with a memory <ArrowRight size={17} weight="bold" aria-hidden="true" /></button> : null}
