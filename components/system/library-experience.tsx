@@ -709,6 +709,13 @@ function BookStudio({
             <div className="studio-visibility">
               {(["private", "request", "previews"] as BookVisibility[]).map((visibility) => <button key={visibility} type="button" aria-pressed={bookVisibility === visibility} onClick={() => onVisibilityChange(visibility)}><span>{bookVisibility === visibility ? <Check size={14} weight="bold" aria-hidden="true" /> : null}</span><strong>{visibility === "private" ? "Private" : visibility === "request" ? "Request-only" : "Selected previews"}</strong><small>{visibility === "private" ? "Only you can read" : visibility === "request" ? "You approve each reader" : "You choose visible pages"}</small></button>)}
             </div>
+            <p className="studio-visibility-note" role="status">
+              {bookVisibility === "private"
+                ? "This book stays hidden. It will not appear in the Garden, and no one can request it."
+                : bookVisibility === "request"
+                  ? "The title and summary appear in the Garden. Readers can request access, and you approve who gets in. Nothing else is shared."
+                  : "Only the title, summary, and the single page you choose are visible. Readers can read that page without an account."}
+            </p>
           </section>
 
           <section>

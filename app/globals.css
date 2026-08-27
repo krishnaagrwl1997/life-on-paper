@@ -6967,6 +6967,15 @@ input:focus-visible {
 .studio-visibility strong { font-size: 0.64rem; }
 .studio-visibility small { color: var(--ink-muted); font-size: 0.5rem; }
 
+.studio-visibility-note {
+  margin: 0.75rem 0 0;
+  padding-left: 0.85rem;
+  border-left: 2px solid var(--action);
+  color: var(--ink-muted);
+  font-size: 0.66rem;
+  line-height: 1.55;
+}
+
 .studio-new-volume {
   display: grid;
   grid-template-columns: 1fr auto;
