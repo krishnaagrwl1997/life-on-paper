@@ -242,6 +242,64 @@ function composeBookDraft(memory: string, answers: string[], style: WritingStyle
     .join("\n\n");
 }
 
+// Turn a raw memory into a structured narrative the reader can follow:
+// an opening scene line, the ordered sequence, and a reflective close. Every
+// sentence stays the user's own — this only arranges and lightly edits their
+// words, never invents a scene, detail, or lesson.
+function structureStoryDraft(memory: string, answers: string[], feelings: string[], languageId: string) {
+  const source = [memory, ...answers].filter(Boolean).join("\n\n");
+  const context = detectMemoryContext(memory);
+  const sentences = source
+    .split(/(?<=[.!?।])\s+/)
+    .map((item) => shapeVoice(item, "gently-shaped").trim())
+    .filter(Boolean);
+  const seen = new Set<string>();
+  const ordered = sentences.filter((item) => {
+    const key = item.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  if (!ordered.length) return { paragraphs: [], scene: "", close: "" };
+
+  const firstSentence = ordered[0];
+
+  // A scene-setting lead, drawn only from the user's own words. Prefer a
+  // time/place anchor they supplied; otherwise use their first concrete clause.
+  const when = context.when || "";
+  const place = context.place && context.place !== "A journey" ? context.place : "";
+  const scene = when || place
+    ? [when, place ? `in ${place}` : ""].filter(Boolean).join(" ")
+    : "";
+  // Avoid a bare fragment lead when the user's own first sentence already
+  // establishes the same time or place — the scene is already set in their words.
+  const firstSentenceStart = firstSentence.toLocaleLowerCase().slice(0, 48);
+  const whenLower = when.toLocaleLowerCase();
+  const placeLower = place.toLocaleLowerCase();
+  const sceneAlreadyStated = Boolean(
+    (when && firstSentenceStart.startsWith(whenLower)) ||
+    (place && firstSentenceStart.includes(placeLower)) ||
+    (when && firstSentenceStart.includes(whenLower)),
+  );
+
+  const sequence = ordered.filter((item) => item !== (scene || "__never__"));
+
+  const close = (() => {
+    const reflection = reflectionFromMemory(answers, feelings, languageId);
+    if (!reflection) return "";
+    if (sequence.some((item) => item.toLocaleLowerCase() === reflection.toLocaleLowerCase())) return "";
+    return reflection;
+  })();
+
+  const paragraphs = [
+    ...(scene && !sceneAlreadyStated ? [scene] : []),
+    ...sequence,
+    ...(close ? [close] : []),
+  ];
+  return { paragraphs, scene, close };
+}
+
 function reflectionFromMemory(answers: string[], selectedFeelings: string[], languageId: string) {
   const answer = [...answers]
     .reverse()
@@ -859,13 +917,18 @@ export function MemoryInterview({
   };
 
   const originalTranscript = [memory, ...answers].filter(Boolean).join("\n\n");
+  const writingLanguage = detectWritingLanguage(originalTranscript);
   const cleanedTranscript = aiPage?.cleanTranscript
     || [memory, ...answers].map((item) => shapeVoice(item, "almost-unchanged")).filter(Boolean).join("\n\n");
-  const generatedBookDraft = aiPage?.bookDraft || composeBookDraft(memory, answers, writingStyle);
+  // When the AI editor is unavailable, arrange the user's own words into a
+  // structured narrative (scene lead, ordered sequence, reflective close)
+  // rather than a bare chunk of cleaned speech.
+  const structured = structureStoryDraft(memory, answers, selectedFeelings, writingLanguage.id);
+  const structuredDraft = structured.paragraphs.join("\n\n");
+  const generatedBookDraft = aiPage?.bookDraft || structuredDraft || composeBookDraft(memory, answers, writingStyle);
   const activeBookDraft = editedBookDraft || generatedBookDraft || attachment?.name || "A small moment I wanted to remember.";
   const pageParagraphs = activeBookDraft.split(/\n\s*\n/).map((item) => item.trim()).filter(Boolean);
-  const writingLanguage = detectWritingLanguage(originalTranscript);
-  const pageReflection = aiPage?.reflection || reflectionFromMemory(answers, selectedFeelings, writingLanguage.id);
+  const pageReflection = aiPage?.reflection || structured.close || reflectionFromMemory(answers, selectedFeelings, writingLanguage.id);
   const normalizedReflection = pageReflection.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   const pageBodyParagraphs = pageParagraphs.filter((paragraph) => {
     const normalized = paragraph.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
@@ -1444,9 +1507,9 @@ export function MemoryInterview({
                         </ol>
                       ) : (
                         <div className="memoir-page-body">
-                          {pageReflection ? <p>{pageReflection}</p> : null}
                           <p>{pageSource}</p>
                           {pageDetails.map((detail, index) => <p key={`${index}-${detail}`}>{detail}</p>)}
+                          {pageReflection ? <p className="memoir-page-reflection">{pageReflection}</p> : null}
                         </div>
                       )}
                       {selectedLayout.id === "letter" ? <p className="memoir-signoff">With gratitude,<br />Me</p> : null}

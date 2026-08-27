@@ -4937,6 +4937,14 @@ input:focus-visible {
   line-height: 1.62;
 }
 
+.memoir-page-reflection {
+  font-family: var(--font-fraunces), serif;
+  font-style: italic;
+  font-size: 1.08rem;
+  color: var(--action-deep);
+  text-indent: 0;
+}
+
 .memoir-page--quote .memoir-page-content {
   display: grid;
   min-height: 38rem;
