@@ -14,6 +14,11 @@ const ignoredNames = new Set([
   "Later", "Life", "Maybe", "Monday", "My", "Once", "One", "Our", "Paper", "Perhaps", "Recently",
   "Rishikesh", "Saturday", "She", "Some", "Sometimes", "Suddenly", "Sunday", "The", "Then", "They",
   "This", "Thursday", "Today", "Tuesday", "Wednesday", "We", "When", "While", "Yesterday",
+  // Discourse and function words that must never be mistaken for a person.
+  "Apparently", "Anyway", "Anyways", "Around", "Because", "Besides", "Eventually", "Everything",
+  "Finally", "Fine", "However", "Indeed", "Instead", "Just", "Look", "Luckily", "Obviously",
+  "Okay", "Particularly", "Probably", "Really", "Right", "Sadly", "Second", "Seriously", "Still",
+  "That", "There", "These", "Those", "Though", "Until", "Wait", "Well", "Whatever", "Yeah", "Yes",
 ]);
 
 const stopWords = new Set([
@@ -27,6 +32,12 @@ const weakAnchorWords = new Set([
   "actually", "basically", "first", "honestly", "last", "lately", "later", "maybe", "once",
   "perhaps", "recently", "sometimes", "something", "suddenly", "then", "today", "yesterday",
 ]);
+
+// Words that frequently start a dictated sentence and must never be read as a
+// person's name in a title ("Goa with Actually" is never a good title).
+function isWeakPersonWord(word: string) {
+  return /^(?:Actually|After|Anyway|Apparently|Basically|Before|But|Eventually|Every|Finally|First|Honestly|However|Just|Last|Lately|Later|Look|Luckily|Maybe|Obviously|Okay|Once|Perhaps|Probably|Recently|Really|Right|Sadly|Second|Seriously|Sometimes|Still|Suddenly|That|The|Then|There|These|This|Those|Though|Today|Until|Wait|Well|Whatever|When|While|Yesterday|Yeah|Yes)$/i.test(word.trim());
+}
 
 export type MemoryGrounding = {
   person: string;
@@ -51,13 +62,14 @@ function detectLanguage(value: string): MemoryEngineLanguage {
 }
 
 function detectPerson(value: string) {
+  const isName = (word: string | undefined) => Boolean(word && !ignoredNames.has(word) && !ignoredNames.has(word.charAt(0).toUpperCase() + word.slice(1).toLocaleLowerCase()));
   const explicit = value.match(/\b(?:my\s+(?:friend|colleague|cousin|sister|brother|mother|father|partner|teacher|mentor)\s+|named\s+|called\s+|met\s+|spoke to\s+|talked to\s+|talking about\s+|thinking about\s+|with\s+)([A-Z][a-z]{1,24})\b/)?.[1];
-  if (explicit && !ignoredNames.has(explicit)) return explicit;
+  if (isName(explicit)) return explicit ?? "";
   const actingPerson = value.match(/\b([A-Z][a-z]{1,24})\s+(?:(?:ne|ney)\s+)?(?:said|told|asked|called|helped|came|left|made|gave|shared|wrote|messaged|bola|boli|kaha|poocha|pucha|bataya|likha|bheja)\b/i)?.[1];
-  if (actingPerson && !ignoredNames.has(actingPerson)) return actingPerson;
+  if (isName(actingPerson)) return actingPerson ?? "";
   const subject = value.match(/(?:^|[.!?]\s+)([A-Z][a-z]{1,24})\s+(?:said|told|asked|called|helped|came|left|made|gave|was|is|had|has)\b/)?.[1];
-  if (subject && !ignoredNames.has(subject)) return subject;
-  const candidates = (value.match(/\b[A-Z][a-z]{1,24}\b/g) ?? []).filter((word) => !ignoredNames.has(word));
+  if (isName(subject)) return subject ?? "";
+  const candidates = (value.match(/\b[A-Z][a-z]{1,24}\b/g) ?? []).filter((word) => isName(word));
   return candidates.find((candidate) => candidates.filter((word) => word === candidate).length > 1) ?? "";
 }
 
@@ -280,10 +292,11 @@ function fallbackTitle(memory: string, answers: string[]) {
   const source = [memory, ...answers].join(" ");
   const lower = source.toLocaleLowerCase();
   const grounding = groundMemory(memory, answers);
-  if (grounding.person && grounding.place) return `${grounding.place} with ${grounding.person}`;
-  if (grounding.person && grounding.topic === "appreciation" && /work|office|job|client|manager|team|project|kaam/.test(lower)) return `What ${grounding.person} Noticed in My Work`;
-  if (grounding.person && grounding.topic === "conversation") return `What ${grounding.person} Said`;
-  if (grounding.person) return grounding.person;
+  const personIsPlausible = grounding.person && !isWeakPersonWord(grounding.person);
+  if (personIsPlausible && grounding.place) return `${grounding.place} with ${grounding.person}`;
+  if (personIsPlausible && grounding.topic === "appreciation" && /work|office|job|client|manager|team|project|kaam/.test(lower)) return `What ${grounding.person} Noticed in My Work`;
+  if (personIsPlausible && grounding.topic === "conversation") return `What ${grounding.person} Said`;
+  if (personIsPlausible) return grounding.person;
   if (grounding.place && /\b(?:home|ghar)\b/.test(lower) && /\b(?:felt|feel|laga|jaisa)\b/.test(lower)) return `When ${grounding.place} Felt Like Home`;
   if (grounding.place && /\b(?:rain|baarish)\b/.test(lower)) return `After the Rain in ${grounding.place}`;
   if (grounding.place && /\b(?:free|freedom|independent|on my own)\b/.test(lower)) return `Feeling Free in ${grounding.place}`;

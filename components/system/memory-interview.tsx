@@ -348,8 +348,19 @@ function detectPersonName(memory: string) {
     "Once", "One", "Our", "Paper", "Perhaps", "Recently", "Rishikesh", "Saturday",
     "She", "Some", "Sometimes", "Suddenly", "Sunday", "The", "Then", "They", "This",
     "Thursday", "Today", "Tuesday", "Wednesday", "We", "When", "While", "Yesterday",
+    // Discourse and function words that often start a dictated sentence and must
+    // never be mistaken for a person's name.
+    "Apparently", "Around", "Because", "Before", "Anyway", "Anyways", "Besides",
+    "Eventually", "Everything", "Finally", "Fine", "However", "Indeed", "Instead",
+    "Just", "Look", "Luckily", "Obviously", "Okay", "Particularly", "Perhaps",
+    "Probably", "Really", "Right", "Sadly", "Second", "Seriously", "Sometimes",
+    "Still", "That", "There", "These", "Those", "Though", "Until", "Wait", "Well",
+    "Whatever", "Yeah", "Yes",
   ]);
-  const isPossibleName = (value: string | undefined) => Boolean(value && !ignored.has(value));
+  // Case-insensitive so a dictated, lowercase sentence-starting word (e.g.
+  // "actually ...") can never be mistaken for a person's name.
+  const isIgnoredWord = (value: string | undefined) => Boolean(value && ignored.has(value) || value && ignored.has(value.charAt(0).toUpperCase() + value.slice(1)));
+  const isPossibleName = (value: string | undefined) => Boolean(value && !isIgnoredWord(value));
   const explicitMatch = memory.match(
     /\b(?:my\s+(?:friend|colleague|cousin|sister|brother|mother|father|partner|teacher|mentor)\s+|named\s+|called\s+|met\s+|spoke to\s+|talked to\s+|with\s+)([A-Z][a-z]{1,24})\b/,
   )?.[1];
@@ -472,11 +483,14 @@ function titleForMemory(layout: EditorialLayoutId, memory: string) {
   const context = detectMemoryContext(memory);
   const lower = memory.toLowerCase();
   const personName = detectPersonName(memory);
-  if (personName && context.place && context.place !== "A journey") return `${context.place} with ${personName}`;
-  if (personName && /appreciat|compliment|prais|thank|noticed|notice|acha|achha|accha/.test(lower) && /work|office|job|client|manager|team|project|kaam/.test(lower)) return `What ${personName} Noticed in My Work`;
-  if (personName && /conversation|said|told|spoke|talk|message|called/.test(lower)) return `What ${personName} Said`;
-  if (personName && /help|support|there for me|stood by/.test(lower)) return `The Day ${personName} Was There`;
-  if (personName && /miss|remember|thinking about|thought of/.test(lower)) return `Remembering ${personName}`;
+  // Never build "Place with <word>" when the detected name is a discourse
+  // opener (Actually, Honestly, Once, Lately, ...) rather than a real person.
+  const personIsPlausible = personName && !hasBrokenGeneratedSubject(personName);
+  if (personIsPlausible && context.place && context.place !== "A journey") return `${context.place} with ${personName}`;
+  if (personIsPlausible && /appreciat|compliment|prais|thank|noticed|notice|acha|achha|accha/.test(lower) && /work|office|job|client|manager|team|project|kaam/.test(lower)) return `What ${personName} Noticed in My Work`;
+  if (personIsPlausible && /conversation|said|told|spoke|talk|message|called/.test(lower)) return `What ${personName} Said`;
+  if (personIsPlausible && /help|support|there for me|stood by/.test(lower)) return `The Day ${personName} Was There`;
+  if (personIsPlausible && /miss|remember|thinking about|thought of/.test(lower)) return `Remembering ${personName}`;
   if (personName) return personName;
   if (context.place && context.place !== "A journey") {
     if (/\b(?:home|ghar)\b/.test(lower) && /\b(?:felt|feel|laga|jaisa)\b/.test(lower)) return `When ${context.place} Felt Like Home`;
@@ -521,6 +535,11 @@ function isBadGeneratedTitle(value: string, memory = "") {
   if (/^(?:Reflections? on|Thoughts? on|A Memory|My Memory|The Day I Remember|Something I Learned)/i.test(title)) return true;
   const daySubject = title.match(/^The Day ([A-Za-z]+) Was There$/i)?.[1];
   if (daySubject && hasBrokenGeneratedSubject(daySubject)) return true;
+  // A "Place with <word>" title is only good when the second half is a real
+  // person's name. Discourse openers (Actually, Honestly, Once, Lately, ...)
+  // must never read as the person the memory is "with".
+  const withSecond = title.match(/^(.+?)\s+with\s+([A-Za-z]+)$/i)?.[2];
+  if (withSecond && hasBrokenGeneratedSubject(withSecond)) return true;
   if (!memory) return false;
   const context = detectMemoryContext(memory);
   const personName = detectPersonName(memory);
