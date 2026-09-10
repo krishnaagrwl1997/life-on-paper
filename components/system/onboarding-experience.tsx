@@ -168,7 +168,8 @@ export function OnboardingExperience({
             </div>
 
             {!account ? (
-              <button type="button" className="ob-google" onClick={onGoogleSignIn} disabled={authPending}>
+              <button type="button" className="ob-google-button" onClick={onGoogleSignIn} disabled={authPending}>
+                <Image src="/assets/google-g.svg" alt="" width={20} height={20} unoptimized />
                 <span>{authPending ? "Opening Google…" : "Sign in with Google"}</span>
               </button>
             ) : (

@@ -201,10 +201,23 @@ export function TodayExperience({
           <p className="today-wordmark">Life on Paper</p>
           <small className="today-tagline">A few lines a day. A book of your life.</small>
         </div>
+        <div className="today-header__actions">
+        {!account ? (
+          <button
+            type="button"
+            className="today-signin"
+            onClick={onGoogleSignIn}
+            disabled={authPending}
+            aria-label="Sign in with Google"
+          >
+            {authPending ? "Opening…" : "Sign in"}
+          </button>
+        ) : null}
         <button
           type="button"
           className="today-avatar"
           aria-label="Profile"
+          title="Profile — account & privacy"
           onClick={() => setShowProfile(true)}
         >
           {account?.avatarUrl ? (
@@ -216,6 +229,7 @@ export function TodayExperience({
             </span>
           )}
         </button>
+        </div>
       </header>
 
       {memoryCount === 0 ? (
@@ -359,6 +373,17 @@ export function TodayExperience({
           </div>
         </section>
       ) : null}
+
+      <button type="button" className="today-profile-row" onClick={() => setShowProfile(true)}>
+        <span className="today-profile-row__icon" aria-hidden="true">
+          <BookOpenText size={18} weight="regular" />
+        </span>
+        <span className="today-profile-row__copy">
+          <strong>Your profile</strong>
+          <small>{account ? `${account.name} · account & privacy` : "Sign in with Google · account & privacy"}</small>
+        </span>
+        <CaretRight size={16} weight="bold" aria-hidden="true" />
+      </button>
 
       {surfacingCandidate ? (
         <section className="surfacing-card" role="region" aria-label="A moment worth returning to">

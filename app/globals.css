@@ -16465,3 +16465,107 @@ input:focus-visible {
   line-height: 1.4;
   color: var(--action-deep);
 }
+
+/* Profile + sign-in discoverability */
+
+.today-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.today-signin {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid rgba(193, 89, 43, 0.45);
+  border-radius: 999px;
+  background: var(--paper-raised);
+  color: var(--action);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.today-signin:hover:not(:disabled) {
+  background: var(--action);
+  color: var(--paper);
+}
+
+.today-signin:disabled {
+  opacity: 0.6;
+}
+
+.today-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  margin-top: 1.4rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 1.15rem;
+  background: var(--paper-raised);
+  text-align: left;
+  color: inherit;
+}
+
+.today-profile-row:hover {
+  border-color: rgba(193, 89, 43, 0.5);
+}
+
+.today-profile-row__icon {
+  width: 2.35rem;
+  height: 2.35rem;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--action);
+}
+
+.today-profile-row__copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.today-profile-row__copy strong {
+  font-family: var(--font-fraunces), serif;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.today-profile-row__copy small {
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+}
+
+.today-profile-row > svg {
+  flex: none;
+  margin-left: auto;
+  color: var(--ink-muted);
+}
+
+.ob-google-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+  padding: 0.75rem 1.4rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ob-google-button:hover:not(:disabled) {
+  border-color: rgba(193, 89, 43, 0.5);
+}
+
+.ob-google-button:disabled {
+  opacity: 0.6;
+}
