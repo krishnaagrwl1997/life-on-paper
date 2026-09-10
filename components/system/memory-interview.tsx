@@ -24,7 +24,8 @@ import type {
   MemoryPageResult,
   MemoryQuestionResult,
 } from "@/lib/ai/memory-engine";
-import { fallbackQuestion } from "@/lib/ai/editorial-guardrails";
+import { fallbackQuestion, tidyEditorialText } from "@/lib/ai/editorial-guardrails";
+import { aliasPeopleFromText, canonicalizePerson, isPlausiblePersonName } from "@/components/system/people-intel";
 
 export type CaptureMode = "Write" | "Voice" | "Photo" | "Screenshot" | "File";
 type SpeechLanguage = "auto" | "en-IN" | "hi-IN";
@@ -45,6 +46,7 @@ export type KeptPage = {
   chapterTitle: string;
   layout: string;
   date: string;
+  createdAt?: string;
   photo?: string;
   originalText?: string;
   speechLanguage?: SpeechLanguage;
@@ -53,6 +55,7 @@ export type KeptPage = {
   artworkLevel?: ArtworkLevel;
   photoTreatment?: PhotoTreatment;
   emotions?: string[];
+  people?: string[];
   writingVersion?: number;
 };
 
@@ -923,6 +926,7 @@ export function MemoryInterview({
       chapterTitle: placement.title,
       layout: selectedLayout.name,
       date: storyDate,
+      createdAt: new Date().toISOString(),
       photo: attachment?.preview,
       originalText: memory,
       speechLanguage,
@@ -931,6 +935,21 @@ export function MemoryInterview({
       artworkLevel,
       photoTreatment,
       emotions: selectedFeelings,
+      people: (() => {
+        const seen = new Set<string>();
+        const enginePeople = Array.isArray(aiPage?.signals?.people)
+          ? (aiPage.signals.people as string[])
+              .map((person) => person.trim().replace(/\s+/g, " "))
+              .filter((person) => person && !hasBrokenGeneratedSubject(person) && isPlausiblePersonName(person))
+          : [];
+        const local = peopleFromText(memory);
+        return [...enginePeople, ...local].filter((person) => {
+          const key = person.toLocaleLowerCase();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      })(),
       writingVersion: 6,
     });
   };
@@ -1953,4 +1972,170 @@ function MemoryComposer({
       </div>
     </div>
   );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Phase 1 — Daily entry API (Today's lines → instant page, silent AI upgrade)
+// Thin exports over the private helpers above. The interview flow is unchanged.
+// ────────────────────────────────────────────────────────────────────────────
+
+const dailyStopWords = new Set([
+  "about", "after", "again", "also", "because", "been", "before", "being", "from",
+  "have", "just", "lately", "like", "really", "something", "that", "there",
+  "these", "they", "this", "today", "very", "with", "kal", "aaj", "tha", "thi",
+  "hai", "hain", "par", "aur", "bahut", "thoda", "phir", "mujhe", "maine", "main",
+  "mera", "meri", "usne", "humne", "nahi", "kya", "toh", "bas", "bhi", "se", "ko",
+  "ka", "ki", "ke", "mein", "me", "pe", "par", "ek", "the", "jo", "wo", "vo",
+]);
+
+function dailyFallbackTitle(memory: string) {
+  const words = memory
+    .replace(/[^\p{L}\p{N}'\s-]/gu, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 3 && !dailyStopWords.has(word.toLocaleLowerCase()))
+    .slice(0, 6);
+  if (words.length) return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+  const firstSentence = memory.split(/(?<=[.!?।])\s+/)[0]?.trim();
+  return firstSentence && firstSentence.length <= 40 ? firstSentence : "Today";
+}
+
+function pickDailyTitle(layout: (typeof editorialLayouts)[number], memory: string) {
+  const proposed = titleForMemory(layout.id, memory);
+  return isBadGeneratedTitle(proposed, memory) ? dailyFallbackTitle(memory) : proposed;
+}
+
+function todayFolioDate() {
+  return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "long", year: "numeric" }).format(new Date());
+}
+
+function peopleFromText(memory: string): string[] {
+  const text = memory || "";
+  const labels = aliasPeopleFromText(text);
+  const detected = detectPersonName(text);
+  if (detected && !hasBrokenGeneratedSubject(detected)) {
+    const canonical = canonicalizePerson(detected).label;
+    if (canonical && !labels.includes(canonical)) labels.push(detected.charAt(0).toUpperCase() + detected.slice(1));
+  }
+  const seen = new Set<string>();
+  return labels
+    .map((label) => label.trim())
+    .filter((label) => {
+      const key = label.toLocaleLowerCase();
+      if (!key || seen.has(key)) return false;
+      if (!isPlausiblePersonName(label) && aliasPeopleFromText(label).length === 0) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+/** Build a KeptPage directly from a few daily lines — light shaping, user's voice. */
+export function composeDailyEntry(memory: string): KeptPage {
+  const text = memory.trim();
+  if (!text) throw new Error("composeDailyEntry needs at least one line.");
+
+  const languageId = detectWritingLanguage(text).id;
+  const layout = recommendLayout(text, false);
+  const placement = recommendPlacement(text);
+  const structured = structureStoryDraft(text, [], [], languageId);
+
+  const paragraphs = (structured.paragraphs.length
+    ? structured.paragraphs
+    : [shapeVoice(text, "almost-unchanged")].filter(Boolean)).map((paragraph) => tidyEditorialText(paragraph));
+  const reflection = tidyEditorialText(structured.close || "");
+  const normalizedReflection = reflection.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const body = paragraphs.filter((paragraph) => {
+    const normalized = paragraph.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    return !normalizedReflection || normalized !== normalizedReflection;
+  });
+  const firstParagraph = body[0] || paragraphs[0] || text;
+  const title = pickDailyTitle(layout, text);
+
+  return {
+    id: `day-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    title,
+    excerpt: reflection || firstParagraph,
+    body: body.length ? body : [text],
+    reflection,
+    book: placement.book,
+    volume: placement.volume,
+    chapter: placement.chapter,
+    chapterTitle: placement.title,
+    layout: layout.name,
+    date: detectMemoryContext(text).when || todayFolioDate(),
+    createdAt: new Date().toISOString(),
+    originalText: text,
+    writingLanguage: "original",
+    writingStyle: "almost-unchanged",
+    emotions: [],
+    people: peopleFromText(text),
+    writingVersion: 6,
+  };
+}
+
+/** Silent, best-effort AI upgrade for an already-saved daily page. */
+export async function upgradeKeptPageWithAi(page: KeptPage): Promise<KeptPage | null> {
+  const source = page.originalText?.trim() || page.body.join(" ");
+  if (!source) return null;
+
+  const result = await requestMemoryEngine("page", {
+    memory: source,
+    answers: [],
+    emotions: page.emotions ?? [],
+    questionIndex: 0,
+    speechLanguage: page.speechLanguage ?? "auto",
+    attachment: null,
+  });
+  if (!result || !("bookDraft" in result)) return null;
+
+  const nextLayout = editorialLayouts.find((layout) => layout.id === result.layout.id) ?? editorialLayouts[8];
+  const fallbackPlacement = recommendPlacement(`${source} ${result.cleanTranscript}`.trim());
+  const badChapterTitle = hasBrokenGeneratedSubject(result.placement.chapterTitle);
+  const placement = {
+    id: badChapterTitle ? fallbackPlacement.id : `ai-${result.placement.chapterTitle.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    book: badChapterTitle ? fallbackPlacement.book : result.placement.book,
+    volume: badChapterTitle ? fallbackPlacement.volume : result.placement.volume,
+    chapter: badChapterTitle ? fallbackPlacement.chapter : result.placement.chapter,
+    title: badChapterTitle ? fallbackPlacement.title : result.placement.chapterTitle,
+    reason: badChapterTitle ? fallbackPlacement.reason : result.placement.reason,
+  };
+
+  const paragraphs = result.bookDraft.split(/\n\s*\n/).map((item) => tidyEditorialText(item)).filter(Boolean);
+  const reflectionText = tidyEditorialText(result.reflection);
+  const normalizedReflection = reflectionText.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const body = paragraphs.filter((paragraph) => {
+    const normalized = paragraph.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    return !normalizedReflection || normalized !== normalizedReflection;
+  });
+  const nextTitle = isBadGeneratedTitle(result.title, `${source} ${result.cleanTranscript}`.trim())
+    ? dailyFallbackTitle(source)
+    : result.title;
+
+  return {
+    ...page,
+    title: nextTitle,
+    excerpt: reflectionText || body[0] || result.cleanTranscript.trim(),
+    body: body.length ? body : [tidyEditorialText(result.cleanTranscript)].filter(Boolean),
+    reflection: reflectionText,
+    book: placement.book,
+    volume: placement.volume,
+    chapter: placement.chapter,
+    chapterTitle: placement.title,
+    layout: nextLayout.name,
+    people: (() => {
+      const seen = new Set<string>();
+      const enginePeople = Array.isArray(result.signals?.people)
+        ? (result.signals.people as string[])
+            .map((person) => person.trim().replace(/\s+/g, " "))
+            .filter((person) => person && !hasBrokenGeneratedSubject(person) && isPlausiblePersonName(person))
+        : [];
+      const local = peopleFromText(source);
+      return [...enginePeople, ...local].filter((person) => {
+        const key = person.toLocaleLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    })(),
+    writingVersion: 6,
+  };
 }

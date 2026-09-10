@@ -1,123 +1,97 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import {
-  BookOpenText,
-  CaretRight,
-  Leaf,
-  LockKey,
-  SignIn,
-  SignOut,
-  UserCircle,
-} from "@phosphor-icons/react";
+import { ArrowLeft, BookOpenText, LockKey, SignOut } from "@phosphor-icons/react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { AccountSummary } from "@/lib/supabase/account";
 
+const paperEase = [0.22, 0.72, 0.26, 1] as const;
+
 export function ProfileExperience({
+  account,
   bookTitle,
   memoryCount,
-  account,
   authPending,
-  onOpenGarden,
-  onOpenLibrary,
+  authError,
   onGoogleSignIn,
   onSignOut,
+  onBack,
 }: {
+  account: AccountSummary | null;
   bookTitle: string;
   memoryCount: number;
-  account: AccountSummary | null;
   authPending: boolean;
-  onOpenGarden: () => void;
-  onOpenLibrary: () => void;
+  authError: string | null;
   onGoogleSignIn: () => void;
   onSignOut: () => void;
+  onBack: () => void;
 }) {
-  const displayName = account?.name ?? "Your memoir";
-  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
-  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const initials = account
+    ? account.name.split(/\s+/).map((part) => part.charAt(0)).join("").slice(0, 2).toLocaleUpperCase()
+    : "";
 
   return (
-    <div className="profile-experience">
-      <header className="profile-header">
-        <div>
-          <p>Life on Paper</p>
-          <span>Your profile</span>
-        </div>
-        <span>Private by default</span>
-      </header>
+    <div className="mx-auto w-full max-w-2xl px-5 pt-6">
+      <button type="button" className="cast-back" onClick={onBack}>
+        <ArrowLeft size={16} weight="bold" aria-hidden="true" /> Back
+      </button>
 
-      <section className="profile-intro">
-        <div className="profile-portrait">
-          <Image src={account?.avatarUrl ?? "/assets/profile-portrait.png"} alt={displayName} fill unoptimized sizes="112px" priority />
-        </div>
-        <div>
-          <p className="memory-eyebrow">The person behind the pages</p>
-          <h1>{displayName}</h1>
-          <p>Your books stay yours. You choose which stories become visible to other readers.</p>
-        </div>
-      </section>
-
-      {!account ? (
-        <section className="profile-signin-card" aria-label="Sign in to Life on Paper">
-          <span className="profile-signin-card__mark"><SignIn size={25} weight="duotone" aria-hidden="true" /></span>
+      <motion.div
+        className="profile-screen"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}
+      >
+        <header className="profile-identity">
+          {account?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={account.avatarUrl} alt="" className="cast-avatar" />
+          ) : (
+            <span className="cast-avatar" aria-hidden="true">{account ? initials : <BookOpenText size={20} weight="regular" />}</span>
+          )}
           <div>
-            <p className="memory-eyebrow">Continue your book anywhere</p>
-            <h2>Sign in to keep your pages safely backed up.</h2>
-            <p>Your current device copy stays here. Google sign-in adds private sync across your phone and computer.</p>
+            <p className="profile-eyebrow">Your profile</p>
+            <h1 className="profile-name">{account ? account.name : "A private book"}</h1>
+            {account?.email ? <p className="profile-email">{account.email}</p> : null}
           </div>
-          <button type="button" onClick={onGoogleSignIn} disabled={authPending}>
-            {authPending ? "Opening Google…" : "Sign in with Google"}
-          </button>
+        </header>
+
+        <section className="cast-section">
+          <p className="section-label">Your book</p>
+          <div className="profile-book-row">
+            <BookOpenText size={18} weight="regular" aria-hidden="true" />
+            <span><strong>{bookTitle}</strong><em>{memoryCount} {memoryCount === 1 ? "page" : "pages"} in progress</em></span>
+          </div>
         </section>
-      ) : null}
 
-      <section className="profile-book-summary" aria-label="Your memoir summary">
-        <div><BookOpenText size={23} weight="duotone" aria-hidden="true" /><span><small>Current book</small><strong>{bookTitle}</strong></span></div>
-        <dl>
-          <div><dt>Memories</dt><dd>{memoryCount}</dd></div>
-          <div><dt>Visibility</dt><dd>Private</dd></div>
-        </dl>
-      </section>
-
-      <div className="profile-sections">
-        <button type="button" onClick={onOpenGarden}>
-          <span className="profile-row-icon"><Leaf size={22} weight="duotone" aria-hidden="true" /></span>
-          <span><strong>Discover other lives</strong><small>Visit the Garden and request to read shared books.</small></span>
-          <CaretRight size={18} aria-hidden="true" />
-        </button>
-        <button type="button" aria-expanded={privacyOpen} onClick={() => setPrivacyOpen((current) => !current)}>
-          <span className="profile-row-icon"><LockKey size={22} weight="duotone" aria-hidden="true" /></span>
-          <span><strong>Privacy and sharing</strong><small>Control who can request or preview your books.</small></span>
-          <CaretRight size={18} aria-hidden="true" />
-        </button>
-        {privacyOpen ? (
-          <section className="profile-privacy-panel" aria-label="Privacy and sharing settings">
-            <LockKey size={20} weight="fill" aria-hidden="true" />
-            <div><strong>Your book is private by default.</strong><p>Only pages you deliberately share can appear in the Garden. Open Book Studio to change request or preview access.</p></div>
-            <button type="button" onClick={onOpenLibrary}>Open Book Studio <CaretRight size={16} weight="bold" aria-hidden="true" /></button>
-          </section>
-        ) : null}
-        {account && !confirmingSignOut ? (
-          <button type="button" onClick={() => setConfirmingSignOut(true)} disabled={authPending}>
-            <span className="profile-row-icon"><UserCircle size={22} weight="duotone" aria-hidden="true" /></span>
-            <span>
-              <strong>Signed in with Google</strong>
-              <small>{account.email ?? "Your account"} · account settings</small>
-            </span>
-            <CaretRight size={18} aria-hidden="true" />
-          </button>
-        ) : null}
-        {account && confirmingSignOut ? (
-          <section className="profile-signout-confirm" aria-label="Confirm sign out">
-            <span className="profile-row-icon"><SignOut size={22} weight="duotone" aria-hidden="true" /></span>
-            <span><strong>Sign out of this device?</strong><small>Your synced pages will remain safely in your account.</small></span>
-            <div>
-              <button type="button" onClick={() => setConfirmingSignOut(false)}>Cancel</button>
-              <button type="button" onClick={onSignOut} disabled={authPending}>{authPending ? "Signing out…" : "Sign out"}</button>
+        <section className="cast-section">
+          <p className="section-label">Account & privacy</p>
+          {account ? (
+            <button type="button" className="profile-signout" onClick={onSignOut} disabled={authPending}>
+              <SignOut size={15} weight="bold" aria-hidden="true" />
+              {authPending ? "Signing out…" : "Sign out"}
+            </button>
+          ) : (
+            <div className="profile-connect">
+              <button className="google-connect" type="button" onClick={onGoogleSignIn} disabled={authPending}>
+                <Image src="/assets/google-g.svg" alt="" width={20} height={20} unoptimized />
+                <span>{authPending ? "Opening Google…" : "Sign in with Google"}</span>
+              </button>
+              <p className="google-privacy">Sign in to keep your pages safe across devices and private to you.</p>
+              {authError ? <p className="profile-error" role="alert">{authError}</p> : null}
             </div>
-          </section>
-        ) : null}
-      </div>
+          )}
+        </section>
+
+        <section className="cast-section">
+          <p className="section-label">Our promise</p>
+          <div className="profile-privacy">
+            <LockKey size={15} weight="fill" aria-hidden="true" />
+            <p>Private by design. Your words are never used to train models, and never shared.</p>
+          </div>
+        </section>
+      </motion.div>
     </div>
   );
 }

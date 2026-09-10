@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft,
+  BookOpenText,
   ArrowDown,
   ArrowRight,
   ArrowUp,
@@ -22,13 +23,57 @@ import {
   X,
 } from "@phosphor-icons/react";
 import type { KeptPage } from "@/components/system/memory-interview";
+import { WeavesExperience } from "@/components/system/weaves-experience";
+import { computeWeekGroups, pageTime } from "@/components/system/weekly-weave";
 
-type LibraryView = "shelf" | "book" | "reader" | "studio" | "search";
+type LibraryView = "shelf" | "book" | "reader" | "studio" | "search" | "weaves";
 type BookVisibility = "private" | "request" | "previews";
 type CoverStyle = "coast" | "linen" | "ink";
 type SearchFilter = "all" | "travel" | "people" | "work" | "feelings" | "lessons";
 
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
+
+
+type Era = { key: string; label: string; pages: KeptPage[] };
+
+function eraKey(page: KeptPage): string {
+  const time = pageTime(page)?.getTime();
+  if (typeof time !== "number") return "earlier";
+  const year = new Date(time).getUTCFullYear();
+  const nowYear = new Date().getUTCFullYear();
+  if (year === nowYear) return "this-year";
+  if (year === nowYear - 1) return "last-year";
+  return `y${year}`;
+}
+
+function eraLabel(key: string): string {
+  if (key === "this-year") return "This year";
+  if (key === "last-year") return "Last year";
+  if (key === "earlier") return "Earlier";
+  return key.slice(1);
+}
+
+function groupEras(pages: KeptPage[]): Era[] {
+  const byKey = new Map<string, KeptPage[]>();
+  for (const page of pages) {
+    const key = eraKey(page);
+    const list = byKey.get(key) ?? [];
+    list.push(page);
+    byKey.set(key, list);
+  }
+  const order = ["this-year", "last-year", "earlier"];
+  const eras: Era[] = [];
+  for (const key of order) {
+    const list = byKey.get(key);
+    if (list && list.length) eras.push({ key, label: eraLabel(key), pages: list });
+  }
+  for (const key of byKey.keys()) {
+    if (order.includes(key)) continue;
+    const list = byKey.get(key)!;
+    eras.push({ key, label: eraLabel(key), pages: list });
+  }
+  return eras;
+}
 
 export function LibraryExperience({
   savedPages,
@@ -43,7 +88,7 @@ export function LibraryExperience({
 }: {
   savedPages: KeptPage[];
   bookTitle?: string;
-  initialView?: "shelf" | "book" | "reader";
+  initialView?: "shelf" | "book" | "reader" | "search";
   initialPageId?: string;
   onReadingChange?: (reading: boolean) => void;
   onAddMemory?: () => void;
@@ -59,6 +104,7 @@ export function LibraryExperience({
   const [coverStyle, setCoverStyle] = useState<CoverStyle>("coast");
   const [extraVolumes, setExtraVolumes] = useState<string[]>([]);
   const [view, setView] = useState<LibraryView>(initialView);
+  const [eraFilter, setEraFilter] = useState<string | null>(null);
   const [selectedPageId, setSelectedPageId] = useState(initialPageId ?? pages[0]?.id ?? "");
   const [lamplight, setLamplight] = useState(false);
   const [readerScale, setReaderScale] = useState<"small" | "medium" | "large">("medium");
@@ -74,9 +120,12 @@ export function LibraryExperience({
   const reduceMotion = useReducedMotion();
   const todayFolio = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(new Date()).replaceAll("/", " · ");
   const activePages = pages.filter((page) => !removedPageIds.includes(page.id));
-  const libraryVolumes = [...new Set(activePages.map((page) => page.volume).filter(Boolean))];
-  const orderedPages = libraryVolumes.flatMap((volume) => activePages.filter((page) => page.volume === volume));
+  const readingPages = eraFilter ? activePages.filter((page) => eraKey(page) === eraFilter) : activePages;
+  const libraryVolumes = [...new Set(readingPages.map((page) => page.volume).filter(Boolean))];
+  const orderedPages = libraryVolumes.flatMap((volume) => readingPages.filter((page) => page.volume === volume));
+  const eraVolumes = groupEras(activePages);
   const libraryChapters = [...new Set(activePages.map((page) => page.chapterTitle).filter(Boolean))];
+  const wovenWeeksCount = computeWeekGroups(activePages).length;
   const bookSummary = activePages.length
     ? makeBookSummary(activePages)
     : "A book waiting for its first true moment—spoken, written, or photographed.";
@@ -203,12 +252,12 @@ export function LibraryExperience({
       {view !== "reader" ? <header className="library-header">
         <div>
           <p>Life on Paper</p>
-          <span>{view === "shelf" ? "Your library" : view === "book" ? "Book One" : view === "studio" ? "Book Studio" : view === "search" ? "Search your life" : selectedPage.chapterTitle}</span>
+          <span>{view === "shelf" ? "Your story" : view === "book" ? "Book One" : view === "studio" ? "Book Studio" : view === "search" ? "Search your life" : view === "weaves" ? "Your weeks" : selectedPage.chapterTitle}</span>
         </div>
         {view !== "shelf" ? (
           <button type="button" onClick={() => goToView(view === "studio" ? "book" : "shelf")}>
             <ArrowLeft size={17} weight="bold" aria-hidden="true" />
-            {view === "studio" ? "Contents" : "Library"}
+            {view === "studio" ? "Contents" : "Story"}
           </button>
         ) : (
           <div className="library-header-actions">
@@ -225,7 +274,7 @@ export function LibraryExperience({
         {view === "shelf" ? (
           <motion.section key="shelf" className={activePages.length ? "library-shelf" : "library-shelf library-shelf--empty"} initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduceMotion ? 0 : -12 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
             <div className="library-intro">
-              <p className="memory-eyebrow">Your library</p>
+              <p className="memory-eyebrow">Your story</p>
               <h1>Your life has a place here.</h1>
               <p>Open a book to read it, see its chapters, or add the next memory.</p>
             </div>
@@ -279,6 +328,50 @@ export function LibraryExperience({
                 </div>
               )}
             </div>
+
+            {wovenWeeksCount > 0 ? (
+              <div className="weaves-entry">
+                <div className="weaves-entry__row">
+                  <p className="section-label">Your weeks</p>
+                  <span>{wovenWeeksCount} woven {wovenWeeksCount === 1 ? "week" : "weeks"}</span>
+                </div>
+                <button type="button" className="weaves-entry__card" onClick={() => goToView("weaves")}>
+                  <span className="weaves-entry__icon" aria-hidden="true">
+                    <BookOpenText size={18} weight="regular" />
+                  </span>
+                  <span className="weaves-entry__copy">
+                    <strong>Read the weeks that became chapters</strong>
+                    <small>Each woven week gathers your moments into one quiet story.</small>
+                  </span>
+                  <ArrowRight size={16} weight="bold" aria-hidden="true" />
+                </button>
+              </div>
+            ) : null}
+
+            {eraVolumes.length > 1 ? (
+              <div className="eras-entry">
+                <div className="weaves-entry__row"><p className="section-label">Your story by era</p><span>{eraVolumes.length} eras</span></div>
+                <div className="eras-grid">
+                  {eraVolumes.map((era) => (
+                    <button key={era.key} type="button" className="eras-chip" onClick={() => { setEraFilter(era.key); goToView("reader"); }}>
+                      <strong>{era.label}</strong>
+                      <small>{era.pages.length} {era.pages.length === 1 ? "page" : "pages"}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </motion.section>
+        ) : view === "weaves" ? (
+          <motion.section key="weaves" className="weaves-section" initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
+            <WeavesExperience
+              pages={activePages}
+              onBack={() => goToView("shelf")}
+              onOpenPage={(pageId) => {
+                setSelectedPageId(pageId);
+                goToView("reader");
+              }}
+            />
           </motion.section>
         ) : view === "search" ? (
           <motion.section key="search" className="memory-search" initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
@@ -711,9 +804,9 @@ function BookStudio({
             </div>
             <p className="studio-visibility-note" role="status">
               {bookVisibility === "private"
-                ? "This book stays hidden. It will not appear in the Garden, and no one can request it."
+                ? "This book stays private. Only you can read it, and no one can request it."
                 : bookVisibility === "request"
-                  ? "The title and summary appear in the Garden. Readers can request access, and you approve who gets in. Nothing else is shared."
+                  ? "The title and summary can be previewed. Readers can request access, and you approve who gets in. Nothing else is shared."
                   : "Only the title, summary, and the single page you choose are visible. Readers can read that page without an account."}
             </p>
           </section>

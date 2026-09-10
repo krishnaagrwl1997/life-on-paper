@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { BookOpenText, CaretRight, Sparkle, X } from "@phosphor-icons/react";
+import { X } from "@phosphor-icons/react";
 import { Destination, NavShell } from "@/components/system/nav-shell";
-import { CaptureMode, KeptPage, MemoryInterview, refineKeptPageWriting } from "@/components/system/memory-interview";
+import { CaptureMode, KeptPage, MemoryInterview, composeDailyEntry, refineKeptPageWriting, upgradeKeptPageWithAi } from "@/components/system/memory-interview";
 import { LibraryExperience } from "@/components/system/library-experience";
-import { GardenExperience } from "@/components/system/garden-experience";
-import { ProfileExperience } from "@/components/system/profile-experience";
+import { TodayExperience } from "@/components/system/today-experience";
+import { PeopleExperience } from "@/components/system/people-experience";
+import { detectTutorQuestions, loadMemoryDecisions, persistMemoryDecisions, tutorWeekKey, type MemoryDecisions, type TutorQuestion } from "@/components/system/people-intel";
+import { isoWeekKey, loadWeaveCache } from "@/components/system/weekly-weave";
+import { kindCandidate, loadDismissed, persistDismissedIds } from "@/components/system/tone";
+import { detectAcuteSignal, detectSustainedHeaviness, loadCareDismissed, persistCareDismissed, type CareKind } from "@/components/system/tone";
+import { markMonthlyShown, monthlyShownKey, shouldShowMonthly, thisMonthSummary, type MonthlySummary } from "@/components/system/monthly";
+import { AddMomentSheet } from "@/components/system/add-moment-sheet";
 import { OnboardingExperience } from "@/components/system/onboarding-experience";
 import { createClient } from "@/lib/supabase/client";
+import { loadCloudGraph, saveCloudGraph } from "@/lib/supabase/graph";
 import { deleteCloudPage, saveCloudPage, syncDevicePages } from "@/lib/supabase/memories";
 import type { AccountSummary } from "@/lib/supabase/account";
 
@@ -29,9 +36,11 @@ const starterQuestions = [
   { category: "Learning", question: "What did a recent conversation teach you about yourself?" },
 ] as const;
 
+type ActiveView = Destination | "Add Memory";
+
 export function HomeExperience({ initialAccount }: { initialAccount: AccountSummary | null }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [active, setActive] = useState<Destination>("Home");
+  const [active, setActive] = useState<ActiveView>("Today");
   const [memorySeed, setMemorySeed] = useState("");
   const [memoryMode, setMemoryMode] = useState<CaptureMode>("Write");
   const [memoryPrompt, setMemoryPrompt] = useState("");
@@ -40,9 +49,22 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
   const [notice, setNotice] = useState<string | null>(null);
   const [savedPages, setSavedPages] = useState<KeptPage[]>([]);
   const [isReading, setIsReading] = useState(false);
-  const [showForYou, setShowForYou] = useState(false);
-  const [libraryEntry, setLibraryEntry] = useState<"shelf" | "book" | "reader">("shelf");
+  const [libraryEntry, setLibraryEntry] = useState<"shelf" | "book" | "reader" | "search">("shelf");
   const [libraryPage, setLibraryPage] = useState<string | undefined>();
+  const [addOpen, setAddOpen] = useState(false);
+  const [composeSignal, setComposeSignal] = useState(0);
+  const [decisions, setDecisions] = useState<MemoryDecisions>(() => {
+    try { return loadMemoryDecisions(); } catch { return {}; }
+  });
+  const [tutorWeek, setTutorWeek] = useState<string | null>(() => {
+    try { return window.localStorage.getItem(tutorWeekKey); } catch { return null; }
+  });
+  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+    try { return loadDismissed(); } catch { return new Set<string>(); }
+  });
+  const [careDismissed, setCareDismissed] = useState<Set<string>>(() => {
+    try { return loadCareDismissed(); } catch { return new Set<string>(); }
+  });
   const [account, setAccount] = useState(initialAccount);
   const [authPending, setAuthPending] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -105,6 +127,28 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
               setSavedPages(syncedPages);
               window.localStorage.setItem("life-in-books-pages", JSON.stringify(syncedPages));
               setSyncState("synced");
+              const client = createClient();
+              void loadCloudGraph(client, initialAccount.id).then((graph) => {
+                if (!graph) return;
+                if (graph.decisions) {
+                  const d = graph.decisions as MemoryDecisions;
+                  setDecisions(d);
+                  persistMemoryDecisions(d);
+                }
+                if (graph.notToday) {
+                  const nextNotToday = new Set(graph.notToday);
+                  setDismissed(nextNotToday);
+                  persistDismissedIds(nextNotToday);
+                }
+                if (graph.careDismissed) {
+                  const nextCare = new Set(graph.careDismissed);
+                  setCareDismissed(nextCare);
+                  persistCareDismissed(nextCare);
+                }
+                if (graph.monthlyShown) {
+                  try { window.localStorage.setItem(monthlyShownKey, graph.monthlyShown); } catch { /* best-effort */ }
+                }
+              });
             })
             .catch((error: unknown) => {
               console.error("Life on Paper account sync failed", error);
@@ -125,6 +169,21 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  // Phase 6+ — debounced cloud sync of the memory graph (decisions, dismissed, care, monthly).
+  useEffect(() => {
+    if (!account) return;
+    const timer = window.setTimeout(() => {
+      void saveCloudGraph(createClient(), account.id, {
+        decisions,
+        notToday: [...dismissed],
+        careDismissed: [...careDismissed],
+        monthlyShown: (() => { try { return window.localStorage.getItem(monthlyShownKey) ?? undefined; } catch { return undefined; } })(),
+        weaves: loadWeaveCache(),
+      }).catch((error: unknown) => console.error("Life on Paper graph sync failed", error));
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [account, decisions, dismissed, careDismissed]);
+
   const completeOnboarding = (title: string) => {
     window.localStorage.setItem("life-in-books-onboarding-complete", "yes");
     window.localStorage.setItem("life-in-books-book-title", title);
@@ -133,13 +192,14 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     window.scrollTo({ top: 0, behavior: "auto" });
   };
 
-  const showHome = () => {
-    setActive("Home");
+  const scrollTop = () => window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+
+  const showToday = () => {
+    setActive("Today");
     setMemorySeed("");
     setMemoryPrompt("");
     setNotice(null);
-    setShowForYou(false);
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    scrollTop();
   };
 
   const openMemory = (mode: CaptureMode = "Write", seed = "", prompt = "") => {
@@ -148,29 +208,42 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     setMemoryPrompt(prompt);
     setActive("Add Memory");
     setNotice(null);
-    setShowForYou(false);
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    scrollTop();
   };
 
-  const openLibraryAt = (view: "shelf" | "book" | "reader", pageId?: string) => {
+  const openLibraryAt = (view: "shelf" | "book" | "reader" | "search", pageId?: string) => {
     setLibraryEntry(view);
-    setLibraryPage(pageId);
-    setActive("Library");
-    setShowForYou(false);
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    setLibraryPage(view === "reader" ? pageId : undefined);
+    setActive("Story");
+    setNotice(null);
+    scrollTop();
   };
 
   const selectDestination = (destination: Destination) => {
-    if (destination === "Home") return showHome();
-    if (destination === "Add Memory") return openMemory();
     setNotice(null);
-    setShowForYou(false);
-    if (destination === "Library") {
-      setLibraryEntry("shelf");
-      setLibraryPage(undefined);
+    if (destination === "Today") return showToday();
+    if (destination === "Story") return openLibraryAt("shelf");
+    if (destination === "People") {
+      setActive("People");
+      scrollTop();
     }
-    setActive(destination);
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  };
+
+  const focusTodayComposer = () => {
+    if (active !== "Today") showToday();
+    setComposeSignal((current) => current + 1);
+  };
+
+  const chooseTodayLines = () => {
+    setAddOpen(false);
+    focusTodayComposer();
+  };
+
+  const chooseCraftMemory = () => {
+    setAddOpen(false);
+    const question = starterQuestions[starterQuestionIndex];
+    setStarterQuestionIndex((current) => (current + 1 + Math.floor(Math.random() * (starterQuestions.length - 1))) % starterQuestions.length);
+    openMemory("Write", "", question.question);
   };
 
   const keepPageInLibrary = (page: KeptPage) => {
@@ -256,9 +329,129 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
   };
 
   const latestPage = savedPages[0];
-  const starterQuestion = starterQuestions[starterQuestionIndex];
-  const showAnotherStarter = () => {
-    setStarterQuestionIndex((current) => (current + 1 + Math.floor(Math.random() * (starterQuestions.length - 1))) % starterQuestions.length);
+
+  // Phase 4 — memory tutor: ask only at genuine forks, at most once a week.
+  const currentWeek = isoWeekKey(new Date());
+  const tutorQuestions = active === "Today" ? detectTutorQuestions(savedPages, decisions) : [];
+  const showTutor = active === "Today" && tutorQuestions.length > 0 && tutorWeek !== currentWeek;
+
+  function markTutorWeek() {
+    setTutorWeek(currentWeek);
+    try { window.localStorage.setItem(tutorWeekKey, currentWeek); } catch { /* best-effort */ }
+  }
+
+  const tutorAnswer = (question: TutorQuestion, answer: "yes" | "no" | "not-sure") => {
+    setDecisions((current) => {
+      const next: MemoryDecisions = {
+        ...current,
+        answered: { ...(current.answered ?? {}), [question.key]: answer },
+      };
+      if (question.kind === "split" && answer === "no") {
+        const dash = question.key.replace(/^split-/, "");
+        next.split = { ...(next.split ?? {}), [dash]: ["a", "b"] };
+      }
+      if (question.kind === "membership" && answer === "yes" && question.meta.groupKey && question.meta.personKey) {
+        const members = next.groupMembers?.[question.meta.groupKey] ?? [];
+        next.groupMembers = { ...(next.groupMembers ?? {}), [question.meta.groupKey]: [...members, question.meta.personKey] };
+      }
+      persistMemoryDecisions(next);
+      return next;
+    });
+    markTutorWeek();
+  };
+
+  const tutorDismiss = () => markTutorWeek();
+
+  const surfacingCandidate = active === "Today" ? kindCandidate(savedPages, dismissed) : null;
+  const dismissNotToday = (pageId: string) => {
+    setDismissed((current) => {
+      const next = new Set(current);
+      next.add(pageId);
+      persistDismissedIds(next);
+      return next;
+    });
+  };
+
+  const careCard = useMemo<{ kind: CareKind } | null>(() => {
+    if (active !== "Today") return null;
+    const texts = savedPages.map((page) => [page.originalText, page.body.join(" ")].join(" "));
+    if (texts.some((text) => detectAcuteSignal(text)) && !careDismissed.has("acute")) return { kind: "acute" };
+    if (detectSustainedHeaviness(savedPages) && !careDismissed.has("checkin")) return { kind: "checkin" };
+    return null;
+  }, [active, savedPages, careDismissed]);
+
+  const dismissCare = (kind: CareKind) => {
+    setCareDismissed((current) => {
+      const next = new Set(current);
+      next.add(kind);
+      persistCareDismissed(next);
+      return next;
+    });
+  };
+
+  const [monthlyAck, setMonthlyAck] = useState(false);
+  const monthlyCard = (!monthlyAck && active === "Today" && shouldShowMonthly(savedPages)) ? thisMonthSummary(savedPages) : null;
+  const dismissMonthly = () => {
+    setMonthlyAck(true);
+    markMonthlyShown();
+  };
+
+  // Phase 1 — daily lines become pages instantly (silent cloud sync) and then
+  // receive a best-effort, invisible AI upgrade when the engine is available.
+  const addDailyPage = (page: KeptPage) => {
+    setSavedPages((current) => {
+      const next = [page, ...current.filter((item) => item.id !== page.id)];
+      window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));
+      return next;
+    });
+    if (!account) return;
+    void saveCloudPage(createClient(), account.id, bookTitle, page, page.emotions)
+      .then((cloudId) => {
+        setSavedPages((current) => {
+          const next = current.map((item) => item.id === page.id ? { ...item, cloudId } : item);
+          window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));
+          return next;
+        });
+      })
+      .catch((error: unknown) => console.error("Life on Paper daily page cloud save failed", error));
+  };
+
+  const patchDailyPage = (updated: KeptPage) => {
+    setSavedPages((current) => {
+      const next = current.map((item) => item.id === updated.id ? updated : item);
+      window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));
+      return next;
+    });
+    if (!account) return;
+    void saveCloudPage(createClient(), account.id, bookTitle, updated, updated.emotions)
+      .then((cloudId) => {
+        setSavedPages((current) => {
+          const next = current.map((item) => item.id === updated.id ? { ...item, cloudId } : item);
+          window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));
+          return next;
+        });
+      })
+      .catch((error: unknown) => console.error("Life on Paper daily page AI upgrade sync failed", error));
+  };
+
+  const saveDailyEntry = (text: string) => {
+    let page: KeptPage;
+    try {
+      page = composeDailyEntry(text);
+    } catch {
+      return;
+    }
+    addDailyPage(page);
+    const attemptUpgrade = (attempt: number) => {
+      void upgradeKeptPageWithAi(page).then((upgraded) => {
+        if (upgraded) {
+          patchDailyPage(upgraded);
+          return;
+        }
+        if (attempt < 3) window.setTimeout(() => attemptUpgrade(attempt + 1), 1800);
+      });
+    };
+    attemptUpgrade(0);
   };
 
   if (showOnboarding) {
@@ -273,6 +466,8 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     );
   }
 
+  const shellVisible = !isReading && active !== "Add Memory";
+
   return (
     <>
     <main className={active === "Add Memory" ? "home-app home-app--memory" : isReading ? "home-app home-app--reading" : "home-app"}>
@@ -282,11 +477,11 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           initialMode={memoryMode}
           initialMemory={memorySeed}
           starterPrompt={memoryPrompt}
-          onBack={showHome}
+          onBack={showToday}
           onPageKept={keepPageInLibrary}
           onOpenLibrary={() => openLibraryAt("book")}
         />
-      ) : active === "Library" ? (
+      ) : active === "Story" ? (
         <LibraryExperience
           key={`${libraryEntry}-${libraryPage ?? "first"}`}
           savedPages={savedPages}
@@ -294,108 +489,45 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           initialView={libraryEntry}
           initialPageId={libraryPage}
           onReadingChange={setIsReading}
-          onAddMemory={() => openMemory()}
+          onAddMemory={chooseCraftMemory}
           syncState={syncState}
           onCommitPages={commitLibraryPages}
           onDeletePage={removeLibraryPage}
         />
-      ) : active === "Garden" ? (
-        <GardenExperience />
-      ) : active === "Profile" ? (
-        <ProfileExperience
-          bookTitle={bookTitle}
-          memoryCount={savedPages.length}
-          account={account}
-          authPending={authPending}
-          onOpenGarden={() => selectDestination("Garden")}
-          onOpenLibrary={() => openLibraryAt("book")}
-          onGoogleSignIn={signInWithGoogle}
-          onSignOut={signOut}
+      ) : active === "People" ? (
+        <PeopleExperience
+          pages={savedPages}
+          decisions={decisions}
+          onWrite={focusTodayComposer}
+          onOpenPage={(pageId) => openLibraryAt("reader", pageId)}
         />
       ) : (
-        <div className="reader-home">
-          <header className="reader-home__header">
-            <div className="reader-home__identity">
-              <span>Personal memoir</span>
-              <h1>Life on Paper</h1>
-              <p>Speak naturally. Keep the page forever.</p>
-            </div>
-            <div className="for-you-wrap reader-home__note-wrap">
-              <button className="reader-home__note" type="button" aria-expanded={showForYou} aria-controls="for-you-notes" onClick={() => setShowForYou((current) => !current)} aria-label="Open a note from your life">
-                <span aria-hidden="true"><i /></span>
-                <strong>A note from<br />your life</strong>
-              </button>
-              <AnimatePresence>
-                {showForYou ? (
-                  <motion.aside id="for-you-notes" className="for-you-notes reader-home__note-card" initial={{ opacity: 0, y: -8, rotate: -0.4 }} animate={{ opacity: 1, y: 0, rotate: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }} aria-label="Notes from your life">
-                    <p><Sparkle size={13} weight="fill" aria-hidden="true" /> A note from your life</p>
-                    {latestPage ? (
-                      <button type="button" onClick={() => openLibraryAt("reader", latestPage.id)}><span>Worth returning to</span><strong>{latestPage.excerpt}</strong></button>
-                    ) : (
-                      <button type="button" onClick={() => openMemory("Write", "", starterQuestion.question)}><span>{starterQuestion.category}</span><strong>{starterQuestion.question}</strong></button>
-                    )}
-                  </motion.aside>
-                ) : null}
-              </AnimatePresence>
-            </div>
-          </header>
-
-          <section className="reader-home__book-heading">
-            <span>Now reading</span>
-            <strong>{bookTitle}</strong>
-          </section>
-
-          <motion.article className="reader-home__page-stack" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
-            {latestPage ? (
-              <button className="reader-home__page" type="button" onClick={() => openLibraryAt("reader", latestPage.id)} aria-label={`Continue reading ${latestPage.title}`}>
-                <span className="reader-home__page-meta"><span>Latest page · {latestPage.chapterTitle}</span><span>— 01</span></span>
-                <strong className="reader-home__page-title">{latestPage.title}</strong>
-                <span className="reader-home__excerpt"><i aria-hidden="true">{latestPage.excerpt.charAt(0)}</i>{latestPage.excerpt.slice(1)}</span>
-                <span className="reader-home__continue"><strong>Continue reading <CaretRight size={15} weight="bold" aria-hidden="true" /></strong><span>Page 01 <i aria-hidden="true"><b /></i></span></span>
-              </button>
-            ) : (
-              <div className="reader-home__page reader-home__page--empty">
-                <span className="reader-home__page-meta"><span>A new beginning</span><span>— 01</span></span>
-                <span className="reader-home__prompt-category">{starterQuestion.category}</span>
-                <strong className="reader-home__page-title">{starterQuestion.question}</strong>
-                <span className="reader-home__excerpt">You do not need to write beautifully. Tell it as you remember it.</span>
-                <span className="reader-home__starter-actions">
-                  <button type="button" onClick={() => openMemory("Write", "", starterQuestion.question)}>Start with this <CaretRight size={15} weight="bold" aria-hidden="true" /></button>
-                  <button type="button" onClick={showAnotherStarter}>Another question</button>
-                </span>
-              </div>
-            )}
-          </motion.article>
-
-          <aside className="reader-home__verso" aria-label={`${bookTitle} overview`}>
-            <div className="reader-home__verso-heading">
-              <span>Book One · A memoir in progress</span>
-              <h2>{bookTitle}</h2>
-              <p>{latestPage ? "A growing collection of the moments, places, and conversations that made you who you are." : "This book will grow from the life you tell—not from prompts you have to complete."}</p>
-            </div>
-
-            <div className="reader-home__verso-rule" aria-hidden="true"><span>✦</span></div>
-
-            <blockquote>
-              {latestPage ? latestPage.reflection || latestPage.excerpt : starterQuestion.question}
-            </blockquote>
-
-            <section className="reader-home__book-note">
-              <div>
-                <BookOpenText size={21} weight="regular" aria-hidden="true" />
-                <span><small>Inside your book</small><strong>{savedPages.length ? `${savedPages.length} ${savedPages.length === 1 ? "page" : "pages"}` : "Ready to begin"}</strong></span>
-              </div>
-              <button type="button" onClick={() => openLibraryAt("book")}>
-                See contents <CaretRight size={16} weight="bold" aria-hidden="true" />
-              </button>
-            </section>
-
-            <button className="reader-home__verso-action" type="button" onClick={() => openMemory("Write", "", latestPage ? "" : starterQuestion.question)}>
-              <span aria-hidden="true">＋</span>
-              <span><strong>{latestPage ? "Write the next page" : "Write the first page"}</strong><small>Speak, type, or add a photograph</small></span>
-            </button>
-          </aside>
-        </div>
+        <TodayExperience
+          account={account}
+          bookTitle={bookTitle}
+          memoryCount={savedPages.length}
+          latestPage={latestPage ?? null}
+          authPending={authPending}
+          authError={authError}
+          onGoogleSignIn={signInWithGoogle}
+          onSignOut={signOut}
+          onCraftMemory={chooseCraftMemory}
+          onSaveDaily={saveDailyEntry}
+          onPhotoCapture={() => openMemory("Photo")}
+          onOpenLibrary={(pageId) => openLibraryAt("reader", pageId)}
+          composeSignal={composeSignal}
+          monthlyCard={monthlyCard}
+          onDismissMonthly={dismissMonthly}
+          careCard={careCard}
+          onDismissCare={dismissCare}
+          surfacingCandidate={surfacingCandidate}
+          onOpenSurfacing={(pageId) => openLibraryAt("reader", pageId)}
+          onDismissSurfacing={dismissNotToday}
+          showTutor={showTutor}
+          tutorQuestions={tutorQuestions}
+          onTutorAnswer={tutorAnswer}
+          onTutorDismiss={tutorDismiss}
+        />
       )}
 
       <AnimatePresence>
@@ -408,7 +540,25 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
         ) : null}
       </AnimatePresence>
     </main>
-    {!isReading && active !== "Add Memory" ? <NavShell active={active} onSelect={selectDestination} /> : null}
+
+    <AnimatePresence>
+      {addOpen ? (
+        <AddMomentSheet
+          onClose={() => setAddOpen(false)}
+          onTodayLines={chooseTodayLines}
+          onCraftMemory={chooseCraftMemory}
+        />
+      ) : null}
+    </AnimatePresence>
+
+    {shellVisible ? (
+      <NavShell
+        active={active}
+        onSelect={selectDestination}
+        onAdd={() => setAddOpen(true)}
+        onSearch={() => openLibraryAt("search")}
+      />
+    ) : null}
     </>
   );
 }

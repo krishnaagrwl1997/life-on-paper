@@ -5,8 +5,9 @@ import {
   type MemoryEngineResult,
   type MemoryPageResult,
   type MemoryQuestionResult,
+  type MemoryWeaveResult,
 } from "@/lib/ai/memory-engine";
-import { guardPageResult, guardQuestionResult } from "@/lib/ai/editorial-guardrails";
+import { guardPageResult, guardQuestionResult, tidyEditorialText } from "@/lib/ai/editorial-guardrails";
 
 export const runtime = "nodejs";
 
@@ -113,11 +114,33 @@ const pageSchema = {
   },
 } as const;
 
+const weaveSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["language", "narrative"],
+  properties: {
+    language: { type: "string", enum: ["English", "Hindi", "Hinglish", "Mixed"] },
+    title: { type: "string" },
+    narrative: { type: "array", minItems: 1, items: { type: "string" } },
+  },
+} as const;
+
 function sanitizeRequest(value: unknown): MemoryEngineRequest | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as Partial<MemoryEngineRequest>;
-  if (candidate.action !== "question" && candidate.action !== "page") return null;
+  if (candidate.action !== "question" && candidate.action !== "page" && candidate.action !== "weave") return null;
   if (typeof candidate.memory !== "string") return null;
+  if (candidate.action === "weave") {
+    return {
+      action: "weave",
+      memory: candidate.memory.slice(0, MAX_MEMORY_LENGTH * 2).trim(),
+      answers: [],
+      emotions: [],
+      questionIndex: 0,
+      speechLanguage: "auto",
+      attachment: null,
+    };
+  }
 
   return {
     action: candidate.action,
@@ -191,7 +214,7 @@ type ProviderResult = {
   requestId: string | null;
 };
 
-async function callGemini(input: string, schema: typeof questionSchema | typeof pageSchema): Promise<ProviderResult> {
+async function callGemini(input: string, schema: typeof questionSchema | typeof pageSchema | typeof weaveSchema): Promise<ProviderResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_NOT_CONFIGURED");
 
@@ -239,7 +262,7 @@ async function callGemini(input: string, schema: typeof questionSchema | typeof 
   }
 }
 
-async function callOpenRouter(input: string, schema: typeof questionSchema | typeof pageSchema, schemaName: string): Promise<ProviderResult> {
+async function callOpenRouter(input: string, schema: typeof questionSchema | typeof pageSchema | typeof weaveSchema, schemaName: string): Promise<ProviderResult> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_NOT_CONFIGURED");
 
@@ -289,7 +312,7 @@ async function callOpenRouter(input: string, schema: typeof questionSchema | typ
   }
 }
 
-async function callOpenAi(input: string, schema: typeof questionSchema | typeof pageSchema, schemaName: string): Promise<ProviderResult> {
+async function callOpenAi(input: string, schema: typeof questionSchema | typeof pageSchema | typeof weaveSchema, schemaName: string): Promise<ProviderResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_NOT_CONFIGURED");
 
@@ -350,7 +373,9 @@ export async function POST(request: Request) {
 
   const task = body.action === "question"
     ? `Ask follow-up question ${body.questionIndex + 1} of at most 3. First identify the central named person, place, action, exact words, and feeling. The question and every suggestion must clearly use one of those details. Do not ask a generic sensory or reflective question when a more specific factual question is possible.`
-    : "Prepare the finished memoir page and its library placement. Correct speech fragments, filler, repeated words, punctuation, and sentence structure while preserving the user's vocabulary, meaning, order of events, and language. The title must name the central person or place when one exists.";
+    : body.action === "page"
+      ? "Prepare the finished memoir page and its library placement. Correct speech fragments, filler, repeated words, punctuation, and sentence structure while preserving the user's vocabulary, meaning, order of events, and language. The title must name the central person or place when one exists."
+      : "Compose one short woven narrative for the week that follows. The narrator is the user, writing in their own first person and their own language or mix of languages. Use ONLY the supplied moments, in the order they happened. Lightly connect them with transitions drawn from the moments themselves; never invent an event, person, feeling, cause, or lesson. Keep the voice plain and true; prefer a soft, quiet landing over any moral. Break the narrative into short paragraphs (double newlines). Provide a concrete title only when one of the user's own phrases clearly names the week; otherwise omit the title.";
   const input = JSON.stringify({
     task,
     originalMemory: body.memory,
@@ -360,8 +385,8 @@ export async function POST(request: Request) {
     attachment: body.attachment,
   });
 
-  const schema = body.action === "question" ? questionSchema : pageSchema;
-  const schemaName = body.action === "question" ? "memory_follow_up" : "memory_page";
+  const schema = body.action === "question" ? questionSchema : body.action === "weave" ? weaveSchema : pageSchema;
+  const schemaName = body.action === "question" ? "memory_follow_up" : body.action === "weave" ? "weekly_weave" : "memory_page";
   const configuredProvider = process.env.AI_MEMORY_PROVIDER?.toLowerCase();
   const providers: AiProvider[] = configuredProvider === "openai"
     ? ["openai", "gemini", "openrouter"]
@@ -385,11 +410,28 @@ export async function POST(request: Request) {
       if (!response.outputText) throw new Error(`${provider.toUpperCase()}_EMPTY_RESPONSE`);
 
       const parsed = JSON.parse(response.outputText) as Omit<MemoryEngineResult, "source">;
+      let weaveResult: Omit<MemoryWeaveResult, "source"> | null = null;
+      if (body.action === "weave" && "narrative" in parsed && Array.isArray(parsed.narrative)) {
+        const weave = parsed as Omit<MemoryWeaveResult, "source">;
+        const narrative = (Array.isArray(weave.narrative) ? weave.narrative : [])
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => tidyEditorialText(item))
+          .filter(Boolean);
+        weaveResult = narrative.length
+          ? {
+              language: weave.language && ["English", "Hindi", "Hinglish", "Mixed"].includes(weave.language) ? weave.language : "English",
+              title: typeof weave.title === "string" && weave.title.trim() ? weave.title.trim() : undefined,
+              narrative,
+            }
+          : null;
+      }
       const result = body.action === "question" && "question" in parsed && "suggestions" in parsed
         ? guardQuestionResult(parsed as Omit<MemoryQuestionResult, "source">, body.memory, body.answers, body.emotions, body.questionIndex)
         : body.action === "page" && "bookDraft" in parsed && "placement" in parsed
           ? guardPageResult(parsed as Omit<MemoryPageResult, "source">, body.memory, body.answers, body.emotions)
-          : null;
+          : body.action === "weave"
+            ? weaveResult
+            : null;
       if (!result) throw new Error(`${provider.toUpperCase()}_INVALID_SHAPE`);
       return NextResponse.json({ ...result, source: "ai" } as MemoryEngineResult);
     } catch (error) {

@@ -10,7 +10,7 @@ export const editorialLayoutIds = [
   "reflection",
 ] as const;
 
-export type MemoryEngineAction = "question" | "page";
+export type MemoryEngineAction = "question" | "page" | "weave";
 export type MemoryEngineLanguage = "English" | "Hindi" | "Hinglish" | "Mixed";
 export type MemoryEngineLayoutId = (typeof editorialLayoutIds)[number];
 
@@ -62,5 +62,12 @@ export type MemoryPageResult = {
   };
 };
 
-export type MemoryEngineResult = MemoryQuestionResult | MemoryPageResult;
+export type MemoryWeaveResult = {
+  source: "ai";
+  language: MemoryEngineLanguage;
+  title?: string;
+  narrative: string[];
+};
+
+export type MemoryEngineResult = MemoryQuestionResult | MemoryPageResult | MemoryWeaveResult;
 

@@ -9,6 +9,7 @@ const feelingWords = [
 ];
 
 const ignoredNames = new Set([
+  "Which", "What", "Who", "Whom", "Whose", "Where", "Why", "How",
   "Actually", "After", "And", "Basically", "Before", "But", "English", "Every", "First", "Friday",
   "Goa", "Happy", "He", "Hindi", "Hinglish", "Honestly", "I", "India", "It", "Last", "Lately",
   "Later", "Life", "Maybe", "Monday", "My", "Once", "One", "Our", "Paper", "Perhaps", "Recently",
@@ -265,13 +266,20 @@ function conservativeClean(value: string) {
 
 function tidyGeneratedText(value: string) {
   return value
+    .replace(/(?<!\.)\.\.(?!\.)/g, ".")
     .replace(/,\s*\./g, ".")
     .replace(/\.\s*,/g, ".")
+    .replace(/,\s*and\s*\.\s*/g, ", and ")
+    .replace(/\band\s*\.\s+(?=[A-Z])/g, "and ")
     .replace(/([!?])\s*[,.]/g, "$1")
     .replace(/\s+([,.;!?।])/g, "$1")
     .replace(/([,.;!?।])(?=[\p{L}\p{N}])/gu, "$1 ")
     .replace(/[ \t]{2,}/g, " ")
     .trim();
+}
+
+export function tidyEditorialText(value: string) {
+  return tidyGeneratedText(value);
 }
 
 function isBadTitle(value: string, memory: string, answers: string[]) {
