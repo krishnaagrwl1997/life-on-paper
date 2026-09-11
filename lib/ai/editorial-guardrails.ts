@@ -20,6 +20,10 @@ const ignoredNames = new Set([
   "Finally", "Fine", "However", "Indeed", "Instead", "Just", "Look", "Luckily", "Obviously",
   "Okay", "Particularly", "Probably", "Really", "Right", "Sadly", "Second", "Seriously", "Still",
   "That", "There", "These", "Those", "Though", "Until", "Wait", "Well", "Whatever", "Yeah", "Yes",
+  // Greetings and pleasantries open a sentence; they are never a person.
+  "Hey", "Hi", "Hello", "Hullo", "Yo", "Hmm", "Hmmm", "Hm", "Test", "Testing", "Check", "Checking",
+  "Thanks", "Thank", "Thankyou", "Bye", "Goodbye", "Lol", "Haha", "Hahaha", "Wow", "Cool", "Nice",
+  "Great", "Good", "Nothing", "Stuff", "Things", "Ok", "K",
 ]);
 
 const stopWords = new Set([
@@ -37,7 +41,7 @@ const weakAnchorWords = new Set([
 // Words that frequently start a dictated sentence and must never be read as a
 // person's name in a title ("Goa with Actually" is never a good title).
 function isWeakPersonWord(word: string) {
-  return /^(?:Actually|After|Anyway|Apparently|Basically|Before|But|Eventually|Every|Finally|First|Honestly|However|Just|Last|Lately|Later|Look|Luckily|Maybe|Obviously|Okay|Once|Perhaps|Probably|Recently|Really|Right|Sadly|Second|Seriously|Sometimes|Still|Suddenly|That|The|Then|There|These|This|Those|Though|Today|Until|Wait|Well|Whatever|When|While|Yesterday|Yeah|Yes)$/i.test(word.trim());
+  return /^(?:Actually|After|Anyway|Apparently|Basically|Before|But|Eventually|Every|Finally|First|Honestly|However|Just|Last|Lately|Later|Look|Luckily|Maybe|Obviously|Okay|Once|Perhaps|Probably|Recently|Really|Right|Sadly|Second|Seriously|Sometimes|Still|Suddenly|That|The|Then|There|These|This|Those|Though|Today|Until|Wait|Well|Whatever|When|While|Yesterday|Yeah|Yes|Hey|Hi|Hello|Hullo|Yo|Hmm|Hmmm|Hm|Test|Testing|Check|Checking|Thanks|Thank|Thankyou|Bye|Goodbye|Lol|Haha|Hahaha|Wow|Cool|Nice|Great|Good|Nothing|Stuff|Things)$/i.test(word.trim());
 }
 
 export type MemoryGrounding = {
@@ -253,7 +257,10 @@ function conservativeClean(value: string) {
     .replace(/\b((?:\p{L}+[ '\-]+){1,3}\p{L}+)(?:\s+\1\b)+/giu, "$1")
     .replace(/\b(?:i|I)\s+(?:was\s+){2,}/g, "I was ")
     .replace(/\ban\s+(?=[bcdfghjklmnpqrstvwxyz]\w*)/gi, "a ")
-    .replace(/\s+\bI\b\s+/g, ". I ")
+    // Break before a bare "I" only when the previous character is not already
+    // a sentence terminator: "been. I am" must not become "been.. I am", and
+    // "alone, and I miss" must not become "alone, and. I miss".
+    .replace(/([^\s.!?…])\s+\bI\b\s+/g, "$1. I ")
     .replace(/([^.!?]{65,})\s+\bbut\b\s+/gi, "$1. But ")
     .replace(/([^.!?]{80,})\s+\band then\b\s+/gi, "$1. Then ")
     .replace(/\bwas soAnd\b/gi, "was so. And")
@@ -282,9 +289,29 @@ export function tidyEditorialText(value: string) {
   return tidyGeneratedText(value);
 }
 
+// Greetings, pleasantries and test words are never a page title, no matter how
+// the engine happened to punctuate them.
+const weakTitleWords = new Set([
+  "hey", "hi", "hello", "hullo", "yo", "ok", "okay", "k", "yes", "no", "yeah", "yep", "nah",
+  "hmm", "hm", "hmmm", "test", "testing", "check", "checking", "thanks", "thank", "thankyou",
+  "bye", "goodbye", "lol", "haha", "hahaha", "wow", "cool", "nice", "good", "great", "fine",
+  "nothing", "stuff", "things", "there", "again", "today", "now",
+]);
+
+function isWeakTitle(value: string) {
+  const words = value
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return true;
+  return words.every((word) => weakTitleWords.has(word));
+}
+
 function isBadTitle(value: string, memory: string, answers: string[]) {
   const title = compact(value);
   if (!title || title.split(/\s+/).length > 9) return true;
+  if (isWeakTitle(title)) return true;
   if (/^(?:reflections? on|thoughts? on|a memory|my memory|the day i remember|something i learned|the day lately|the kind of person)/i.test(title)) return true;
   const grounding = groundMemory(memory, answers);
   if (grounding.person && !title.toLocaleLowerCase().includes(grounding.person.toLocaleLowerCase())) return true;
@@ -357,7 +384,12 @@ function lexicalCoverage(draft: string, source: string) {
 }
 
 function needsSpokenCleanup(value: string) {
-  return /\b(?:um+|uh+|erm+|you know|i mean)\b|\bI was like\s*,?\s*(?:really\s*,?\s*)*(?:happy|sad|proud|surprised|shocked|excited|confused)\b|\bmatlab\s*,?\s*mujhe\s+laga\b|\b(\p{L}+)(?:\s+\1\b)+|\bfor the first time\s+first day\b|[a-z][A-Z]|\b(?:and\s+)?then\s+then\b/iu.test(value);
+  const speechArtifacts = /\b(?:um+|uh+|erm+|you know|i mean)\b|\bI was like\s*,?\s*(?:really\s*,?\s*)*(?:happy|sad|proud|surprised|shocked|excited|confused)\b|\bmatlab\s*,?\s*mujhe\s+laga\b|\b(\p{L}+)(?:\s+\1\b)+|\bfor the first time\s+first day\b|\b(?:and\s+)?then\s+then\b/iu.test(value);
+  // "wokeUp"-style joins are checked case-sensitively and separately: inside the
+  // /iu pattern above, "[a-z][A-Z]" matches ANY two letters, which sent every
+  // clean sentence through the rough fallback cleaner.
+  const joinedWords = /[a-z][A-Z]/.test(value);
+  return speechArtifacts || joinedWords;
 }
 
 export function guardPageResult(
@@ -377,7 +409,7 @@ export function guardPageResult(
     && compact(proposedBookDraft).toLocaleLowerCase() === compact(original).toLocaleLowerCase();
   const stillRamblingDraft = needsSpokenCleanup(proposedBookDraft);
   const bookDraft = unchangedRamblingDraft || stillRamblingDraft
-    ? [memory, ...answers].map(conservativeClean).filter(Boolean).join("\n\n")
+    ? tidyGeneratedText([memory, ...answers].map(conservativeClean).filter(Boolean).join("\n\n"))
     : proposedBookDraft;
   const grounding = groundMemory(memory, answers, emotions);
   const title = isBadTitle(result.title, memory, answers) ? fallbackTitle(memory, answers) : compact(result.title);

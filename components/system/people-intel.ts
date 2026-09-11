@@ -124,6 +124,10 @@ const implausibleNames = new Set([
   "life","things","thing","something","someone","everyone","everything","nothing","nobody","anyone","everybody",
   "day","days","week","weeks","month","months","year","years","time","times","home","house","work","office",
   "school","college","city","town","village","place","places","memory","memories","story","book","page",
+  // greetings & pleasantries
+  "hey","hi","hello","hullo","yo","hmm","hmmm","hm","test","testing","check","checking",
+  "thanks","thank","thankyou","bye","goodbye","lol","haha","hahaha","wow","cool","nice",
+  "great","good","nothing","stuff","things","ok","okay","k",
   // Hinglish / Hindi discourse words
   "aaj","kal","abhi","phir","lekin","par","aur","bhi","toh","to","bas","kya","kaun","kab","kahan","kyun","kaise",
   "hai","hain","tha","thi","the","main","hum","tum","aap","wo","vo","ye","yeh","usne","maine","mera","meri",
