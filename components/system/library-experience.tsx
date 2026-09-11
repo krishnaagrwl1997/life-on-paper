@@ -60,7 +60,7 @@ export function LibraryExperience({
 }: {
   savedPages: KeptPage[];
   bookTitle?: string;
-  initialView?: "shelf" | "book" | "reader" | "search";
+  initialView?: "shelf" | "book" | "reader" | "search" | "weaves";
   initialPageId?: string;
   onReadingChange?: (reading: boolean) => void;
   onAddMemory?: () => void;

@@ -14,6 +14,7 @@ import type { TutorQuestion } from "@/components/system/people-intel";
 import { careResources, type CareKind } from "@/components/system/tone";
 import { useLiveTranscription, type LiveTranscriptionLanguage } from "@/components/system/use-live-transcription";
 import { KeepsakePlayer } from "@/components/system/keepsake-player";
+import type { StoryForming } from "@/components/system/first-week";
 import { useKeepsakeRecorder } from "@/components/system/use-keepsake-recorder";
 import { formatDuration, keepsakeLine, listKeepsakes, type Keepsake } from "@/components/system/keepsakes";
 import { Waveform } from "@phosphor-icons/react";
@@ -56,6 +57,8 @@ export function TodayExperience({
   onKeepSound,
   onPhotoCapture,
   onOpenLibrary,
+  storyForming,
+  onOpenWeaves,
   composeSignal,
   monthlyCard,
   onDismissMonthly,
@@ -82,6 +85,8 @@ export function TodayExperience({
   onKeepSound: (keepsake: Keepsake, line: string) => void;
   onPhotoCapture: () => void;
   onOpenLibrary: (pageId: string) => void;
+  storyForming: StoryForming | null;
+  onOpenWeaves: () => void;
   composeSignal: number;
   monthlyCard: MonthlySummary | null;
   onDismissMonthly: () => void;
@@ -385,6 +390,45 @@ export function TodayExperience({
           </motion.p>
         ) : null}
       </AnimatePresence>
+
+      {storyForming && !storyForming.chapterReady && storyForming.momentsNeeded > 0 ? (
+        <section className="forming-card" role="region" aria-label="Your story is forming">
+          <header className="forming-card__header">
+            <p>Your story is forming</p>
+          </header>
+          <p className="forming-card__body">
+            {storyForming.threads.length
+              ? <>I&rsquo;ve noticed {storyForming.threads.map((thread) => thread.label).join(", ")} appearing more than once.</>
+              : <>A few more lines and patterns will start to appear.</>}
+          </p>
+          {storyForming.threads.length ? (
+            <div className="forming-card__threads">
+              {storyForming.threads.map((thread) => (
+                <span key={thread.label}>{thread.label} · {thread.count}</span>
+              ))}
+            </div>
+          ) : null}
+          <p className="forming-card__next">
+            {storyForming.momentsNeeded === 1
+              ? "One more moment this week and I'll weave your first chapter."
+              : `${storyForming.momentsNeeded} more moments this week and I'll weave your first chapter.`}
+          </p>
+        </section>
+      ) : null}
+
+      {storyForming && storyForming.chapterReady ? (
+        <section className="forming-card forming-card--ready" role="region" aria-label="Your first chapter is ready">
+          <header className="forming-card__header">
+            <p>Your first chapter is ready</p>
+          </header>
+          <p className="forming-card__body">
+            This week has enough moments to read as one story &mdash; gathered from your own words.
+          </p>
+          <button type="button" className="forming-card__action" onClick={onOpenWeaves}>
+            Read your first woven week
+          </button>
+        </section>
+      ) : null}
 
       {monthlyCard ? (
         <section className="monthly-card" role="region" aria-label={`Your month so far, ${monthlyCard.label}`}>

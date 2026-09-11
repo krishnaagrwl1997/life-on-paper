@@ -16693,3 +16693,73 @@ input:focus-visible {
   text-transform: uppercase;
   vertical-align: middle;
 }
+
+/* First-week beats: the story forming, and the first woven chapter */
+
+.forming-card {
+  margin-top: 1.4rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--rule);
+  border-radius: 1.15rem;
+  background: var(--paper-raised);
+}
+
+.forming-card--ready {
+  border-color: rgba(193, 89, 43, 0.45);
+  background: rgba(193, 89, 43, 0.06);
+}
+
+.forming-card__header p {
+  margin: 0;
+  font-size: 0.66rem;
+  font-weight: 650;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--action);
+}
+
+.forming-card__body {
+  margin: 0.7rem 0 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.forming-card__threads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.forming-card__threads span {
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+
+.forming-card__next {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.forming-card__action {
+  margin-top: 0.85rem;
+  padding: 0.6rem 1.2rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--action);
+  color: var(--paper);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.forming-card__action:hover {
+  background: var(--action-deep);
+}

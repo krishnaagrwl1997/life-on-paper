@@ -14,6 +14,7 @@ import { kindCandidate, loadDismissed, persistDismissedIds } from "@/components/
 import { detectAcuteSignal, detectSustainedHeaviness, loadCareDismissed, persistCareDismissed, type CareKind } from "@/components/system/tone";
 import { markMonthlyShown, monthlyShownKey, shouldShowMonthly, thisMonthSummary } from "@/components/system/monthly";
 import type { Keepsake } from "@/components/system/keepsakes";
+import { storyForming } from "@/components/system/first-week";
 import { AddMomentSheet } from "@/components/system/add-moment-sheet";
 import { OnboardingExperience } from "@/components/system/onboarding-experience";
 import { createClient } from "@/lib/supabase/client";
@@ -51,7 +52,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
   const [notice, setNotice] = useState<string | null>(null);
   const [savedPages, setSavedPages] = useState<KeptPage[]>([]);
   const [isReading, setIsReading] = useState(false);
-  const [libraryEntry, setLibraryEntry] = useState<"shelf" | "book" | "reader" | "search">("shelf");
+  const [libraryEntry, setLibraryEntry] = useState<"shelf" | "book" | "reader" | "search" | "weaves">("shelf");
   const [libraryPage, setLibraryPage] = useState<string | undefined>();
   const [addOpen, setAddOpen] = useState(false);
   const [composeSignal, setComposeSignal] = useState(0);
@@ -213,7 +214,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     scrollTop();
   };
 
-  const openLibraryAt = (view: "shelf" | "book" | "reader" | "search", pageId?: string) => {
+  const openLibraryAt = (view: "shelf" | "book" | "reader" | "search" | "weaves", pageId?: string) => {
     setLibraryEntry(view);
     setLibraryPage(view === "reader" ? pageId : undefined);
     setActive("Story");
@@ -392,6 +393,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
   };
 
   const [monthlyAck, setMonthlyAck] = useState(false);
+  const storyFormingNow = active === "Today" ? storyForming(savedPages, decisions) : null;
   const monthlyCard = (!monthlyAck && active === "Today" && shouldShowMonthly(savedPages)) ? thisMonthSummary(savedPages) : null;
   const dismissMonthly = () => {
     setMonthlyAck(true);
@@ -558,6 +560,8 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           onKeepSound={keepSound}
           onPhotoCapture={() => openMemory("Photo")}
           onOpenLibrary={(pageId) => openLibraryAt("reader", pageId)}
+          storyForming={storyFormingNow}
+          onOpenWeaves={() => { setActive("Story"); setLibraryEntry("weaves"); setLibraryPage(undefined); scrollTop(); }}
           composeSignal={composeSignal}
           monthlyCard={monthlyCard}
           onDismissMonthly={dismissMonthly}
