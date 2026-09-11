@@ -16763,3 +16763,32 @@ input:focus-visible {
 .forming-card__action:hover {
   background: var(--action-deep);
 }
+
+.profile-backup {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 0.7rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--rule);
+  border-radius: 1rem;
+  background: var(--paper-raised);
+}
+
+.profile-backup--ok {
+  border-color: rgba(193, 89, 43, 0.35);
+  background: rgba(193, 89, 43, 0.05);
+}
+
+.profile-backup > svg {
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--action);
+}
+
+.profile-backup p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}

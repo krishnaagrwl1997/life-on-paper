@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowLeft, BookOpenText, LockKey, SignOut } from "@phosphor-icons/react";
+import { ArrowLeft, BookOpenText, CloudCheck, CloudSlash, LockKey, SignOut } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { AccountSummary } from "@/lib/supabase/account";
 
@@ -13,6 +13,7 @@ export function ProfileExperience({
   memoryCount,
   authPending,
   authError,
+  syncState = "device",
   onGoogleSignIn,
   onSignOut,
   onBack,
@@ -22,6 +23,7 @@ export function ProfileExperience({
   memoryCount: number;
   authPending: boolean;
   authError: string | null;
+  syncState?: "device" | "syncing" | "synced" | "error";
   onGoogleSignIn: () => void;
   onSignOut: () => void;
   onBack: () => void;
@@ -62,6 +64,22 @@ export function ProfileExperience({
           <div className="profile-book-row">
             <BookOpenText size={18} weight="regular" aria-hidden="true" />
             <span><strong>{bookTitle}</strong><em>{memoryCount} {memoryCount === 1 ? "page" : "pages"} in progress</em></span>
+          </div>
+        </section>
+
+        <section className="cast-section">
+          <p className="section-label">Cloud backup</p>
+          <div className={syncState === "synced" ? "profile-backup profile-backup--ok" : "profile-backup"}>
+            {syncState === "synced" ? <CloudCheck size={16} weight="fill" aria-hidden="true" /> : <CloudSlash size={16} weight="regular" aria-hidden="true" />}
+            <p>
+              {syncState === "synced"
+                ? "Backed up to your account. Your book opens on your other devices."
+                : syncState === "syncing"
+                  ? "Syncing your pages…"
+                  : syncState === "error"
+                    ? "Saved on this device. Backup will retry automatically."
+                    : "Saved on this device only. Sign in to back up your book."}
+            </p>
           </div>
         </section>
 

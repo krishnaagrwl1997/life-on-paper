@@ -553,6 +553,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           latestPage={latestPage ?? null}
           authPending={authPending}
           authError={authError}
+          syncState={syncState}
           onGoogleSignIn={signInWithGoogle}
           onSignOut={signOut}
           onCraftMemory={chooseCraftMemory}

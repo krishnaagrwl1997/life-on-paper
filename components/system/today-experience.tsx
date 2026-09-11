@@ -50,6 +50,7 @@ export function TodayExperience({
   latestPage,
   authPending,
   authError,
+  syncState = "device",
   onGoogleSignIn,
   onSignOut,
   onCraftMemory,
@@ -78,6 +79,7 @@ export function TodayExperience({
   latestPage: KeptPage | null;
   authPending: boolean;
   authError: string | null;
+  syncState?: "device" | "syncing" | "synced" | "error";
   onGoogleSignIn: () => void;
   onSignOut: () => void;
   onCraftMemory: () => void;
@@ -228,6 +230,7 @@ export function TodayExperience({
         memoryCount={memoryCount}
         authPending={authPending}
         authError={authError}
+        syncState={syncState}
         onGoogleSignIn={onGoogleSignIn}
         onSignOut={onSignOut}
         onBack={() => setShowProfile(false)}
