@@ -5,19 +5,31 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://lifeonpaper.app"),
-  title: "Life on Paper — Your life, beautifully remembered",
+  title: "Life on Paper — Write 90 seconds a day. Get a book of your life.",
   description:
-    "Speak, share, and shape the moments of your life into a memoir you will want to return to.",
+    "A journal that treats your writing as the story of a life. Every entry is quietly polished, filed into the people and eras it belongs to, and woven into chapters — then printed as a book you can hold.",
   openGraph: {
-    title: "Life on Paper",
-    description: "Your life, beautifully remembered.",
-    images: [{ url: "/og.png", width: 1732, height: 909, alt: "Life on Paper — Your life, beautifully remembered." }],
+    type: "website",
+    siteName: "Life on Paper",
+    url: "/",
+    title: "Write 90 seconds a day. Get a book of your life.",
+    description:
+      "Every entry quietly polished, filed into the people and eras it belongs to, and woven into chapters — then printed as a book you can hold.",
+    images: [
+      {
+        url: "/og.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Life on Paper — write 90 seconds a day, get a book of your life.",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Life on Paper",
-    description: "Your life, beautifully remembered.",
-    images: ["/og.png"],
+    title: "Write 90 seconds a day. Get a book of your life.",
+    description:
+      "Every entry quietly polished, filed into the people and eras it belongs to, and woven into chapters — then printed as a book you can hold.",
+    images: ["/og.jpg"],
   },
 };
 

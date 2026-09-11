@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import { loadCloudGraph, saveCloudGraph } from "@/lib/supabase/graph";
 import { deleteCloudPage, saveCloudPage, syncDevicePages } from "@/lib/supabase/memories";
 import type { AccountSummary } from "@/lib/supabase/account";
+import { DEMO_SEED_KEY } from "@/lib/demo-seed";
 
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
 const starterQuestions = [
@@ -80,7 +81,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/today`,
           queryParams: { access_type: "offline", prompt: "select_account" },
         },
       });
@@ -453,6 +454,25 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     };
     attemptUpgrade(0);
   };
+
+  // Marketing demo carry-over: the words a visitor typed on the landing page
+  // become their first real entry instead of being thrown away, so the demo
+  // doubles as onboarding and there is no cold start. See growth-strategy.md §3.1.
+  useEffect(() => {
+    const adopt = window.setTimeout(() => {
+      let seed: string | null = null;
+      try {
+        seed = window.localStorage.getItem(DEMO_SEED_KEY);
+        if (!seed) return;
+        window.localStorage.removeItem(DEMO_SEED_KEY);
+      } catch {
+        return;
+      }
+      if (seed.trim()) saveDailyEntry(seed);
+    }, 0);
+    return () => window.clearTimeout(adopt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberate one-shot on mount
+  }, []);
 
   if (showOnboarding) {
     return (

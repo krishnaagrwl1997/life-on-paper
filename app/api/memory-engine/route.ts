@@ -8,11 +8,23 @@ import {
   type MemoryWeaveResult,
 } from "@/lib/ai/memory-engine";
 import { guardPageResult, guardQuestionResult, tidyEditorialText } from "@/lib/ai/editorial-guardrails";
+import { clientKey, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 const MAX_MEMORY_LENGTH = 12_000;
 const MAX_ANSWER_LENGTH = 4_000;
+
+/**
+ * Every request here spends real money at an AI provider, and this route is
+ * unauthenticated. Default is deliberately generous because a single public IP
+ * can be shared by many real users on mobile-carrier NAT (common in India,
+ * which is a primary market) — a tight limit would break genuine writers.
+ * Lower it via MEMORY_ENGINE_RATE_LIMIT, and see lib/rate-limit.ts for the
+ * per-instance caveat and the shared-store upgrade path.
+ */
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX = Number(process.env.MEMORY_ENGINE_RATE_LIMIT) || 60;
 
 const editorInstructions = `You are the private documentary editor for Life on Paper, an AI memoir app.
 
@@ -357,6 +369,14 @@ async function callOpenAi(input: string, schema: typeof questionSchema | typeof 
 }
 
 export async function POST(request: Request) {
+  const verdict = rateLimit(clientKey(request, "memory-engine"), RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+  if (!verdict.ok) {
+    return NextResponse.json(rateLimitResponse(verdict), {
+      status: 429,
+      headers: { "Retry-After": String(verdict.retryAfter) },
+    });
+  }
+
   if (!process.env.GEMINI_API_KEY && !process.env.OPENROUTER_API_KEY && !process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: "AI_NOT_CONFIGURED" }, { status: 503 });
   }
