@@ -12,7 +12,8 @@ import { detectTutorQuestions, loadMemoryDecisions, persistMemoryDecisions, tuto
 import { isoWeekKey, loadWeaveCache } from "@/components/system/weekly-weave";
 import { kindCandidate, loadDismissed, persistDismissedIds } from "@/components/system/tone";
 import { detectAcuteSignal, detectSustainedHeaviness, loadCareDismissed, persistCareDismissed, type CareKind } from "@/components/system/tone";
-import { markMonthlyShown, monthlyShownKey, shouldShowMonthly, thisMonthSummary, type MonthlySummary } from "@/components/system/monthly";
+import { markMonthlyShown, monthlyShownKey, shouldShowMonthly, thisMonthSummary } from "@/components/system/monthly";
+import type { Keepsake } from "@/components/system/keepsakes";
 import { AddMomentSheet } from "@/components/system/add-moment-sheet";
 import { OnboardingExperience } from "@/components/system/onboarding-experience";
 import { createClient } from "@/lib/supabase/client";
@@ -435,6 +436,27 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
       .catch((error: unknown) => console.error("Life on Paper daily page AI upgrade sync failed", error));
   };
 
+  // A kept sound: attach it to today's page when there is one, otherwise the
+  // recording *is* the day's page (a wordless day is still a day), with one
+  // factual contextual line rather than any invented writing.
+  const keepSound = (keepsake: Keepsake, line: string) => {
+    const today = new Date().toDateString();
+    const existing = savedPages.find((page) => page.createdAt && new Date(page.createdAt).toDateString() === today);
+    if (existing) {
+      const updated: KeptPage = { ...existing, keepsakes: [...(existing.keepsakes ?? []), keepsake.id] };
+      patchDailyPage(updated);
+      return;
+    }
+    let page: KeptPage;
+    try {
+      page = composeDailyEntry(line);
+    } catch {
+      return;
+    }
+    page = { ...page, title: "A sound I wanted to keep", keepsakes: [keepsake.id], people: [] };
+    addDailyPage(page);
+  };
+
   const saveDailyEntry = (text: string) => {
     let page: KeptPage;
     try {
@@ -533,6 +555,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           onSignOut={signOut}
           onCraftMemory={chooseCraftMemory}
           onSaveDaily={saveDailyEntry}
+          onKeepSound={keepSound}
           onPhotoCapture={() => openMemory("Photo")}
           onOpenLibrary={(pageId) => openLibraryAt("reader", pageId)}
           composeSignal={composeSignal}

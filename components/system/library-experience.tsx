@@ -24,7 +24,10 @@ import {
 } from "@phosphor-icons/react";
 import type { KeptPage } from "@/components/system/memory-interview";
 import { WeavesExperience } from "@/components/system/weaves-experience";
-import { computeWeekGroups, pageTime } from "@/components/system/weekly-weave";
+import { KeepsakePlayer } from "@/components/system/keepsake-player";
+import { listKeepsakes, type Keepsake } from "@/components/system/keepsakes";
+import { computeWeekGroups } from "@/components/system/weekly-weave";
+import { detectEras, type Era } from "@/components/system/eras";
 
 type LibraryView = "shelf" | "book" | "reader" | "studio" | "search" | "weaves";
 type BookVisibility = "private" | "request" | "previews";
@@ -34,45 +37,14 @@ type SearchFilter = "all" | "travel" | "people" | "work" | "feelings" | "lessons
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
 
 
-type Era = { key: string; label: string; pages: KeptPage[] };
-
-function eraKey(page: KeptPage): string {
-  const time = pageTime(page)?.getTime();
-  if (typeof time !== "number") return "earlier";
-  const year = new Date(time).getUTCFullYear();
-  const nowYear = new Date().getUTCFullYear();
-  if (year === nowYear) return "this-year";
-  if (year === nowYear - 1) return "last-year";
-  return `y${year}`;
-}
-
-function eraLabel(key: string): string {
-  if (key === "this-year") return "This year";
-  if (key === "last-year") return "Last year";
-  if (key === "earlier") return "Earlier";
-  return key.slice(1);
-}
-
 function groupEras(pages: KeptPage[]): Era[] {
-  const byKey = new Map<string, KeptPage[]>();
-  for (const page of pages) {
-    const key = eraKey(page);
-    const list = byKey.get(key) ?? [];
-    list.push(page);
-    byKey.set(key, list);
-  }
-  const order = ["this-year", "last-year", "earlier"];
-  const eras: Era[] = [];
-  for (const key of order) {
-    const list = byKey.get(key);
-    if (list && list.length) eras.push({ key, label: eraLabel(key), pages: list });
-  }
-  for (const key of byKey.keys()) {
-    if (order.includes(key)) continue;
-    const list = byKey.get(key)!;
-    eras.push({ key, label: eraLabel(key), pages: list });
-  }
-  return eras;
+  return detectEras(pages);
+}
+
+/** Which detected era a page belongs to (used to filter the reader). */
+function eraKeyFor(page: KeptPage, eras: Era[]): string | null {
+  const found = eras.find((era) => era.pages.some((candidate) => candidate.id === page.id));
+  return found?.key ?? null;
 }
 
 export function LibraryExperience({
@@ -105,6 +77,7 @@ export function LibraryExperience({
   const [extraVolumes, setExtraVolumes] = useState<string[]>([]);
   const [view, setView] = useState<LibraryView>(initialView);
   const [eraFilter, setEraFilter] = useState<string | null>(null);
+  const [readerKeepsakes, setReaderKeepsakes] = useState<Keepsake[]>([]);
   const [selectedPageId, setSelectedPageId] = useState(initialPageId ?? pages[0]?.id ?? "");
   const [lamplight, setLamplight] = useState(false);
   const [readerScale, setReaderScale] = useState<"small" | "medium" | "large">("medium");
@@ -120,10 +93,10 @@ export function LibraryExperience({
   const reduceMotion = useReducedMotion();
   const todayFolio = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(new Date()).replaceAll("/", " · ");
   const activePages = pages.filter((page) => !removedPageIds.includes(page.id));
-  const readingPages = eraFilter ? activePages.filter((page) => eraKey(page) === eraFilter) : activePages;
+  const eraVolumes = groupEras(activePages);
+  const readingPages = eraFilter ? activePages.filter((page) => eraKeyFor(page, eraVolumes) === eraFilter) : activePages;
   const libraryVolumes = [...new Set(readingPages.map((page) => page.volume).filter(Boolean))];
   const orderedPages = libraryVolumes.flatMap((volume) => readingPages.filter((page) => page.volume === volume));
-  const eraVolumes = groupEras(activePages);
   const libraryChapters = [...new Set(activePages.map((page) => page.chapterTitle).filter(Boolean))];
   const wovenWeeksCount = computeWeekGroups(activePages).length;
   const bookSummary = activePages.length
@@ -207,6 +180,24 @@ export function LibraryExperience({
     if (view === "reader") window.scrollTo({ top: 0, behavior: "auto" });
     return () => onReadingChange?.(false);
   }, [onReadingChange, view]);
+
+  useEffect(() => {
+    const ids = selectedPage?.keepsakes ?? [];
+    let cancelled = false;
+    const frame = window.requestAnimationFrame(() => {
+      if (view !== "reader" || !ids.length) {
+        setReaderKeepsakes([]);
+        return;
+      }
+      void listKeepsakes().then((all) => {
+        if (!cancelled) setReaderKeepsakes(all.filter((item) => ids.includes(item.id)));
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [view, selectedPage?.id, selectedPage?.keepsakes]);
 
   useEffect(() => {
     if (view !== "reader") return;
@@ -350,12 +341,18 @@ export function LibraryExperience({
 
             {eraVolumes.length > 1 ? (
               <div className="eras-entry">
-                <div className="weaves-entry__row"><p className="section-label">Your story by era</p><span>{eraVolumes.length} eras</span></div>
+                <div className="weaves-entry__row"><p className="section-label">Your story by era</p><span>{eraVolumes.length} {eraVolumes.length === 1 ? "era" : "eras"}</span></div>
                 <div className="eras-grid">
                   {eraVolumes.map((era) => (
-                    <button key={era.key} type="button" className="eras-chip" onClick={() => { setEraFilter(era.key); goToView("reader"); }}>
-                      <strong>{era.label}</strong>
-                      <small>{era.pages.length} {era.pages.length === 1 ? "page" : "pages"}</small>
+                    <button
+                      key={era.key}
+                      type="button"
+                      className={era.current ? "eras-chip eras-chip--current" : "eras-chip"}
+                      onClick={() => { setEraFilter(era.key); goToView("reader"); }}
+                      aria-label={`Read ${era.label}, ${era.span}, ${era.pages.length} pages`}
+                    >
+                      <strong>{era.label}{era.current ? <em>now</em> : null}</strong>
+                      <small>{era.span} · {era.pages.length} {era.pages.length === 1 ? "page" : "pages"}</small>
                     </button>
                   ))}
                 </div>
@@ -665,6 +662,12 @@ export function LibraryExperience({
                 <h1>{selectedPage.title}</h1>
                 {selectedPage.photo ? <div className={selectedPage.photoTreatment === "original" ? "reader-photo" : "reader-photo reader-photo--painterly"}><Image src={selectedPage.photo} alt="Photograph attached to this memory" width={1600} height={1200} unoptimized sizes="620px" /></div> : null}
                 {readerParagraphs.map((paragraph, index) => <p key={`${selectedPage.id}-${index}`}>{paragraph}</p>)}
+                {readerKeepsakes.length ? (
+                  <div className="reader-keepsakes">
+                    <p className="reader-keepsakes__label">The sound of this moment</p>
+                    {readerKeepsakes.map((keepsake) => <KeepsakePlayer key={keepsake.id} keepsake={keepsake} />)}
+                  </div>
+                ) : null}
               </div>
               <footer><span>Life on Paper</span><span>04 · {String(orderedPages.findIndex((page) => page.id === selectedPage.id) + 1).padStart(2, "0")}</span></footer>
             </article>

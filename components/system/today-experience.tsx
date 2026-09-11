@@ -13,6 +13,10 @@ import type { KeptPage } from "@/components/system/memory-interview";
 import type { TutorQuestion } from "@/components/system/people-intel";
 import { careResources, type CareKind } from "@/components/system/tone";
 import { useLiveTranscription, type LiveTranscriptionLanguage } from "@/components/system/use-live-transcription";
+import { KeepsakePlayer } from "@/components/system/keepsake-player";
+import { useKeepsakeRecorder } from "@/components/system/use-keepsake-recorder";
+import { formatDuration, keepsakeLine, listKeepsakes, type Keepsake } from "@/components/system/keepsakes";
+import { Waveform } from "@phosphor-icons/react";
 import type { MonthlySummary } from "@/components/system/monthly";
 import { ProfileExperience } from "@/components/system/profile-experience";
 
@@ -49,6 +53,7 @@ export function TodayExperience({
   onSignOut,
   onCraftMemory,
   onSaveDaily,
+  onKeepSound,
   onPhotoCapture,
   onOpenLibrary,
   composeSignal,
@@ -74,6 +79,7 @@ export function TodayExperience({
   onSignOut: () => void;
   onCraftMemory: () => void;
   onSaveDaily: (text: string) => void;
+  onKeepSound: (keepsake: Keepsake, line: string) => void;
   onPhotoCapture: () => void;
   onOpenLibrary: (pageId: string) => void;
   composeSignal: number;
@@ -110,6 +116,36 @@ export function TodayExperience({
     onError: setMicError,
     language: dictationLang,
   });
+
+  const [keepsakes, setKeepsakes] = useState<Keepsake[]>([]);
+  const { isRecording, elapsedMs, start: startRecording, stop: stopRecording } = useKeepsakeRecorder({
+    onSaved: (keepsake) => {
+      setKeepsakes((current) => [keepsake, ...current]);
+      onKeepSound(keepsake, keepsakeLine(keepsake));
+    },
+    onError: setMicError,
+  });
+
+  // Show the recordings attached to the most recent page.
+  useEffect(() => {
+    let cancelled = false;
+    const ids = latestPage?.keepsakes ?? [];
+    // Deferred a frame so the effect never sets state synchronously on mount.
+    const frame = window.requestAnimationFrame(() => {
+      if (!ids.length) {
+        setKeepsakes([]);
+        return;
+      }
+      void listKeepsakes().then((all) => {
+        if (cancelled) return;
+        setKeepsakes(all.filter((item) => ids.includes(item.id)));
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [latestPage?.id, latestPage?.keepsakes]);
 
   useEffect(() => {
     if (composeSignal > 0) composerRef.current?.focus();
@@ -282,6 +318,16 @@ export function TodayExperience({
             >
               <Microphone size={19} weight={isListening ? "fill" : "regular"} aria-hidden="true" />
             </button>
+            <button
+              type="button"
+              className={isRecording ? "today-record today-record--on" : "today-record"}
+              onClick={() => (isRecording ? stopRecording() : void startRecording())}
+              aria-label={isRecording ? "Stop keeping this sound" : "Keep a sound"}
+              aria-pressed={isRecording}
+              title={isRecording ? "Stop keeping this sound" : "Keep a sound — a voice, laughter, the rain"}
+            >
+              <Waveform size={19} weight={isRecording ? "bold" : "regular"} aria-hidden="true" />
+            </button>
             <button type="button" onClick={onPhotoCapture} aria-label="Add a photo" title="Add a photo">
               <ImageSquare size={19} weight="regular" aria-hidden="true" />
             </button>
@@ -296,6 +342,20 @@ export function TodayExperience({
             <span className="today-listening__dot" aria-hidden="true" />
             <span className="today-listening__label">Listening{dictationLang === "hi-IN" ? " · हिंदी" : ""}</span>
             {interimTranscript ? <em>{interimTranscript}</em> : <em>Speak naturally — pauses are fine.</em>}
+          </div>
+        ) : null}
+
+        {isRecording ? (
+          <div className="today-listening today-listening--record" role="status" aria-live="polite">
+            <span className="today-listening__dot" aria-hidden="true" />
+            <span className="today-listening__label">Keeping this sound</span>
+            <em>{formatDuration(elapsedMs)} — tap the wave to stop</em>
+          </div>
+        ) : null}
+
+        {keepsakes.length ? (
+          <div className="today-keepsakes">
+            {keepsakes.map((keepsake) => <KeepsakePlayer key={keepsake.id} keepsake={keepsake} />)}
           </div>
         ) : null}
 

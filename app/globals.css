@@ -16569,3 +16569,127 @@ input:focus-visible {
 .ob-google-button:disabled {
   opacity: 0.6;
 }
+
+/* Voice keepsakes — recordings kept as sound, not words */
+
+.today-composer__tools button.today-record--on {
+  background: var(--action);
+  color: var(--paper);
+}
+
+.today-listening--record {
+  border-color: rgba(169, 71, 33, 0.45);
+  background: rgba(169, 71, 33, 0.09);
+}
+
+.today-listening--record .today-listening__dot {
+  background: var(--action-deep);
+}
+
+.today-keepsakes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.keepsake {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.9rem;
+  background: var(--paper-raised);
+}
+
+.keepsake__play {
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--action);
+}
+
+.keepsake__play--on {
+  background: var(--action);
+  color: var(--paper);
+  border-color: var(--action);
+}
+
+.keepsake__copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.keepsake__copy strong {
+  font-family: var(--font-fraunces), serif;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.keepsake__copy small {
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+}
+
+.keepsake__delete {
+  margin-left: auto;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.keepsake__delete:hover {
+  background: var(--sheet);
+  color: var(--action);
+}
+
+/* Reader */
+
+.reader-keepsakes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+}
+
+.reader-keepsakes__label {
+  margin: 0 0 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--action);
+}
+
+/* Detected eras on the shelf */
+
+.eras-chip--current {
+  border-color: rgba(193, 89, 43, 0.45);
+  background: rgba(193, 89, 43, 0.06);
+}
+
+.eras-chip strong em {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: var(--action);
+  color: var(--paper);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.55rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}

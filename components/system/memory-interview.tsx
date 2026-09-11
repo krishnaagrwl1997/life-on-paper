@@ -56,6 +56,7 @@ export type KeptPage = {
   photoTreatment?: PhotoTreatment;
   emotions?: string[];
   people?: string[];
+  keepsakes?: string[];
   writingVersion?: number;
 };
 
