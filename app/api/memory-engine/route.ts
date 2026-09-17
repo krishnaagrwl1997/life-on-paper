@@ -306,6 +306,9 @@ async function callOpenRouter(input: string, schema: typeof questionSchema | typ
         provider: {
           require_parameters: true,
           data_collection: "deny",
+          // Prefer the fastest available provider so the "flash" models stay
+          // quick and we don't fall back to another provider's model on timeout.
+          sort: "throughput",
         },
         temperature: 0.35,
       }),
