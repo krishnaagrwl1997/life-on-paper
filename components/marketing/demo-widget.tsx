@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { DEMO_SEED_KEY } from "@/lib/demo-seed";
@@ -139,8 +140,8 @@ export function DemoWidget() {
               aria-pressed={language === key}
               className={
                 language === key
-                  ? "rounded-full bg-action px-3 py-1.5 font-interface text-sm text-paper"
-                  : "rounded-full px-3 py-1.5 font-interface text-sm text-ink-muted hover:text-ink"
+                  ? "inline-flex min-h-11 items-center rounded-full bg-action px-3.5 font-interface text-sm text-paper"
+                  : "inline-flex min-h-11 items-center rounded-full px-3.5 font-interface text-sm text-ink-muted hover:text-ink"
               }
             >
               {key}
@@ -246,13 +247,13 @@ export function DemoWidget() {
               </p>
             </details>
 
-            <a
+            <Link
               href="/today"
               onClick={keepIt}
-              className="mt-8 inline-block rounded-full bg-action px-6 py-3 font-interface text-base text-paper transition-colors hover:bg-action-deep"
+              className="mt-8 inline-flex min-h-11 items-center rounded-full bg-action px-6 font-interface text-base text-paper transition-colors hover:bg-action-deep"
             >
               Keep this — start your book
-            </a>
+            </Link>
             <p className="mt-3 font-interface text-xs text-ink-muted">
               Your words come with you. No sign-up needed to begin.
             </p>

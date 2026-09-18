@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { DemoWidget } from "@/components/marketing/demo-widget";
+import { WaitlistForm } from "@/components/marketing/waitlist-form";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -26,12 +28,12 @@ export default async function Home() {
     <div className="min-h-screen bg-paper text-ink">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-6 sm:px-8">
         <span className="font-editorial text-lg tracking-tight">Life on Paper</span>
-        <a
+        <Link
           href="/today"
-          className="rounded-full border border-[var(--rule)] px-4 py-2 font-interface text-sm text-ink transition-colors hover:border-action hover:text-action"
+          className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] px-4 font-interface text-sm text-ink transition-colors hover:border-action hover:text-action"
         >
           {signedIn ? "Open your book" : "Start writing"}
-        </a>
+        </Link>
       </header>
 
       <main>
@@ -52,12 +54,18 @@ export default async function Home() {
             question.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <a
+            <Link
               href="/today"
-              className="rounded-full bg-action px-7 py-3.5 font-interface text-base text-paper transition-colors hover:bg-action-deep"
+              className="inline-flex min-h-11 items-center rounded-full bg-action px-7 font-interface text-base text-paper transition-colors hover:bg-action-deep"
             >
               Start your book — free
-            </a>
+            </Link>
+            <Link
+              href="/sample"
+              className="inline-flex min-h-11 items-center font-interface text-base text-ink-muted underline underline-offset-4 hover:text-ink"
+            >
+              Read a sample book
+            </Link>
             <a
               href="#try"
               className="font-interface text-base text-ink-muted underline underline-offset-4 hover:text-ink"
@@ -79,6 +87,24 @@ export default async function Home() {
           </p>
           <div className="mt-6">
             <DemoWidget />
+          </div>
+        </section>
+
+        {/* Email capture at peak intent — right after the visitor sees it work.
+            The list is the critical path to launch; see growth-strategy.md §5.2. */}
+        <section className="border-y border-[var(--rule)] bg-paper-raised">
+          <div className="mx-auto max-w-3xl px-5 py-14 sm:px-8">
+            <h2 className="font-editorial text-2xl leading-snug tracking-tight sm:text-3xl">
+              Want to know when you can hold it?
+            </h2>
+            <p className="mt-3 font-interface text-base leading-relaxed text-ink-muted">
+              Your first book — thirty days of entries, printed and bound — is what we are building
+              toward. Leave an email and we will write once, when it is ready. Then never again
+              unless you ask.
+            </p>
+            <div className="mt-6 max-w-xl">
+              <WaitlistForm source="landing-after-demo" />
+            </div>
           </div>
         </section>
 
@@ -167,12 +193,20 @@ export default async function Home() {
               <br />
               Yours, today.
             </h2>
-            <a
-              href="/today"
-              className="mt-9 inline-block rounded-full bg-action px-8 py-4 font-interface text-base text-paper transition-colors hover:bg-action-deep"
-            >
-              Start your book — free
-            </a>
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-5">
+              <Link
+                href="/today"
+                className="inline-flex min-h-11 items-center rounded-full bg-action px-8 font-interface text-base text-paper transition-colors hover:bg-action-deep"
+              >
+                Start your book — free
+              </Link>
+              <Link
+                href="/sample"
+                className="inline-flex min-h-11 items-center font-interface text-base text-ink-muted underline underline-offset-4 hover:text-ink"
+              >
+                Or read the sample book
+              </Link>
+            </div>
           </div>
         </section>
       </main>

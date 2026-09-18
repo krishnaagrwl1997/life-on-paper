@@ -14,6 +14,22 @@ async function render(pathname = "/") {
   );
 }
 
+async function send(pathname, body) {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test", `post-${process.pid}-${Date.now()}-${Math.random()}`);
+  const { default: worker } = await import(workerUrl.href);
+
+  return worker.fetch(
+    new Request(`http://localhost${pathname}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
+    { waitUntil() {}, passThroughOnException() {} },
+  );
+}
+
 test("server-renders the public landing page at /", async () => {
   const response = await render("/");
   assert.equal(response.status, 200);
@@ -77,3 +93,43 @@ test("guards Hinglish memories with named people against generic questions and t
   assert.match(guardrails, /matlab/);
   assert.match(memory, /What \$\{personName\} Noticed in My Work/);
 });
+
+test("server-renders the readable sample book at /sample", async () => {
+  const response = await render("/sample");
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /A whole book/);
+  assert.match(html, /The Long Way Home/);
+  assert.match(html, /School Years/);
+  // The promise the product makes is checkable on this page, so the control
+  // that lets a reader see the raw entries must exist.
+  assert.match(html, /As written/);
+});
+
+test("rejects a malformed waitlist email before touching storage", async () => {
+  const response = await send("/api/waitlist", { email: "not-an-email" });
+  assert.equal(response.status, 400);
+
+  const payload = await response.json();
+  assert.equal(payload.error, "INVALID_EMAIL");
+});
+
+/**
+ * The waitlist holds real people's email addresses and is written with the
+ * public key, so "nobody can read it back" is a security property, not a
+ * preference. This test fails loudly if anyone ever adds a read path.
+ */
+test("the waitlist migration stays insert-only", async () => {
+  const sql = await readFile(
+    new URL("../supabase/migrations/20260920000000_waitlist.sql", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(sql, /for insert/i);
+  assert.match(sql, /enable row level security/i);
+  assert.doesNotMatch(sql, /for select/i);
+  assert.doesNotMatch(sql, /for update/i);
+  assert.doesNotMatch(sql, /for delete/i);
+});
+
