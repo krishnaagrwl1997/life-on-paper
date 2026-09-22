@@ -122,6 +122,13 @@ OPENAI_MEMORY_MODEL=gpt-5.6-terra
 Local values live in `.env`; production values live in **Vercel project env
 vars**. Changing `.env` does nothing for production and vice versa.
 
+> **⚠️ The local `.env` points at the *production* Supabase project.** There is
+> no separate dev database, so running the app locally and exercising a write
+> path inserts **real rows into production**. Prefer read-only checks. If you
+> must write, clean up immediately — and note that `waitlist` is insert-only by
+> design (no delete policy), so removing a probe row needs the Supabase
+> dashboard or a personal access token; the publishable key cannot do it.
+
 ---
 
 ## 6. The AI memory engine
