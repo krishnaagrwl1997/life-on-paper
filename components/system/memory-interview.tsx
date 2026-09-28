@@ -370,7 +370,10 @@ function detectPersonName(memory: string) {
   )?.[1];
   if (isPossibleName(explicitMatch)) return explicitMatch ?? "";
 
-  const actingPerson = memory.match(/\b([A-Z][a-z]{1,24})\s+(?:(?:ne|ney)\s+)?(?:said|told|asked|called|helped|came|left|made|gave|shared|wrote|messaged|bola|boli|kaha|poocha|pucha|bataya|likha|bheja)\b/i)?.[1];
+  // The verb alternation is case-insensitive, but the name must still start
+  // with a capital: without that, "the chain came off" made "chain" a person.
+  const actingRaw = memory.match(/\b([A-Za-z]{2,25})\s+(?:(?:ne|ney)\s+)?(?:said|told|asked|called|helped|came|left|made|gave|shared|wrote|messaged|bola|boli|kaha|poocha|pucha|bataya|likha|bheja)\b/i)?.[1];
+  const actingPerson = actingRaw && /^[A-Z]/.test(actingRaw) ? actingRaw : undefined;
   if (isPossibleName(actingPerson)) return actingPerson ?? "";
 
   const sentenceSubject = memory.match(/(?:^|[.!?]\s+)([A-Z][a-z]{1,24})\s+(?:said|told|asked|called|helped|came|left|made|gave|was|is|had|has)\b/)?.[1];
@@ -420,25 +423,66 @@ const editorialLayouts: Array<{ id: EditorialLayoutId; name: string; note: strin
   { id: "reflection", name: "Reflection", note: "An inward moment that becomes a lasting lesson." },
 ];
 
+/** The family word the user actually used, so the chapter can carry their word. */
+function familyAnchorLabel(memory: string) {
+  const direct = memory.match(/\b(Amma|Appa|Ajji|Ajja|Amma|Mom|Mum|Mummy|Dad|Papa|Mother|Father|Grandmother|Grandfather|Grandma|Grandpa|Sister|Brother|Aunt|Uncle|Cousin)\b/)?.[1];
+  if (direct) return direct;
+  const plain = memory.toLowerCase().match(/\b(amma|appa|ajji|ajja|mother|father|mom|mum|mummy|dad|papa|grandmother|grandfather|grandma|grandpa|sister|brother|aunt|uncle|cousin)\b/)?.[1];
+  return plain ? plain.charAt(0).toUpperCase() + plain.slice(1) : "";
+}
+
 function recommendPlacement(memory: string): ChapterPlacement {
   const lower = memory.toLowerCase();
   const context = detectMemoryContext(memory);
   const personName = detectPersonName(memory);
-  if (context.isTravel) {
+  // A place name alone does not make a journey. "Amma and I went to
+  // Malleswaram market" is a memory about Amma, not a trip, so require words
+  // that actually describe travelling before filing it under Journeys.
+  const hasTravelSignal = /travel|trip|journey|solo|flight|train|road|beach|mountain|river|hostel|hotel|vacation|holiday|backpack|airport|station|visited|flew|drove|travelled|traveled/.test(lower);
+  const familyLabel = familyAnchorLabel(memory);
+  const realPlace = context.place && context.place !== "A journey" ? context.place : "";
+
+  if (context.isTravel && hasTravelSignal) {
     const tripLabel = /\bfirst\b/i.test(context.when)
-      ? `My First ${context.place} Trip`
+      ? `My First ${realPlace} Trip`
       : context.when
-        ? `${context.place} · ${context.when}`
-        : `${context.place} Trips`;
+        ? `${realPlace} · ${context.when}`
+        : `${realPlace} Trips`;
     return {
-      id: `journey-${context.place.toLowerCase().replace(/\s+/g, "-") || "travel"}`,
+      id: `journey-${realPlace.toLowerCase().replace(/\s+/g, "-") || "travel"}`,
       book: "Book One",
-      volume: context.when ? `Journeys · ${context.when}` : "Journeys · Date to confirm",
-      chapter: context.place ? `${context.place} memories` : "Travel memories",
-      title: context.place && context.place !== "A journey" ? tripLabel : "Trips and Journeys",
-      reason: context.place
-        ? `I matched this to ${context.place}${context.when ? ` and ${context.when}` : ""} from the details you shared.`
+      volume: context.when ? `Journeys · ${context.when}` : "Journeys",
+      chapter: realPlace ? `${realPlace} memories` : "Travel memories",
+      title: realPlace ? tripLabel : "Trips and Journeys",
+      reason: realPlace
+        ? `I matched this to ${realPlace}${context.when ? ` and ${context.when}` : ""} from the details you shared.`
         : "I recognized this as a travel memory. Add a place or time only if it helps distinguish this trip.",
+    };
+  }
+
+  // A person at the centre of the memory outranks a bare place mention, so it
+  // does not matter that the moment happened somewhere named.
+  if (familyLabel || personName || /friend|partner|teacher|mentor|someone|person|appreciat|compliment|thanked/.test(lower)) {
+    const label = familyLabel || personName;
+    if (label) {
+      return {
+        ...chapterOptions[1],
+        id: `person-${label.toLocaleLowerCase()}`,
+        title: label,
+        reason: `${label} is at the centre of this memory, so I’ve kept it with the people who matter in your story.`,
+      };
+    }
+    return chapterOptions[1];
+  }
+
+  if (realPlace) {
+    return {
+      id: `place-${realPlace.toLowerCase().replace(/\s+/g, "-")}`,
+      book: "Book One",
+      volume: "Volume I · Places",
+      chapter: `${realPlace} memories`,
+      title: `In ${realPlace}`,
+      reason: `${realPlace} is the clearest anchor in what you shared.`,
     };
   }
   if (/work|office|job|client|manager|team|promotion|project/.test(lower) && /appreciat|compliment|praised|thanked|noticed/.test(lower)) {
@@ -490,6 +534,10 @@ function titleForMemory(layout: EditorialLayoutId, memory: string) {
   // Never build "Place with <word>" when the detected name is a discourse
   // opener (Actually, Honestly, Once, Lately, ...) rather than a real person.
   const personIsPlausible = personName && !hasBrokenGeneratedSubject(personName);
+  // A memory about a family member is a portrait of them, not a page about the
+  // place they happened to be standing in.
+  const familyLabel = familyAnchorLabel(memory);
+  if (familyLabel) return familyLabel;
   if (personIsPlausible && context.place && context.place !== "A journey") return `${context.place} with ${personName}`;
   if (personIsPlausible && /appreciat|compliment|prais|thank|noticed|notice|acha|achha|accha/.test(lower) && /work|office|job|client|manager|team|project|kaam/.test(lower)) return `What ${personName} Noticed in My Work`;
   if (personIsPlausible && /conversation|said|told|spoke|talk|message|called/.test(lower)) return `What ${personName} Said`;
@@ -533,6 +581,14 @@ function hasBrokenGeneratedSubject(value: string) {
   return /^(?:Actually|After|Basically|Before|Every|First|Honestly|Last|Lately|Later|Maybe|Once|Perhaps|Recently|Sometimes|Suddenly|Then|Today|When|While|Yesterday)$/i.test(value.trim());
 }
 
+/** Does `text` contain `word` written with a capital letter, as a proper noun? */
+function hasCapitalisedWord(text: string, word: string) {
+  if (!word) return false;
+  const cap = word.charAt(0).toUpperCase() + word.slice(1);
+  const escaped = cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^\\p{L}])${escaped}([^\\p{L}]|$)`, "u").test(text);
+}
+
 function isBadGeneratedTitle(value: string, memory = "") {
   const title = value.trim();
   if (!title) return true;
@@ -540,10 +596,15 @@ function isBadGeneratedTitle(value: string, memory = "") {
   const daySubject = title.match(/^The Day ([A-Za-z]+) Was There$/i)?.[1];
   if (daySubject && hasBrokenGeneratedSubject(daySubject)) return true;
   // A "Place with <word>" title is only good when the second half is a real
-  // person's name. Discourse openers (Actually, Honestly, Once, Lately, ...)
-  // must never read as the person the memory is "with".
+  // person's name. Two things disqualify it: a discourse opener
+  // ("New York with actually"), and any word the user never wrote as a proper
+  // noun — which is how "Mysore with chain" happened, where the AI promoted a
+  // lowercase common noun out of the prose.
   const withSecond = title.match(/^(.+?)\s+with\s+([A-Za-z]+)$/i)?.[2];
-  if (withSecond && hasBrokenGeneratedSubject(withSecond)) return true;
+  if (withSecond) {
+    if (hasBrokenGeneratedSubject(withSecond)) return true;
+    if (memory && !hasCapitalisedWord(memory, withSecond)) return true;
+  }
   if (!memory) return false;
   const context = detectMemoryContext(memory);
   const personName = detectPersonName(memory);

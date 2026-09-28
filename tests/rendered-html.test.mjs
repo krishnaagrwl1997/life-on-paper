@@ -133,3 +133,49 @@ test("the waitlist migration stays insert-only", async () => {
   assert.doesNotMatch(sql, /for delete/i);
 });
 
+
+/**
+ * Titles and placement both key off "who is this memory about". Two bugs made
+ * it into production from that one seam:
+ *
+ *   1. the person regex carried /i, so it matched a lowercase common noun
+ *      before a verb — "the chain came off" turned "chain" into a person and
+ *      titled a Mysore bicycle memory "Mysore with chain";
+ *   2. family words (Amma, Ajji, Appa) were not recognised as people at all, so
+ *      a memory about a mother was filed under Places and titled after the
+ *      market she happened to be standing in.
+ *
+ * These assertions are deliberately source-level: they fail if the /i creeps
+ * back onto the name group, or if family anchors stop being consulted.
+ */
+test("never reads a lowercase common noun as a person", async () => {
+  const [guardrails, interview] = await Promise.all([
+    readFile(new URL("../lib/ai/editorial-guardrails.ts", import.meta.url), "utf8"),
+    readFile(new URL("../components/system/memory-interview.tsx", import.meta.url), "utf8"),
+  ]);
+
+  for (const source of [guardrails, interview]) {
+    // The buggy shape: a capital-only name class made case-insensitive by /i.
+    assert.doesNotMatch(
+      source,
+      /\(\[A-Z\]\[a-z\]\{1,24\}\)\\s\+\(\?\(\(\?:ne\|ney\)/,
+      "the acting-person regex must not be /i over a capital-only class",
+    );
+    // The fix: match loosely, then require a real capital.
+    assert.match(source, /\^\[A-Z\]\$|\[\^A-Z\]|\/\^\[A-Z\]\//);
+  }
+});
+
+test("knows a family word is a person", async () => {
+  const guardrails = await readFile(
+    new URL("../lib/ai/editorial-guardrails.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(guardrails, /detectFamilyAnchor/);
+  assert.match(guardrails, /familyAnchorPattern/);
+  // A family anchor must outrank a bare place mention.
+  assert.match(guardrails, /isFamilyAnchorWord\(grounding\.person\)/);
+  // And it must never be titled after the place:
+  assert.match(guardrails, /return grounding\.person;/);
+});

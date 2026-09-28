@@ -38,6 +38,19 @@ const weakAnchorWords = new Set([
   "perhaps", "recently", "sometimes", "something", "suddenly", "then", "today", "yesterday",
 ]);
 
+/**
+ * Does the source contain `word` written with a capital letter, as a proper
+ * noun? A name the user actually wrote passes; a common noun the engine
+ * promoted out of lowercase prose ("chain", "light") does not — which is what
+ * produced titles like "Mysore with chain".
+ */
+function hasCapitalisedWord(text: string, word: string) {
+  if (!word) return false;
+  const cap = word.charAt(0).toUpperCase() + word.slice(1);
+  const escaped = cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^\\p{L}])${escaped}([^\\p{L}]|$)`, "u").test(text);
+}
+
 // Words that frequently start a dictated sentence and must never be read as a
 // person's name in a title ("Goa with Actually" is never a good title).
 function isWeakPersonWord(word: string) {
@@ -70,7 +83,11 @@ function detectPerson(value: string) {
   const isName = (word: string | undefined) => Boolean(word && !ignoredNames.has(word) && !ignoredNames.has(word.charAt(0).toUpperCase() + word.slice(1).toLocaleLowerCase()));
   const explicit = value.match(/\b(?:my\s+(?:friend|colleague|cousin|sister|brother|mother|father|partner|teacher|mentor)\s+|named\s+|called\s+|met\s+|spoke to\s+|talked to\s+|talking about\s+|thinking about\s+|with\s+)([A-Z][a-z]{1,24})\b/)?.[1];
   if (isName(explicit)) return explicit ?? "";
-  const actingPerson = value.match(/\b([A-Z][a-z]{1,24})\s+(?:(?:ne|ney)\s+)?(?:said|told|asked|called|helped|came|left|made|gave|shared|wrote|messaged|bola|boli|kaha|poocha|pucha|bataya|likha|bheja)\b/i)?.[1];
+  // NB: the verb alternation is deliberately case-insensitive, but that used
+  // to make the name group case-insensitive too — so "the chain came off"
+  // promoted "chain" to a person. Match loosely, then require a capital.
+  const actingRaw = value.match(/\b([A-Za-z]{2,25})\s+(?:(?:ne|ney)\s+)?(?:said|told|asked|called|helped|came|left|made|gave|shared|wrote|messaged|bola|boli|kaha|poocha|pucha|bataya|likha|bheja)\b/i)?.[1];
+  const actingPerson = actingRaw && /^[A-Z]/.test(actingRaw) ? actingRaw : undefined;
   if (isName(actingPerson)) return actingPerson ?? "";
   const subject = value.match(/(?:^|[.!?]\s+)([A-Z][a-z]{1,24})\s+(?:said|told|asked|called|helped|came|left|made|gave|was|is|had|has)\b/)?.[1];
   if (isName(subject)) return subject ?? "";
@@ -86,6 +103,28 @@ function detectPlace(value: string) {
   const knownPlace = value.match(/\b(Bangalore|Bengaluru|Mumbai|Bombay|Delhi|Kolkata|Calcutta|Chennai|Pune|Jaipur|Udaipur|Manali|Kerala|Varanasi|Agra)\b/i)?.[1];
   if (knownPlace) return knownPlace.charAt(0).toUpperCase() + knownPlace.slice(1).toLocaleLowerCase();
   return value.match(/\b(?:in|at|to|from)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/)?.[1] ?? "";
+}
+
+/**
+ * Family words are how many people actually name the most important person in
+ * a memory — "Amma", "Ajji", "Appa". They are not capitalised like a proper
+ * name in every clause, so `detectPerson` misses them. Without this, a memory
+ * about a mother was filed under Places and titled after the market she
+ * happened to be standing in.
+ */
+const familyAnchorPattern = /\b(amma|appa|ajji|ajja|mom|mum|mummy|dad|papa|mother|father|grandmother|grandfather|grandma|grandpa|sister|brother|aunt|uncle|cousin)\b/i;
+const familyAnchorWords = /^(amma|appa|ajji|ajja|mom|mum|mummy|dad|papa|mother|father|grandmother|grandfather|grandma|grandpa|sister|brother|aunt|uncle|cousin)$/i;
+
+/** The family word the user actually used, capitalised, or "". */
+function detectFamilyAnchor(value: string) {
+  const hit = value.match(familyAnchorPattern)?.[1];
+  if (!hit) return "";
+  const lower = hit.toLocaleLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+function isFamilyAnchorWord(word: string) {
+  return familyAnchorWords.test(word);
 }
 
 export function groundMemory(memory: string, answers: string[] = [], emotions: string[] = []): MemoryGrounding {
@@ -106,7 +145,7 @@ export function groundMemory(memory: string, answers: string[] = [], emotions: s
             : /learn|realis|realiz|understood|noticed|confidence|alone/.test(lower)
               ? "reflection"
               : "moment";
-  return { person: detectPerson(source), place, feeling, language: detectLanguage(source), topic };
+  return { person: detectPerson(source) || detectFamilyAnchor(source), place, feeling, language: detectLanguage(source), topic };
 }
 
 function questionSet(memory: string, answers: string[], emotions: string[], index: number) {
@@ -314,6 +353,12 @@ function isBadTitle(value: string, memory: string, answers: string[]) {
   if (isWeakTitle(title)) return true;
   if (/^(?:reflections? on|thoughts? on|a memory|my memory|the day i remember|something i learned|the day lately|the kind of person)/i.test(title)) return true;
   const grounding = groundMemory(memory, answers);
+  // "Place with <word>" is only a title when the word is a proper noun the
+  // user actually wrote; otherwise file it as a bad title and let the fallback
+  // name the page after the place or the person properly.
+  const source = [memory, ...answers].join(" ");
+  const withSecond = title.match(/^(.+?)\s+with\s+([A-Za-z]+)$/i)?.[2];
+  if (withSecond && !hasCapitalisedWord(source, withSecond) && !isFamilyAnchorWord(withSecond)) return true;
   if (grounding.person && !title.toLocaleLowerCase().includes(grounding.person.toLocaleLowerCase())) return true;
   if (grounding.place && grounding.topic === "travel" && !title.toLocaleLowerCase().includes(grounding.place.toLocaleLowerCase())) return true;
   const lowerTitle = title.toLocaleLowerCase();
@@ -327,7 +372,11 @@ function fallbackTitle(memory: string, answers: string[]) {
   const source = [memory, ...answers].join(" ");
   const lower = source.toLocaleLowerCase();
   const grounding = groundMemory(memory, answers);
-  const personIsPlausible = grounding.person && !isWeakPersonWord(grounding.person);
+  // A family word counts even when it was written lowercase ("my amma").
+  const personIsPlausible = grounding.person && !isWeakPersonWord(grounding.person)
+    && (isFamilyAnchorWord(grounding.person) || hasCapitalisedWord(source, grounding.person));
+  // A memory about Amma is titled "Amma", not after the market she was in.
+  if (personIsPlausible && isFamilyAnchorWord(grounding.person)) return grounding.person;
   if (personIsPlausible && grounding.place) return `${grounding.place} with ${grounding.person}`;
   if (personIsPlausible && grounding.topic === "appreciation" && /work|office|job|client|manager|team|project|kaam/.test(lower)) return `What ${grounding.person} Noticed in My Work`;
   if (personIsPlausible && grounding.topic === "conversation") return `What ${grounding.person} Said`;
@@ -350,6 +399,20 @@ function fallbackTitle(memory: string, answers: string[]) {
 function guardedPlacement(result: Omit<MemoryPageResult, "source">["placement"], grounding: MemoryGrounding) {
   const placementText = `${result.volume} ${result.chapterTitle}`.toLocaleLowerCase();
   const generic = /things i learned|life lessons|everyday moments|people and conversations|reflections?|becoming|small things/.test(placementText);
+  // When the memory is really about a family member, that person outranks the
+  // place they happened to be standing in ("Amma and I went to the market" is
+  // about Amma, not about the market).
+  if (grounding.person && isFamilyAnchorWord(grounding.person)) {
+    return {
+      book: "Book One",
+      volume: "Volume I · People",
+      chapter: "Chapter One",
+      chapterTitle: grounding.person,
+      confidence: 0.9,
+      reason: `${grounding.person} is at the centre of this memory.`,
+      needsConfirmation: false,
+    };
+  }
   if (grounding.place && (generic || !placementText.includes(grounding.place.toLocaleLowerCase()))) {
     return {
       book: "Book One",
@@ -372,7 +435,14 @@ function guardedPlacement(result: Omit<MemoryPageResult, "source">["placement"],
       needsConfirmation: false,
     };
   }
-  return result;
+  // Never hand an empty shelf label to the library/reader.
+  return {
+    ...result,
+    book: result.book || "Book One",
+    volume: result.volume || (grounding.place ? "Volume I · Places" : grounding.person ? "Volume I · People" : "Volume I"),
+    chapter: result.chapter || "Chapter One",
+    chapterTitle: result.chapterTitle || result.chapter || "A moment I kept",
+  };
 }
 
 function lexicalCoverage(draft: string, source: string) {
