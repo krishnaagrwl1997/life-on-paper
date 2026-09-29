@@ -137,6 +137,40 @@ const weaveSchema = {
   },
 } as const;
 
+// ---------------------------------------------------------------------------
+// The landing-page demo.
+//
+// A visitor watching a demo will not wait ~18s for the full editorial pass, so
+// this asks for far less: a title, the lightly edited lines, who was noticed,
+// and where it would be filed. The long rulebook is most of the request, hence
+// the short prompt. The no-invention promise is unchanged, and the same
+// guardrails still run over the result.
+// ---------------------------------------------------------------------------
+const demoInstructions = `You are the editor for Life on Paper, a memoir app. A visitor typed a few messy lines about their day. Work only from their words.
+
+- bookDraft: their lines, lightly cleaned into one to three short paragraphs separated by a blank line. Remove filler, false starts and accidental repeats. If they ended on a feeling, keep one short closing line for it. Write in the language and register they used — English stays English, Hindi stays Hindi, Hinglish stays Hinglish. Never translate.
+- Never invent a person, event, quote, date, place, sensory detail or lesson. Add no imagery they did not supply.
+- title: concrete, 2-6 words, built from a person, place, action or exact phrase they used. Never a generic headline such as "Reflections on Today".
+- reflection: one short sentence in their voice, drawn only from their words, or "" when there is nothing to reflect on.
+- people: only names they actually wrote (Amma, Ria, ...). Empty array if none.
+- volume / chapterTitle: where this belongs, e.g. "Volume I · People" and "Amma", or "Volume I · Places" and "Mysore". Use only their details.
+
+Return only the requested JSON.`;
+
+const demoSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["title", "bookDraft", "reflection", "people", "volume", "chapterTitle"],
+  properties: {
+    title: { type: "string" },
+    bookDraft: { type: "string" },
+    reflection: { type: "string" },
+    people: { type: "array", maxItems: 3, items: { type: "string" } },
+    volume: { type: "string" },
+    chapterTitle: { type: "string" },
+  },
+} as const;
+
 function sanitizeRequest(value: unknown): MemoryEngineRequest | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as Partial<MemoryEngineRequest>;
@@ -156,6 +190,8 @@ function sanitizeRequest(value: unknown): MemoryEngineRequest | null {
 
   return {
     action: candidate.action,
+    // The demo only ever means "page"; ignore the flag for other actions.
+    demo: candidate.action === "page" && candidate.demo === true,
     memory: candidate.memory.slice(0, MAX_MEMORY_LENGTH).trim(),
     answers: Array.isArray(candidate.answers)
       ? candidate.answers.filter((item): item is string => typeof item === "string").slice(0, 3).map((item) => item.slice(0, MAX_ANSWER_LENGTH).trim())
@@ -226,7 +262,22 @@ type ProviderResult = {
   requestId: string | null;
 };
 
-async function callGemini(input: string, schema: typeof questionSchema | typeof pageSchema | typeof weaveSchema): Promise<ProviderResult> {
+type EngineSchema = typeof questionSchema | typeof pageSchema | typeof weaveSchema | typeof demoSchema;
+
+/** Per-call overrides, so the landing demo can use a short prompt and a cap. */
+type CallOptions = {
+  instructions: string;
+  maxTokens?: number;
+  /**
+   * DeepSeek's "flash" models still reason by default, and reasoning tokens
+   * are most of the wall-clock cost — a simple cleanup was spending ~430 of
+   * its ~510 output tokens thinking. The demo turns it off; the editorial pass
+   * keeps it low so the answer is careful without blowing the timeout.
+   */
+  reasoning?: { enabled?: boolean; effort?: "low" | "medium" | "high" };
+};
+
+async function callGemini(input: string, schema: EngineSchema, opts: CallOptions): Promise<ProviderResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_NOT_CONFIGURED");
 
@@ -244,7 +295,7 @@ async function callGemini(input: string, schema: typeof questionSchema | typeof 
         },
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: editorInstructions }],
+            parts: [{ text: opts.instructions }],
           },
           contents: [
             {
@@ -256,6 +307,7 @@ async function callGemini(input: string, schema: typeof questionSchema | typeof 
             temperature: 0.35,
             responseMimeType: "application/json",
             responseJsonSchema: schema,
+            ...(opts.maxTokens ? { maxOutputTokens: opts.maxTokens } : {}),
           },
         }),
         signal: controller.signal,
@@ -274,7 +326,7 @@ async function callGemini(input: string, schema: typeof questionSchema | typeof 
   }
 }
 
-async function callOpenRouter(input: string, schema: typeof questionSchema | typeof pageSchema | typeof weaveSchema, schemaName: string): Promise<ProviderResult> {
+async function callOpenRouter(input: string, schema: EngineSchema, schemaName: string, opts: CallOptions): Promise<ProviderResult> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_NOT_CONFIGURED");
 
@@ -292,7 +344,7 @@ async function callOpenRouter(input: string, schema: typeof questionSchema | typ
       body: JSON.stringify({
         model: process.env.OPENROUTER_MEMORY_MODEL || "openrouter/free",
         messages: [
-          { role: "system", content: editorInstructions },
+          { role: "system", content: opts.instructions },
           { role: "user", content: input },
         ],
         response_format: {
@@ -311,6 +363,8 @@ async function callOpenRouter(input: string, schema: typeof questionSchema | typ
           sort: "throughput",
         },
         temperature: 0.35,
+        ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
+        ...(opts.reasoning ? { reasoning: opts.reasoning } : {}),
       }),
       signal: controller.signal,
     });
@@ -327,7 +381,7 @@ async function callOpenRouter(input: string, schema: typeof questionSchema | typ
   }
 }
 
-async function callOpenAi(input: string, schema: typeof questionSchema | typeof pageSchema | typeof weaveSchema, schemaName: string): Promise<ProviderResult> {
+async function callOpenAi(input: string, schema: EngineSchema, schemaName: string, opts: CallOptions): Promise<ProviderResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_NOT_CONFIGURED");
 
@@ -343,9 +397,10 @@ async function callOpenAi(input: string, schema: typeof questionSchema | typeof 
       body: JSON.stringify({
         model: process.env.OPENAI_MEMORY_MODEL || "gpt-5.6-terra",
         store: false,
-        instructions: editorInstructions,
+        instructions: opts.instructions,
         input,
         reasoning: { effort: "low" },
+        ...(opts.maxTokens ? { max_output_tokens: opts.maxTokens } : {}),
         text: {
           verbosity: "low",
           format: {
@@ -408,8 +463,30 @@ export async function POST(request: Request) {
     attachment: body.attachment,
   });
 
-  const schema = body.action === "question" ? questionSchema : body.action === "weave" ? weaveSchema : pageSchema;
-  const schemaName = body.action === "question" ? "memory_follow_up" : body.action === "weave" ? "weekly_weave" : "memory_page";
+  // The landing demo takes a deliberately cheap path: a short prompt, a small
+  // schema, and an output cap, so a visitor sees a result in a few seconds
+  // rather than the ~18s the full editorial pass takes. The guardrails below
+  // still run, so the no-invention promise is unchanged.
+  const isDemo = body.action === "page" && body.demo === true;
+  const schema = isDemo
+    ? demoSchema
+    : body.action === "question"
+      ? questionSchema
+      : body.action === "weave"
+        ? weaveSchema
+        : pageSchema;
+  const schemaName = isDemo
+    ? "memory_page_demo"
+    : body.action === "question"
+      ? "memory_follow_up"
+      : body.action === "weave"
+        ? "weekly_weave"
+        : "memory_page";
+  const callOptions: CallOptions = {
+    instructions: isDemo ? demoInstructions : editorInstructions,
+    maxTokens: isDemo ? 400 : undefined,
+    reasoning: isDemo ? { enabled: false } : { effort: "low" },
+  };
   const configuredProvider = process.env.AI_MEMORY_PROVIDER?.toLowerCase();
   const providers: AiProvider[] = configuredProvider === "openai"
     ? ["openai", "gemini", "openrouter"]
@@ -425,14 +502,54 @@ export async function POST(request: Request) {
 
     try {
       const response = provider === "gemini"
-        ? await callGemini(input, schema)
+        ? await callGemini(input, schema, callOptions)
         : provider === "openrouter"
-          ? await callOpenRouter(input, schema, schemaName)
-          : await callOpenAi(input, schema, schemaName);
+          ? await callOpenRouter(input, schema, schemaName, callOptions)
+          : await callOpenAi(input, schema, schemaName, callOptions);
       lastRequestId = response.requestId;
       if (!response.outputText) throw new Error(`${provider.toUpperCase()}_EMPTY_RESPONSE`);
 
       const parsed = JSON.parse(response.outputText) as Omit<MemoryEngineResult, "source">;
+
+      // The demo returns a compact shape. Expand it into a full page result so
+      // the same guardrails — and the same client contract — still apply.
+      if (isDemo) {
+        const compact = parsed as unknown as {
+          title?: unknown;
+          bookDraft?: unknown;
+          reflection?: unknown;
+          people?: unknown;
+          volume?: unknown;
+          chapterTitle?: unknown;
+        };
+        const demoPage: Omit<MemoryPageResult, "source"> = {
+          language: "English",
+          cleanTranscript: body.memory,
+          bookDraft: typeof compact.bookDraft === "string" ? compact.bookDraft : "",
+          title: typeof compact.title === "string" ? compact.title : "",
+          reflection: typeof compact.reflection === "string" ? compact.reflection : "",
+          placement: {
+            book: "Book One",
+            volume: typeof compact.volume === "string" ? compact.volume : "",
+            chapter: "Chapter One",
+            chapterTitle: typeof compact.chapterTitle === "string" ? compact.chapterTitle : "",
+            confidence: 0.8,
+            reason: "",
+            needsConfirmation: false,
+          },
+          layout: { id: "story", reason: "" },
+          signals: {
+            people: Array.isArray(compact.people)
+              ? compact.people.filter((item): item is string => typeof item === "string").slice(0, 3)
+              : [],
+            places: [],
+            dates: [],
+            themes: [],
+          },
+        };
+        const guardedDemo = guardPageResult(demoPage, body.memory, body.answers, body.emotions);
+        return NextResponse.json({ ...guardedDemo, source: "ai" } as MemoryEngineResult);
+      }
       let weaveResult: Omit<MemoryWeaveResult, "source"> | null = null;
       if (body.action === "weave" && "narrative" in parsed && Array.isArray(parsed.narrative)) {
         const weave = parsed as Omit<MemoryWeaveResult, "source">;

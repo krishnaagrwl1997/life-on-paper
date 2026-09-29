@@ -69,12 +69,21 @@ export function DemoWidget() {
     setError(null);
     setResult(null);
 
+    // Never leave a visitor staring at a spinner. The demo path is short and
+    // capped, and if it still overruns we fail with something human.
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 20_000);
+
     try {
       const response = await fetch("/api/memory-engine", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           action: "page",
+          // A deliberately cheap path: short prompt, small schema, capped
+          // output — so a visitor sees the editor work in a few seconds.
+          demo: true,
           memory: text,
           answers: [],
           emotions: [],
@@ -104,7 +113,9 @@ export function DemoWidget() {
       setStatus("done");
     } catch {
       setStatus("error");
-      setError("The editor couldn’t be reached just now. Try again in a moment.");
+      setError("The editor took too long just now. Try again in a moment.");
+    } finally {
+      window.clearTimeout(timeout);
     }
   };
 

@@ -25,6 +25,13 @@ export type MemoryEngineRequest = {
     name: string;
     kind: string;
   } | null;
+  /**
+   * The public landing-page demo. It asks for a much smaller result (a title,
+   * the edited lines, who was noticed, and a shelf label) with a short prompt,
+   * because a visitor watching a demo will not wait for the full editorial
+   * pass. The same no-invention guardrails still apply.
+   */
+  demo?: boolean;
 };
 
 export type MemoryQuestionResult = {

@@ -162,6 +162,17 @@ schema survive that filter, and `sort: "throughput"` avoids slow providers
 timing out (the client aborts at 24s and would otherwise silently fall back to
 a different model).
 
+**Reasoning tokens are the real latency.** DeepSeek's "flash" models reason by
+default, and those tokens dominate wall-clock time — a trivial cleanup spent
+~430 of its ~510 output tokens thinking, which is why the landing demo took
+~18s. The demo therefore takes a cheap path: `demo: true` in the request body
+selects `demoInstructions` + `demoSchema`, sets `reasoning: { enabled: false }`
+and caps `max_tokens`. That took the demo from ~18s to ~1.5–2s with the same
+`guardPageResult` guardrails still applied. The full editorial pass keeps
+`reasoning: { effort: "low" }`; on a long memory it can still exceed the 24s
+OpenRouter timeout and fall back to Gemini — so if a real DeepSeek pass matters,
+watch for `Memory engine openrouter attempt failed` in the logs.
+
 **The offline path is a first-class citizen.** `structureStoryDraft()` in
 `components/system/memory-interview.tsx` arranges the user's own words into a
 narrative (scene lead → sequence → reflective close) when no AI is available.
@@ -305,10 +316,16 @@ VERCEL_REPO_ID    = 1348203015
 
 **Gotchas that have actually bitten us:**
 
-- **`VERCEL_TOKEN` expires.** When deploys fail with
-  `The token provided via --token argument is not valid`, re-authenticate
-  (`vercel login`, device flow) and refresh the GitHub secret with
-  `gh secret set VERCEL_TOKEN -R krishnaagrwl1997/life-on-paper`.
+- **`VERCEL_TOKEN` should be a permanent project-scoped token, not the CLI
+  session token.** The `vercel login` token (`vca_…`) is short-lived and broke
+  two deploys in a single day. The repo now uses a project-scoped access token
+  (`vcp_…`, created in the Vercel dashboard) that can read and manage this
+  project's deployments but not the account or team — exactly what CI needs.
+  If a deploy fails with `The token provided via --token argument is not valid`
+  / `invalidToken: true`, create a new one and set it with
+  `gh secret set VERCEL_TOKEN -R krishnaagrwl1997/life-on-paper`. The API refuses
+  to mint access tokens programmatically (`Cannot create tokens for this app`),
+  so this needs the dashboard.
 - **`git push` may need a token.** The `origin` remote is HTTPS. Push with
   `gh auth git-credential` or an `x-access-token:<token>@github.com` URL. Pushing
   changes under `.github/workflows/` requires the `workflow` OAuth scope.
