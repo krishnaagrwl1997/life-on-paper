@@ -212,9 +212,19 @@ export default async function Home() {
       </main>
 
       <footer className="mx-auto max-w-5xl px-5 py-10 sm:px-8">
-        <p className="font-interface text-sm text-ink-muted">
-          Life on Paper — your life, in your own words, in your own language.
-        </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-interface text-sm text-ink-muted">
+            Life on Paper — your life, in your own words, in your own language.
+          </p>
+          <nav aria-label="Legal" className="flex flex-wrap gap-x-6 gap-y-2 font-interface text-sm text-ink-muted">
+            <Link className="underline underline-offset-4 hover:text-ink" href="/privacy">
+              Privacy
+            </Link>
+            <Link className="underline underline-offset-4 hover:text-ink" href="/terms">
+              Terms
+            </Link>
+          </nav>
+        </div>
       </footer>
     </div>
   );

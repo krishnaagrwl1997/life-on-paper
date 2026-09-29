@@ -179,3 +179,31 @@ test("knows a family word is a person", async () => {
   // And it must never be titled after the place:
   assert.match(guardrails, /return grounding\.person;/);
 });
+
+/**
+ * Launch readiness: the pages and crawler files a public app is expected to
+ * serve. A missing privacy policy is not just a polish gap — Google OAuth
+ * verification wants a policy URL, and people writing about their families
+ * deserve to know where their words go.
+ */
+test("serves the legal pages and crawler files", async () => {
+  for (const path of ["/privacy", "/terms"]) {
+    const response = await render(path);
+    assert.equal(response.status, 200, `${path} should render`);
+    const html = await response.text();
+    assert.match(html, /Life on Paper/);
+  }
+
+  const privacy = await render("/privacy");
+  assert.match(await privacy.text(), /your writing is yours/i);
+
+  for (const path of ["/robots.txt", "/sitemap.xml"]) {
+    const response = await render(path);
+    assert.equal(response.status, 200, `${path} should be served`);
+  }
+
+  const health = await render("/api/health");
+  assert.equal(health.status, 200);
+  const body = await health.json();
+  assert.equal(body.ok, true);
+});

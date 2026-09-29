@@ -8,7 +8,7 @@ import {
   type MemoryWeaveResult,
 } from "@/lib/ai/memory-engine";
 import { guardPageResult, guardQuestionResult, tidyEditorialText } from "@/lib/ai/editorial-guardrails";
-import { clientKey, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { clientKey, dailyCap, dailyCapResponse, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -25,6 +25,15 @@ const MAX_ANSWER_LENGTH = 4_000;
  */
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = Number(process.env.MEMORY_ENGINE_RATE_LIMIT) || 60;
+
+/**
+ * A hard per-instance ceiling for the day, on top of the per-IP window. The AI
+ * key carries a finite credit limit, so an unauthenticated endpoint needs a
+ * circuit breaker as well as a rate limit: this bounds the worst case instead
+ * of letting a determined caller (or a bad day) drain the key. Raise it with
+ * MEMORY_ENGINE_DAILY_MAX.
+ */
+const DAILY_MAX = Number(process.env.MEMORY_ENGINE_DAILY_MAX) || 2000;
 
 const editorInstructions = `You are the private documentary editor for Life on Paper, an AI memoir app.
 
@@ -432,6 +441,15 @@ export async function POST(request: Request) {
     return NextResponse.json(rateLimitResponse(verdict), {
       status: 429,
       headers: { "Retry-After": String(verdict.retryAfter) },
+    });
+  }
+
+  // Circuit breaker: bound the day's spend even if the per-IP limit is evaded.
+  const daily = dailyCap("memory-engine", DAILY_MAX);
+  if (!daily.ok) {
+    return NextResponse.json(dailyCapResponse(daily), {
+      status: 429,
+      headers: { "Retry-After": String(daily.retryAfter) },
     });
   }
 

@@ -77,3 +77,50 @@ export function rateLimitResponse(result: RateLimitResult) {
     retryAfter: result.retryAfter,
   };
 }
+
+/**
+ * A process-wide daily ceiling, on top of the per-IP window.
+ *
+ * The per-IP limiter above is per-instance, so on serverless it is a weak bound
+ * on total spend: many instances each keep their own counters, and a caller can
+ * spread across IPs. The AI endpoint is unauthenticated and every call costs
+ * real money against a key with a hard credit limit, so this adds an absolute
+ * ceiling per instance per day — a circuit breaker, so the worst case is
+ * bounded rather than open-ended.
+ *
+ * Known limitation: still per-instance, so the true ceiling is
+ * (limit x live instances). A shared store (Upstash Redis, Cloudflare KV, or a
+ * Supabase table) is the real fix; this is the honest cheap one.
+ */
+const dailyCounters = new Map<string, { day: string; count: number }>();
+
+function secondsUntilUtcMidnight() {
+  const now = new Date();
+  const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  return Math.max(1, Math.ceil((midnight - now.getTime()) / 1000));
+}
+
+export function dailyCap(scope: string, limit: number): RateLimitResult {
+  const day = new Date().toISOString().slice(0, 10);
+  const retryAfter = secondsUntilUtcMidnight();
+  const entry = dailyCounters.get(scope);
+
+  if (!entry || entry.day !== day) {
+    dailyCounters.set(scope, { day, count: 1 });
+    return { ok: true, limit, remaining: Math.max(0, limit - 1), retryAfter };
+  }
+
+  entry.count += 1;
+  if (entry.count > limit) {
+    return { ok: false, limit, remaining: 0, retryAfter };
+  }
+  return { ok: true, limit, remaining: Math.max(0, limit - entry.count), retryAfter };
+}
+
+export function dailyCapResponse(result: RateLimitResult) {
+  return {
+    error: "DAILY_LIMIT_REACHED" as const,
+    message: "The editor has had a very busy day. Please try again tomorrow.",
+    retryAfter: result.retryAfter,
+  };
+}
