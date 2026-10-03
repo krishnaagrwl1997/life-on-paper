@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Life on Paper — project map</title>
+<style>
+  :root{
+    --ivory:#f7f1e7; --paper:#fffdf9; --raisd:#fbf7f0; --ink:#2b2620;
+    --muted:#6d6459; --rule:rgba(43,38,32,.15); --action:#c1592b; --action-deep:#a94721;
+    --ok:#2f7d4f; --okbg:#e8f4ec; --warn:#8a5a12; --warnbg:#fdf3e0;
+    --stop:#9b2c2c; --stopbg:#fbeaea; --lock:#2f5d7d; --lockbg:#e7f0f6;
+    --shadow:0 8px 20px rgba(63,48,32,.08), 0 1px 2px rgba(63,48,32,.07);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ivory); color:var(--ink);
+    font:15px/1.6 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:40px 22px 90px}
+  h1{font-family:ui-serif,Georgia,"Times New Roman",serif; font-size:34px; line-height:1.15; margin:0 0 6px; letter-spacing:-.02em}
+  h2{font-family:ui-serif,Georgia,serif; font-size:22px; margin:44px 0 4px; letter-spacing:-.01em}
+  h3{font-size:13px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin:26px 0 10px}
+  p{margin:6px 0}
+  .sub{color:var(--muted); margin:0 0 18px}
+  a{color:var(--action-deep)}
+  code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace; background:var(--raisd); border:1px solid var(--rule); border-radius:5px; padding:1px 5px}
+
+  .bar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:16px 0 8px}
+  .pill{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12.5px; font-weight:600; border:1px solid transparent; white-space:nowrap}
+  .ok{background:var(--okbg); color:var(--ok); border-color:#bfe0cb}
+  .warn{background:var(--warnbg); color:var(--warn); border-color:#f0d9a8}
+  .stop{background:var(--stopbg); color:var(--stop); border-color:#eec4c4}
+  .lock{background:var(--lockbg); color:var(--lock); border-color:#c3d9e7}
+  .doc{background:#efe9df; color:var(--muted); border-color:var(--rule)}
+  .dot{width:8px; height:8px; border-radius:50%; background:currentColor; display:inline-block}
+
+  .panel{background:var(--paper); border:1px solid var(--rule); border-radius:14px; padding:18px 20px; box-shadow:var(--shadow); margin:18px 0}
+  .panel.alert{border-left:4px solid var(--stop)}
+  .panel h4{margin:0 0 8px; font-size:16px}
+  ul{margin:8px 0 0; padding-left:20px}
+  li{margin:5px 0}
+
+  table{width:100%; border-collapse:collapse; background:var(--paper); border:1px solid var(--rule); border-radius:12px; overflow:hidden; box-shadow:var(--shadow)}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--rule); font-size:14px; vertical-align:top}
+  th{background:var(--raisd); font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted)}
+  tr:last-child td{border-bottom:0}
+
+  /* ---- flow chains: the connectors ---- */
+  .flow{background:var(--paper); border:1px solid var(--rule); border-radius:14px; padding:14px 16px; margin:12px 0; box-shadow:var(--shadow)}
+  .flow > .name{font-weight:700; font-size:14.5px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .flow > .note{color:var(--muted); font-size:13px; margin-top:2px}
+  .chain{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:11px}
+  .node{
+    display:inline-flex; align-items:center; gap:7px; padding:6px 11px; border-radius:9px;
+    background:var(--raisd); border:1px solid var(--rule); font-size:13px; white-space:nowrap;
+  }
+  .node b{font-weight:650}
+  .node small{color:var(--muted); font-size:11.5px}
+  .node.ext{background:#eef4f8; border-color:#cfe0ec}
+  .node.data{background:#f1efe9; border-color:#ded8cd}
+  .node.warnb{background:var(--warnbg); border-color:#f0d9a8}
+  .node.stopb{background:var(--stopbg); border-color:#eec4c4}
+  .arrow{color:#b3a99b; font-size:15px; padding:0 1px}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; margin-top:10px}
+  .card{background:var(--paper); border:1px solid var(--rule); border-radius:13px; padding:14px 16px; box-shadow:var(--shadow)}
+  .card .h{display:flex; justify-content:space-between; align-items:flex-start; gap:10px}
+  .card .h strong{font-size:14.5px}
+  .card path{font-size:13px; color:var(--muted)}
+  .card .why{font-size:13px; color:var(--muted); margin-top:6px}
+  .muted{color:var(--muted)}
+  .legend{display:flex; flex-wrap:wrap; gap:14px; margin:10px 0 0; font-size:13px; color:var(--muted)}
+  footer{margin-top:50px; color:var(--muted); font-size:13px; border-top:1px solid var(--rule); padding-top:16px}
+  @media (prefers-color-scheme:dark){ body{background:#17140f; color:#f0e9dd} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Life on Paper — project map</h1>
+  <p class="sub">Every part, its live status, and how the pieces connect. Verified <b>3 October 2026, 11:33 UTC</b>.</p>
+
+  <div class="bar">
+    <span class="pill ok"><span class="dot"></span>lifeonpaper.app 200</span>
+    <span class="pill ok"><span class="dot"></span>AI: openrouter / deepseek-v4-flash</span>
+    <span class="pill ok"><span class="dot"></span>Supabase connected</span>
+    <span class="pill lock"><span class="dot"></span>user_graph hole closed</span>
+    <span class="pill warn"><span class="dot"></span>3 things need you</span>
+  </div>
+
+  <div class="panel alert">
+    <h4>Needs action before launch</h4>
+    <ul>
+      <li><b class="stop">AI key expires 17 Oct</b> and is capped at $5. When it dies the site stays up but <b>AI silently stops</b> and the app falls back to the offline editor. OpenRouter → Keys → remove the expiry, raise the cap.</li>
+      <li><b>Google OAuth consent screen</b> — if still in Testing: 100-user limit, an unverified-app warning, 7-day sessions. Add <code>https://lifeonpaper.app/privacy</code> and publish.</li>
+      <li><b>Email signups</b> use Supabase's default SMTP (rate-limited, not for production). Add custom SMTP, or offer Google only.</li>
+      <li><b>No error monitoring</b> and <b>no analytics</b> — you would be blind on launch day. Point a monitor at <code>/api/health</code>.</li>
+      <li><b>Legal pages are drafted, not reviewed.</b> Read them; ideally have someone glance at them.</li>
+    </ul>
+  </div>
+
+  <h2>The connectors</h2>
+  <p class="sub">How a request actually travels. <span class="node ext" style="padding:1px 7px">blue</span> = external service, <span class="node data" style="padding:1px 7px">grey</span> = stored data.</p>
+
+  <div class="flow">
+    <div class="name">1 · First visit — the marketing demo <span class="pill ok">live · 1.8s</span></div>
+    <div class="note">The conversion path. Deliberately cheap: short prompt, small schema, reasoning off.</div>
+    <div class="chain">
+      <span class="node">Browser</span><span class="arrow">→</span>
+      <span class="node"><b>/</b> <small>landing</small></span><span class="arrow">→</span>
+      <span class="node">demo-widget</span><span class="arrow">→</span>
+      <span class="node"><b>POST</b> /api/memory-engine <small>demo:true</small></span><span class="arrow">→</span>
+      <span class="node">editorial-guardrails</span><span class="arrow">→</span>
+      <span class="node ext">OpenRouter</span><span class="arrow">→</span>
+      <span class="node ext">DeepSeek V4 Flash</span>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="name">2 · Daily writing — the product</div>
+    <div class="note">Same endpoint, full editorial pass. ~8s, within the 24s timeout, so the configured model serves it.</div>
+    <div class="chain">
+      <span class="node">Browser</span><span class="arrow">→</span>
+      <span class="node"><b>/today</b> <small>journal</small></span><span class="arrow">→</span>
+      <span class="node">today-experience</span><span class="arrow">→</span>
+      <span class="node">memory-interview</span><span class="arrow">→</span>
+      <span class="node"><b>POST</b> /api/memory-engine <small>page</small></span><span class="arrow">→</span>
+      <span class="node">rate-limit + daily breaker</span><span class="arrow">→</span>
+      <span class="node ext">OpenRouter → DeepSeek</span><span class="arrow">→</span>
+      <span class="node">page filed into an era / person</span>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="name">3 · Sign in with Google</div>
+    <div class="note">Optional by design — the journal is device-first, so this is only for cross-device sync.</div>
+    <div class="chain">
+      <span class="node">/today</span><span class="arrow">→</span>
+      <span class="node">“Sign in with Google”</span><span class="arrow">→</span>
+      <span class="node ext">Supabase Auth</span><span class="arrow">→</span>
+      <span class="node ext">Google OAuth</span><span class="arrow">→</span>
+      <span class="node">/auth/callback</span><span class="arrow">→</span>
+      <span class="node">session cookie</span><span class="arrow">→</span>
+      <span class="node">proxy.ts <small>middleware refreshes it</small></span>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="name">4 · Cloud sync <span class="pill lock">RLS enforced</span></div>
+    <div class="chain">
+      <span class="node">home-experience</span><span class="arrow">→</span>
+      <span class="node">lib/supabase/memories</span><span class="arrow">→</span>
+      <span class="node data">books · volumes · chapters · memories · pages</span>
+    </div>
+    <div class="chain">
+      <span class="node">home-experience</span><span class="arrow">→</span>
+      <span class="node">lib/supabase/graph</span><span class="arrow">→</span>
+      <span class="node data">user_graph RPCs <small>authenticated only</small></span>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="name">5 · Waitlist <span class="pill ok">insert-only</span></div>
+    <div class="chain">
+      <span class="node">/</span><span class="arrow">→</span>
+      <span class="node">waitlist-form</span><span class="arrow">→</span>
+      <span class="node"><b>POST</b> /api/waitlist <small>10 / 10 min</small></span><span class="arrow">→</span>
+      <span class="node data">waitlist <small>anon may INSERT, nobody may SELECT</small></span>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="name">6 · Reading</div>
+    <div class="chain">
+      <span class="node">/today → Story</span><span class="arrow">→</span>
+      <span class="node">library-experience</span><span class="arrow">→</span>
+      <span class="node">reader <small>contents · text size · lamplight</small></span>
+    </div>
+    <div class="chain">
+      <span class="node">/sample</span><span class="arrow">→</span>
+      <span class="node">sample-book <small>“As written” toggle, so you can judge it</small></span>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="name">7 · Deploy</div>
+    <div class="chain">
+      <span class="node">git push main</span><span class="arrow">→</span>
+      <span class="node">GitHub Actions <small>deploy.yml</small></span><span class="arrow">→</span>
+      <span class="node ext">Vercel REST API</span><span class="arrow">→</span>
+      <span class="node">build</span><span class="arrow">→</span>
+      <span class="node">alias lifeonpaper.app</span>
+    </div>
+    <div class="chain">
+      <span class="node">Actions cron <small>daily</small></span><span class="arrow">→</span>
+      <span class="node ext">Supabase REST</span><span class="arrow">→</span>
+      <span class="node">keeps the free tier from pausing</span>
+    </div>
+    <div class="chain">
+      <span class="node ext">Uptime monitor</span><span class="arrow">→</span>
+      <span class="node">GET /api/health</span>
+      <span class="pill stop" style="margin-left:6px">not set up yet</span>
+    </div>
+  </div>
+
+  <h2>Parts &amp; status</h2>
+  <div class="legend">
+    <span class="pill ok"><span class="dot"></span>live / verified</span>
+    <span class="pill lock"><span class="dot"></span>hardened</span>
+    <span class="pill warn"><span class="dot"></span>needs action</span>
+    <span class="pill stop"><span class="dot"></span>missing</span>
+    <span class="pill doc"><span class="dot"></span>docs</span>
+  </div>
+
+  <h3>Public surfaces</h3>
+  <div class="grid">
+    <div class="card"><div class="h"><strong><code>/</code> landing + live demo</strong><span class="pill ok">200</span></div><p class="why">Highlights, the real editor working on a visitor's words, waitlist, sample link. Demo was 18s, now 1.8s.</p></div>
+    <div class="card"><div class="h"><strong><code>/sample</code> sample book</strong><span class="pill ok">200</span></div><p class="why">A finished book with an “As written” toggle — lets someone judge the output before signing up.</p></div>
+    <div class="card"><div class="h"><strong><code>/today</code> the journal</strong><span class="pill ok">200</span></div><p class="why">The product. Device-first, works signed-out. First-run no longer flashes the composer.</p></div>
+    <div class="card"><div class="h"><strong><code>/privacy</code> · <code>/terms</code></strong><span class="pill warn">review</span></div><p class="why">Written to match the implementation. Drafted by an engineer, not a lawyer — read them.</p></div>
+    <div class="card"><div class="h"><strong><code>/robots.txt</code> · <code>/sitemap.xml</code> · <code>/icon.svg</code></strong><span class="pill ok">200</span></div><p class="why">Crawler files and the favicon (there was none — <code>/favicon.ico</code> was 404).</p></div>
+  </div>
+
+  <h3>API routes</h3>
+  <table>
+    <tr><th>Route</th><th>Status</th><th>Notes</th></tr>
+    <tr><td><code>POST /api/memory-engine</code></td><td><span class="pill ok">live</span></td><td>The AI editor: <b>question</b>, <b>page</b>, <b>weave</b>, plus a cheap <b>demo</b> path. Unauthenticated → per-IP limit (60/10min) <i>and</i> a daily circuit breaker.</td></tr>
+    <tr><td><code>POST /api/waitlist</code></td><td><span class="pill ok">live</span></td><td>Validated, rate-limited (10/10min), insert-only. Duplicates return success without leaking.</td></tr>
+    <tr><td><code>GET /api/health</code></td><td><span class="pill ok">live</span></td><td>Booleans only, never key material. Point a monitor here.</td></tr>
+    <tr><td><code>GET /auth/callback</code></td><td><span class="pill warn">untested</span></td><td>OAuth code exchange. Needs a real Google sign-in on a phone — the one path nobody has exercised.</td></tr>
+  </table>
+
+  <h3>Product components <span class="muted">(components/system)</span></h3>
+  <div class="grid">
+    <div class="card"><div class="h"><strong>today-experience</strong><span class="pill ok">live</span></div><p class="why">The writing surface. Fixed: composer no longer renders under the onboarding overlay; all 8 sub-44px tap targets raised.</p></div>
+    <div class="card"><div class="h"><strong>memory-interview</strong><span class="pill lock">hardened</span></div><p class="why">Follow-ups, page shaping, narrative structuring when there is no AI. Title/person guards live here.</p></div>
+    <div class="card"><div class="h"><strong>library-experience</strong><span class="pill ok">live</span></div><p class="why">Shelf, contents, reader, search, Book Studio. Reader has contents, type size, spacing, lamplight.</p></div>
+    <div class="card"><div class="h"><strong>onboarding-experience</strong><span class="pill ok">fixed</span></div><p class="why">Four panels. Now skippable (“I’ll decide later”) and its language buttons have clean accessible names.</p></div>
+    <div class="card"><div class="h"><strong>people · weaves · keepsakes</strong><span class="pill ok">live</span></div><p class="why">The cast of your life, weekly woven chapters, and voice keepsakes.</p></div>
+    <div class="card"><div class="h"><strong>profile · account-popover · nav-shell</strong><span class="pill ok">live</span></div><p class="why">Account, privacy panel, sign-out, and the four-door navigation.</p></div>
+  </div>
+
+  <h3>Marketing components</h3>
+  <div class="grid">
+    <div class="card"><div class="h"><strong>demo-widget</strong><span class="pill ok">fixed</span></div><p class="why">Calls the real endpoint with <code>demo:true</code>. 18s → 1.8s; now also fails gracefully after 20s instead of spinning.</p></div>
+    <div class="card"><div class="h"><strong>waitlist-form</strong><span class="pill ok">live</span></div><p class="why">One field, no confirmation step. Duplicate signups read as success.</p></div>
+    <div class="card"><div class="h"><strong>sample-book</strong><span class="pill ok">live</span></div><p class="why">The proof. “Nothing in the story is invented from anything else.”</p></div>
+  </div>
+
+  <h3>Library code <span class="muted">(lib)</span></h3>
+  <table>
+    <tr><th>Module</th><th>Status</th><th>Notes</th></tr>
+    <tr><td><code>ai/editorial-guardrails</code></td><td><span class="pill lock">hardened</span></td><td>Grounding, fallbacks, output validation. Enforces <b>never invent</b>. Fixed: a lowercase common noun could become a person (“Mysore with chain”); family words (Amma) were invisible.</td></tr>
+    <tr><td><code>ai/memory-engine</code></td><td><span class="pill ok">live</span></td><td>Request/result types, editorial layout ids, the <code>demo</code> flag.</td></tr>
+    <tr><td><code>supabase/*</code></td><td><span class="pill ok">live</span></td><td>client · server · proxy · config · account · memories · graph.</td></tr>
+    <tr><td><code>rate-limit</code></td><td><span class="pill warn">per-instance</span></td><td>Fixed-window limiter plus a daily circuit breaker. Still per-instance, so the real ceiling is limit × live instances; a shared store is the upgrade.</td></tr>
+  </table>
+
+  <h3>Data <span class="muted">(Supabase · kikijstmgkvmbrvpzqdz · ap-southeast-2 · free tier)</span></h3>
+  <table>
+    <tr><th>Table</th><th>Status</th><th>Notes</th></tr>
+    <tr><td><code>profiles</code> · <code>books</code> · <code>volumes</code> · <code>chapters</code></td><td><span class="pill lock">RLS</span></td><td>Owner-scoped policies; readers see only what is shared.</td></tr>
+    <tr><td><code>memories</code> · <code>memory_emotions</code> · <code>media_assets</code> · <code>pages</code></td><td><span class="pill lock">RLS</span></td><td>Owner-only. <span class="muted">(These two have no <code>id</code> column — a 400 on <code>?select=id</code> is expected, not a fault.)</span></td></tr>
+    <tr><td><code>book_access_requests</code></td><td><span class="pill lock">RLS</span></td><td>Request-only sharing flow.</td></tr>
+    <tr><td><code>user_graph</code></td><td><span class="pill lock">fixed</span></td><td><b>Was</b> a hole: <code>SECURITY DEFINER</code> + an owner-id parameter + granted to <code>anon</code> meant anyone with the public key could read or overwrite any user's graph. Now RLS + owner-only policies + <code>SECURITY INVOKER</code>, <code>anon</code> revoked. <b>Verified: anon → 401.</b></td></tr>
+    <tr><td><code>waitlist</code></td><td><span class="pill ok">insert-only</span></td><td>RLS on, exactly one INSERT policy for <code>anon</code>, and <b>no</b> select/update/delete policy — so nobody can read the list even with the key. Verified: anon read → <code>[]</code>.</td></tr>
+  </table>
+  <p class="muted" style="margin-top:10px">Auth: Google ✅ and email ✅ enabled; <code>mailer_autoconfirm: false</code> (email confirmation required — see the SMTP caveat). 7 users, 1 saved graph.</p>
+
+  <h3>Infrastructure</h3>
+  <table>
+    <tr><th>Piece</th><th>Status</th><th>Notes</th></tr>
+    <tr><td>Vercel project + domain</td><td><span class="pill ok">live</span></td><td><code>life-on-paper</code> · aliased to lifeonpaper.app.</td></tr>
+    <tr><td>GitHub Actions — deploy</td><td><span class="pill ok">live</span></td><td>Push to <code>main</code> → Vercel REST API → build → alias. Now uses a <b>permanent project-scoped token</b> (the CLI session token expired twice in one day).</td></tr>
+    <tr><td>GitHub Actions — keep-awake</td><td><span class="pill ok">live</span></td><td>Daily query so the Supabase free tier does not pause (a paused project silently breaks sign-in).</td></tr>
+    <tr><td>OpenRouter key</td><td><span class="pill stop">expires 17 Oct</span></td><td>$5 cap, ~$4.98 left. <b>The launch risk.</b></td></tr>
+    <tr><td>Google OAuth consent</td><td><span class="pill warn">verify</span></td><td>If still Testing: 100 users, unverified warning, 7-day sessions.</td></tr>
+    <tr><td>Supabase SMTP</td><td><span class="pill warn">default</span></td><td>Rate-limited, not for production. Affects email signups only.</td></tr>
+    <tr><td>Error monitoring</td><td><span class="pill stop">none</span></td><td>No Sentry, no equivalent. You would not see errors on launch day.</td></tr>
+    <tr><td>Analytics</td><td><span class="pill stop">none</span></td><td>No funnel visibility (landing → signup → first entry).</td></tr>
+    <tr><td>Uptime monitor</td><td><span class="pill stop">none</span></td><td><code>/api/health</code> exists and is ready to be polled.</td></tr>
+    <tr><td>Automated tests</td><td><span class="pill ok">10 passing</span></td><td>Routes, guardrails, waitlist insert-only, the title/person regressions, legal pages.</td></tr>
+  </table>
+
+  <h3>Docs</h3>
+  <div class="grid">
+    <div class="card"><div class="h"><strong>AGENTS.md</strong><span class="pill doc">guide</span></div><p class="why">For whoever works on this next: conventions, the editorial rules, Supabase security rules, deploy gotchas, the reasoning-token lesson.</p></div>
+    <div class="card"><div class="h"><strong>LAUNCH.md</strong><span class="pill doc">runbook</span></div><p class="why">Blockers with exact steps, a verified smoke test, the hourly loop, and an incident playbook.</p></div>
+    <div class="card"><div class="h"><strong>LAUNCH-COPY.md</strong><span class="pill doc">copy</span></div><p class="why">Announcement copy per channel, voice rules, and what not to say.</p></div>
+    <div class="card"><div class="h"><strong>product-brief · design-map-* · growth-strategy · implementation-roadmap</strong><span class="pill doc">vision</span></div><p class="why">The canonical “what and why”, the design history, and the plan.</p></div>
+  </div>
+
+  <h2>What degrades gracefully</h2>
+  <div class="panel">
+    <ul>
+      <li><b>AI dies</b> → the offline editor (<code>structureStoryDraft</code>) still shapes a page from the user's own words. Quality drops; the product works.</li>
+      <li><b>Supabase pauses</b> → the journal keeps working on the device. Only sign-in and cross-device sync stop.</li>
+      <li><b>Google sign-in blocked</b> → people can still write without an account. It is device-first by design.</li>
+      <li><b>A bad deploy</b> → Vercel can roll back to the last good one in seconds.</li>
+    </ul>
+    <p class="muted" style="margin-top:10px">So a bad hour is a bad hour, not a catastrophe. The one thing that fails <i>silently</i> is the AI key — the site looks fine and quietly stops being itself.</p>
+  </div>
+
+  <footer>
+    Generated from a live check of lifeonpaper.app and the Supabase project on 3 Oct 2026, 11:33 UTC.
+    Kept out of <code>public/</code> deliberately — this maps internal architecture and should not be served publicly.
+  </footer>
+</div>
+</body>
+</html>
