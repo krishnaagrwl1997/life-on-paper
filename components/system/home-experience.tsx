@@ -42,7 +42,11 @@ const starterQuestions = [
 type ActiveView = Destination | "Add Memory";
 
 export function HomeExperience({ initialAccount }: { initialAccount: AccountSummary | null }) {
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // null = "we do not know yet". The answer lives in localStorage, which the
+  // server cannot read, so starting at `false` rendered the composer first and
+  // then covered it with onboarding once JS hydrated — a glitch that also let
+  // someone start typing into a field that was about to disappear.
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const [active, setActive] = useState<ActiveView>("Today");
   const [memorySeed, setMemorySeed] = useState("");
   const [memoryMode, setMemoryMode] = useState<CaptureMode>("Write");
@@ -106,6 +110,16 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
 
   useEffect(() => {
     const restore = window.setTimeout(() => {
+      // Decide the first screen first: everything below is heavier (refining
+      // stored pages, cloud sync) and must not delay the answer.
+      try {
+        const previewOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
+        setShowOnboarding(
+          previewOnboarding || window.localStorage.getItem("life-in-books-onboarding-complete") !== "yes",
+        );
+      } catch {
+        setShowOnboarding(false);
+      }
       try {
         const contentResetKey = "life-on-paper-clean-start-v1";
         if (window.localStorage.getItem(contentResetKey) !== "complete") {
@@ -113,9 +127,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           window.localStorage.removeItem("life-in-books-studio");
           window.localStorage.setItem(contentResetKey, "complete");
         }
-        const previewOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
         setStarterQuestionIndex(Math.floor(Math.random() * starterQuestions.length));
-        setShowOnboarding(previewOnboarding || window.localStorage.getItem("life-in-books-onboarding-complete") !== "yes");
         const storedBookTitle = window.localStorage.getItem("life-in-books-book-title") || "Summer of Firsts";
         setBookTitle(storedBookTitle);
         const stored = window.localStorage.getItem("life-in-books-pages");
@@ -497,6 +509,19 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     return () => window.clearTimeout(adopt);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberate one-shot on mount
   }, []);
+
+  // Until we know whether this person has seen onboarding, show a quiet boot
+  // screen rather than the composer. Rendering the composer and then covering
+  // it looked like a glitch, and left the textarea live underneath the overlay.
+  if (showOnboarding === null) {
+    return (
+      <main className="home-app journal-boot">
+        <p className="journal-boot__mark" role="status" aria-live="polite">
+          Life on Paper
+        </p>
+      </main>
+    );
+  }
 
   if (showOnboarding) {
     return (

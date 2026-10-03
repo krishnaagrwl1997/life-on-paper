@@ -283,7 +283,7 @@ type CallOptions = {
    * its ~510 output tokens thinking. The demo turns it off; the editorial pass
    * keeps it low so the answer is careful without blowing the timeout.
    */
-  reasoning?: { enabled?: boolean; effort?: "low" | "medium" | "high" };
+  reasoning?: { enabled?: boolean; effort?: "low" | "medium" | "high"; max_tokens?: number };
 };
 
 async function callGemini(input: string, schema: EngineSchema, opts: CallOptions): Promise<ProviderResult> {
@@ -503,7 +503,11 @@ export async function POST(request: Request) {
   const callOptions: CallOptions = {
     instructions: isDemo ? demoInstructions : editorInstructions,
     maxTokens: isDemo ? 400 : undefined,
-    reasoning: isDemo ? { enabled: false } : { effort: "low" },
+    // The demo needs to feel instant, so it does not think at all. The
+    // editorial pass gives reasoning a bounded budget: unbounded, it routinely
+    // ran past the 24s provider timeout and the request silently fell back to
+    // another model. A cap keeps the configured model actually serving.
+    reasoning: isDemo ? { enabled: false } : { max_tokens: 300 },
   };
   const configuredProvider = process.env.AI_MEMORY_PROVIDER?.toLowerCase();
   const providers: AiProvider[] = configuredProvider === "openai"

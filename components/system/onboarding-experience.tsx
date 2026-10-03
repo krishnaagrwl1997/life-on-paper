@@ -160,12 +160,27 @@ export function OnboardingExperience({
                 { value: "hindi", label: "Hindi" },
                 { value: "hinglish", label: "Hinglish", note: "a natural mix" },
               ].map((option) => (
-                <button key={option.value} type="button" className="ob-lang" onClick={() => chooseLanguage(option.value)}>
+                <button
+                  key={option.value}
+                  type="button"
+                  className="ob-lang"
+                  // Without this the accessible name runs the label and the note
+                  // together ("Hinglisha natural mix").
+                  aria-label={option.note ? `${option.label} — ${option.note}` : option.label}
+                  onClick={() => chooseLanguage(option.value)}
+                >
                   <span>{option.label}</span>
                   {option.note ? <small>{option.note}</small> : null}
                 </button>
               ))}
             </div>
+
+            {/* Being made to pick a language before you can write is a poor
+                welcome, especially for someone who writes in a mix. Skipping
+                leaves the choice unmade and lets the editor follow the words. */}
+            <button type="button" className="ob-later" onClick={() => setStep("title")}>
+              I&rsquo;ll decide later
+            </button>
 
             {!account ? (
               <button type="button" className="ob-google-button" onClick={onGoogleSignIn} disabled={authPending}>

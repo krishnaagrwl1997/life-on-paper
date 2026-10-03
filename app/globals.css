@@ -16302,6 +16302,43 @@ input:focus-visible {
   color: var(--ink-muted);
 }
 
+/* A quiet escape from the language question: being made to choose before you
+   can write is a poor welcome, especially for someone who writes in a mix. */
+.ob-later {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  margin: 1.1rem auto 0;
+  padding: 0 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.ob-later:hover {
+  color: var(--ink);
+}
+
+/* Shown for the moment before we know whether this person has seen onboarding.
+   A quiet wordmark beats rendering the composer and then covering it. */
+.journal-boot {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+}
+
+.journal-boot__mark {
+  margin: 0;
+  color: var(--ink-muted);
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  opacity: 0.7;
+}
+
 .ob-google {
   margin: 1.4rem 0 0;
   border: 0;
@@ -16791,4 +16828,40 @@ input:focus-visible {
   font-size: 0.8rem;
   line-height: 1.55;
   color: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Launch touch targets.
+   A phone review of the journal surface found several controls under the 44px
+   minimum (one was 226x15). Grow the hit area, not the artwork — icons and
+   labels keep their size, so only the tap region changes.
+   --------------------------------------------------------------------------- */
+.today-composer__tools button {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.today-composer__action {
+  min-height: 2.75rem;
+}
+
+.today-dictation__langs button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0 0.7rem;
+}
+
+.today-beginning__craft {
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0 0.15rem;
+}
+
+.today-signin {
+  min-height: 2.75rem;
+}
+
+.today-avatar {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
 }
