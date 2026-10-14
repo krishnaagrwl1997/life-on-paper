@@ -214,8 +214,26 @@ export function fallbackQuestion(memory: string, answers: string[], emotions: st
   return { question: questions[0], suggestions: questions.slice(1, 4) };
 }
 
+// \p{M} matters: Devanagari vowel signs (ा ी े …) are marks, not letters.
+// Without it every Hindi word split into single letters, was dropped as too
+// short, and Devanagari text skipped the coverage checks entirely.
 function contentTokens(value: string) {
-  return new Set((value.toLocaleLowerCase().match(/[\p{L}\p{N}']+/gu) ?? []).filter((word) => word.length > 3 && !stopWords.has(word)));
+  return new Set((value.toLocaleLowerCase().match(/[\p{L}\p{M}\p{N}']+/gu) ?? []).filter((word) => word.length > 3 && !stopWords.has(word)));
+}
+
+/** Which script most of the letters are in. Hinglish typed in Roman is "latin". */
+function dominantScript(value: string): "latin" | "devanagari" | "other" {
+  const latin = (value.match(/\p{Script=Latin}/gu) ?? []).length;
+  const devanagari = (value.match(/\p{Script=Devanagari}/gu) ?? []).length;
+  if (!latin && !devanagari) return "other";
+  return latin >= devanagari ? "latin" : "devanagari";
+}
+
+/** True when the edit moved the writing into another script — never allowed. */
+function changedScript(draft: string, source: string) {
+  const from = dominantScript(source);
+  const to = dominantScript(draft);
+  return from !== "other" && to !== "other" && from !== to;
 }
 
 function anchoredFallbackQuestions(source: string, position: "first" | "next") {
@@ -446,6 +464,7 @@ function guardedPlacement(result: Omit<MemoryPageResult, "source">["placement"],
 }
 
 function lexicalCoverage(draft: string, source: string) {
+  if (changedScript(draft, source)) return 0;
   const sourceTokens = contentTokens(source);
   const draftTokens = contentTokens(draft);
   if (!sourceTokens.size || !draftTokens.size) return 1;
@@ -482,7 +501,9 @@ export function guardPageResult(
     ? tidyGeneratedText([memory, ...answers].map(conservativeClean).filter(Boolean).join("\n\n"))
     : proposedBookDraft;
   const grounding = groundMemory(memory, answers, emotions);
-  const title = isBadTitle(result.title, memory, answers) ? fallbackTitle(memory, answers) : compact(result.title);
+  const title = isBadTitle(result.title, memory, answers) || changedScript(result.title, original)
+    ? fallbackTitle(memory, answers)
+    : compact(result.title);
   const reflection = result.reflection.trim() && lexicalCoverage(result.reflection, original) >= 0.5
     ? tidyGeneratedText(result.reflection)
     : "";

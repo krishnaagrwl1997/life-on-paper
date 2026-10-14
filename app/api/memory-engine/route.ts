@@ -63,6 +63,7 @@ Your work must feel like an attentive human editor helping someone remember—no
 Non-negotiable editorial rules:
 - Preserve the user's facts, meaning, emotional temperature, humour, rhythm, and word choices.
 - Keep the user's language and register. English stays English, Hindi stays Hindi, and Hinglish stays Hinglish. Never translate unless explicitly asked.
+- Keep the user's script exactly. Hindi or Hinglish typed in Roman letters stays in Roman letters; Devanagari stays Devanagari. Never transliterate. speechLanguagePreference only describes how speech was recognised — it is never a reason to change the language or the script.
 - For the finished page, lightly edit dictated speech: remove filler, accidental repetitions, false starts, and obvious grammar or transcription errors. Form clear sentences, but do not rewrite the person's life into your own prose.
 - Never invent a scene, quote, sensory detail, person, date, place, interpretation, or lesson.
 - Never imitate any named writer. Use an original, restrained, literary editorial voice.
@@ -540,11 +541,12 @@ export async function POST(request: Request) {
   const callOptions: CallOptions = {
     instructions: isDemo ? demoInstructions : editorInstructions,
     maxTokens: isDemo ? 400 : undefined,
-    // The demo needs to feel instant, so it does not think at all. The
-    // editorial pass gives reasoning a bounded budget: unbounded, it routinely
-    // ran past the 24s provider timeout and the request silently fell back to
-    // another model. A cap keeps the configured model actually serving.
-    reasoning: isDemo ? { enabled: false } : { max_tokens: 300 },
+    // No reasoning on any pass. Even capped at 300 reasoning tokens the
+    // editorial pass ran past the 24s provider timeout (~27–30s end to end in
+    // Oct 2026), so it fell back to another provider and the app's 26s client
+    // timeout dropped most AI upgrades. Without reasoning it answers in ~4–5s
+    // and the guardrails still hold the editorial rules.
+    reasoning: { enabled: false },
   };
   const configuredProvider = process.env.AI_MEMORY_PROVIDER?.toLowerCase();
   const providers: AiProvider[] = configuredProvider === "openai"
