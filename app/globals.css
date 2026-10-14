@@ -17377,3 +17377,18 @@ input:focus-visible {
     margin-bottom: 0.85rem;
   }
 }
+
+/* Reader on desktop: the fixed reading panel started 2.5rem down but was a
+   full viewport tall, so its page-turn bar sat below the screen. Fit it. */
+@media (min-width: 641px) {
+  .home-app.home-app--reading {
+    height: calc(100svh - 2.5rem);
+    min-height: 0;
+  }
+}
+
+/* The writer's closing line, at the end of the page. */
+.reader-page .reader-reflection {
+  font-style: italic;
+  color: var(--ink-muted);
+}

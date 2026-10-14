@@ -118,12 +118,20 @@ export function LibraryExperience({
   const selectedPageIsGoa = selectedPage
     ? /goa/i.test([selectedPage.title, selectedPage.excerpt, selectedPage.chapterTitle, selectedPage.volume, ...selectedPage.body].join(" "))
     : false;
+  // The page reads in order: body first. The closing reflection is the
+  // writer's own last line — show it at the end, and only when the body does
+  // not already say it (it used to sit above the body, so pages opened with
+  // their ending and then repeated it).
+  const normalizeLine = (value?: string) => (value ?? "").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   const readerParagraphs = selectedPage
-    ? [selectedPage.reflection, ...selectedPage.body].filter((paragraph, index, collection) => {
-        const normalized = paragraph?.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-        return Boolean(normalized) && collection.findIndex((candidate) => candidate?.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim() === normalized) === index;
+    ? selectedPage.body.filter((paragraph, index, collection) => {
+        const normalized = normalizeLine(paragraph);
+        return Boolean(normalized) && collection.findIndex((candidate) => normalizeLine(candidate) === normalized) === index;
       })
     : [];
+  const readerReflection = selectedPage?.reflection && !normalizeLine(readerParagraphs.join(" ")).includes(normalizeLine(selectedPage.reflection))
+    ? selectedPage.reflection
+    : "";
   const readerVolumes = libraryVolumes;
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
   const searchResults = activePages.filter((page) => {
@@ -551,7 +559,7 @@ export function LibraryExperience({
                 <div className="reader-type-controls" aria-label="Reading appearance">
                   <button type="button" aria-label="Open book contents" aria-expanded={readerContentsOpen} onClick={() => { setReaderContentsOpen((value) => !value); setReaderSettingsOpen(false); }}><ListBullets size={20} weight="bold" aria-hidden="true" /></button>
                   <button type="button" aria-label="Open reading settings" aria-expanded={readerSettingsOpen} onClick={() => { setReaderSettingsOpen((value) => !value); setReaderContentsOpen(false); }}><TextAa size={19} weight="bold" aria-hidden="true" /></button>
-                  <button type="button" aria-label="Toggle reading by lamplight" aria-pressed={lamplight} onClick={() => setLamplight((value) => !value)}><SunDim size={20} weight={lamplight ? "fill" : "regular"} aria-hidden="true" /></button>
+                  <button type="button" aria-label="Toggle reading by lamplight" title={lamplight ? "Back to daylight paper" : "Warm lamplight paper"} aria-pressed={lamplight} onClick={() => setLamplight((value) => !value)}><SunDim size={20} weight={lamplight ? "fill" : "regular"} aria-hidden="true" /></button>
                 </div>
               </motion.header> : null}
             </AnimatePresence>
@@ -632,8 +640,8 @@ export function LibraryExperience({
               </motion.aside> : null}
             </AnimatePresence>
             <aside className="reader-margin">
-              <p>{selectedPage.volume}</p><strong>{selectedPage.chapterTitle}</strong><span>{selectedPage.layout} layout</span>
-              <p className="reader-time">Page {selectedPageIndex + 1} of {orderedPages.length}<br />Scroll inside the paper to read</p>
+              <p>{selectedPage.volume}</p><strong>{selectedPage.chapterTitle}</strong>
+              <p className="reader-time">Page {selectedPageIndex + 1} of {orderedPages.length}</p>
             </aside>
             <button type="button" className="reader-edge reader-edge--previous" aria-label="Previous page" disabled={!canMovePrevious} onClick={() => movePage(-1)}><ArrowLeft size={20} aria-hidden="true" /></button>
             <article
@@ -669,6 +677,7 @@ export function LibraryExperience({
                 <h1>{selectedPage.title}</h1>
                 {selectedPage.photo ? <div className={selectedPage.photoTreatment === "original" ? "reader-photo" : "reader-photo reader-photo--painterly"}><Image src={selectedPage.photo} alt="Photograph attached to this memory" width={1600} height={1200} unoptimized sizes="620px" /></div> : null}
                 {readerParagraphs.map((paragraph, index) => <p key={`${selectedPage.id}-${index}`}>{paragraph}</p>)}
+                {readerReflection ? <p className="reader-reflection">{readerReflection}</p> : null}
                 {readerKeepsakes.length ? (
                   <div className="reader-keepsakes">
                     <p className="reader-keepsakes__label">The sound of this moment</p>
@@ -676,7 +685,7 @@ export function LibraryExperience({
                   </div>
                 ) : null}
               </div>
-              <footer><span>Life on Paper</span><span>04 · {String(orderedPages.findIndex((page) => page.id === selectedPage.id) + 1).padStart(2, "0")}</span></footer>
+              <footer><span>{bookTitle}</span><span>{selectedPageIndex + 1}</span></footer>
             </article>
             <button type="button" className="reader-edge reader-edge--next" aria-label="Next page" disabled={!canMoveNext} onClick={() => movePage(1)}><ArrowRight size={20} aria-hidden="true" /></button>
             <nav className={readerChrome ? "reader-controls reader-controls--floating" : "reader-controls reader-controls--floating reader-controls--hidden"} aria-label="Page controls">
@@ -929,9 +938,11 @@ function editDistance(a: string, b: string) {
 function formatVolumeLabel(volume: string, index: number) {
   const [, ...nameParts] = volume.split("·");
   const explicitName = nameParts.join("·").trim();
+  // Use the part's real name ("The Present", "Early Years") so the contents
+  // agree with the page header, instead of inventing "Opening pages".
   return {
     number: `Volume ${toRoman(index + 1)}`,
-    name: explicitName || (index === 0 ? "Opening pages" : `Part ${toRoman(index + 1)}`),
+    name: explicitName || volume.trim() || (index === 0 ? "Opening pages" : `Part ${toRoman(index + 1)}`),
   };
 }
 
