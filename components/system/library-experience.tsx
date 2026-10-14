@@ -54,6 +54,7 @@ export function LibraryExperience({
   initialPageId,
   onReadingChange,
   onViewChange,
+  authorName,
   onAddMemory,
   syncState = "device",
   onCommitPages,
@@ -66,6 +67,8 @@ export function LibraryExperience({
   onReadingChange?: (reading: boolean) => void;
   /** Reports the current view (and page, in the reader) so the app can keep the address in step. */
   onViewChange?: (view: LibraryView, pageId?: string) => void;
+  /** Shown on the cover — the signed-in writer's first name, never a placeholder. */
+  authorName?: string;
   onAddMemory?: () => void;
   syncState?: "device" | "syncing" | "synced" | "error";
   onCommitPages?: (pages: KeptPage[]) => Promise<void> | void;
@@ -94,7 +97,7 @@ export function LibraryExperience({
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const readerPageRef = useRef<HTMLElement | null>(null);
   const reduceMotion = useReducedMotion();
-  const todayFolio = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(new Date()).replaceAll("/", " · ");
+  const todayFolio = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" }).format(new Date());
   const activePages = pages.filter((page) => !removedPageIds.includes(page.id));
   const eraVolumes = groupEras(activePages);
   const readingPages = eraFilter ? activePages.filter((page) => eraKeyFor(page, eraVolumes) === eraFilter) : activePages;
@@ -273,17 +276,11 @@ export function LibraryExperience({
       <AnimatePresence mode="wait">
         {view === "shelf" ? (
           <motion.section key="shelf" className={activePages.length ? "library-shelf" : "library-shelf library-shelf--empty"} initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduceMotion ? 0 : -12 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
-            <div className="library-intro">
-              <p className="memory-eyebrow">Your story</p>
-              <h1>Your life has a place here.</h1>
-              <p>Open a book to read it, see its chapters, or add the next memory.</p>
-            </div>
-
             <div className="library-featured">
               <button type="button" className={`library-cover library-cover--${coverStyle}`} onClick={() => goToView("book")} aria-label={`Open Book One, ${bookTitle}`}>
                 <Image src="/assets/seaside-memory.png" alt="A quiet coast under a soft sky" fill unoptimized sizes="(max-width: 700px) 92vw, 36vw" priority />
                 <span>Book One</span>
-                <div><small>A memoir in progress</small><strong>{bookTitle}</strong><em>Krishna</em></div>
+                <div><small>A memoir in progress</small><strong>{bookTitle}</strong>{authorName ? <em>{authorName}</em> : null}</div>
               </button>
               <div className="library-book-copy">
                 <p className="section-label">Currently writing</p>

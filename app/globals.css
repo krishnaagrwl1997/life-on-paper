@@ -17273,3 +17273,107 @@ input:focus-visible {
 .today-guide:hover {
   color: var(--action-deep);
 }
+
+/* ---------------------------------------------------------------------------
+   Story and People get the same calm desktop layout as Today: no fixed-height
+   framed panel, no inner box, and no "spine" line drawn through the content.
+   The reader keeps its own book frame.
+   --------------------------------------------------------------------------- */
+@media (min-width: 641px) {
+  .home-app:not(.home-app--memory):not(.home-app--reading) {
+    width: 100%;
+    min-height: 100svh;
+    margin: 0 auto;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@media (min-width: 960px) {
+  .library-experience:not(.library-experience--reader) {
+    width: min(64rem, calc(100% - 4rem));
+    min-height: 0;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 8rem;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+/* The generic intro headline is gone, so the book sits right under the header. */
+.library-featured {
+  margin-top: 1.75rem;
+}
+
+/* Phones: a cover, not a full-screen photo — your pages come into view sooner. */
+@media (max-width: 640px) {
+  .library-featured {
+    margin-top: 1rem;
+  }
+
+  .library-cover {
+    max-width: 12.5rem;
+    aspect-ratio: 0.72;
+    margin-bottom: 1.25rem;
+  }
+
+  .library-cover strong {
+    max-width: none;
+    font-size: 1.55rem;
+  }
+}
+
+/* Phones: a small cover beside the title instead of a stacked poster plus a
+   second copy of the title; the generic summary and stats wait for the
+   contents view. */
+@media (max-width: 640px) {
+  .library-featured {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .library-cover {
+    max-width: none;
+    margin: 0;
+  }
+
+  .library-cover > span,
+  .library-cover small,
+  .library-cover em {
+    display: none;
+  }
+
+  .library-cover strong {
+    font-size: 0.95rem;
+    line-height: 1.15;
+  }
+
+  .library-book-copy h2 {
+    font-size: 1.6rem;
+    line-height: 1.1;
+  }
+
+  .library-book-copy > p:not(.section-label),
+  .library-book-copy dl {
+    display: none;
+  }
+
+  .library-book-actions {
+    gap: 0.5rem;
+  }
+}
+
+/* People: room above the heading on every screen size. */
+.people-page {
+  padding-top: clamp(1.75rem, 5vh, 3.25rem);
+}
+
+@media (max-width: 640px) {
+  .library-book-copy h2 {
+    margin-bottom: 0.85rem;
+  }
+}

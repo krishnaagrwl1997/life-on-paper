@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "@phosphor-icons/react";
 import { Destination, NavShell } from "@/components/system/nav-shell";
-import { CaptureMode, KeptPage, MemoryInterview, composeDailyEntry, refineKeptPageWriting, upgradeKeptPageWithAi } from "@/components/system/memory-interview";
+import { CaptureMode, KeptPage, MemoryInterview, composeDailyEntry, isUntouchedOfflineDraft, refineKeptPageWriting, upgradeKeptPageWithAi } from "@/components/system/memory-interview";
 import { LibraryExperience } from "@/components/system/library-experience";
 import { TodayExperience } from "@/components/system/today-experience";
 import { PeopleExperience } from "@/components/system/people-experience";
@@ -401,6 +401,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
 
   useHistoryLayer(addOpen, () => setAddOpen(false), "add");
 
+
   const focusTodayComposer = () => {
     if (active !== "Today") showToday();
     setComposeSignal((current) => current + 1);
@@ -627,6 +628,52 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
       });
   };
 
+  // One-time re-polish: pages saved while the AI pass was timing out kept
+  // their instant offline draft (and its clumsy title). Quietly polish them in
+  // the background — only pages still exactly as drafted, so nothing the
+  // writer edited is ever touched. One at a time, at most 25 a visit, and at
+  // most two tries per page.
+  const pagesRef = useRef(savedPages);
+  useEffect(() => {
+    pagesRef.current = savedPages;
+  }, [savedPages]);
+  const repolishStarted = useRef(false);
+  useEffect(() => {
+    if (!routeReady || repolishStarted.current || syncState === "syncing" || !savedPages.length) return;
+    repolishStarted.current = true;
+    const attemptsKey = "life-on-paper-repolish-attempts";
+    let attempts: Record<string, number> = {};
+    try { attempts = JSON.parse(window.localStorage.getItem(attemptsKey) ?? "{}") as Record<string, number>; } catch { attempts = {}; }
+    const queue = savedPages
+      .filter((page) => isUntouchedOfflineDraft(page) && (attempts[page.id] ?? 0) < 2)
+      .slice(0, 25)
+      .map((page) => page.id);
+    if (!queue.length) return;
+    let cancelled = false;
+    void (async () => {
+      let polished = 0;
+      for (const id of queue) {
+        if (cancelled) return;
+        const current = pagesRef.current.find((page) => page.id === id);
+        if (!current || !isUntouchedOfflineDraft(current)) continue;
+        attempts[id] = (attempts[id] ?? 0) + 1;
+        try { window.localStorage.setItem(attemptsKey, JSON.stringify(attempts)); } catch { /* best-effort */ }
+        const upgraded = await upgradeKeptPageWithAi(current);
+        const latest = pagesRef.current.find((page) => page.id === id);
+        // Re-check: the writer may have edited it while the editor was working.
+        if (upgraded && latest && isUntouchedOfflineDraft(latest)) {
+          patchDailyPage({ ...upgraded, id: latest.id, cloudId: latest.cloudId });
+          polished += 1;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 1500));
+      }
+      if (polished) track("repolish", { pages: polished });
+    })();
+    return () => { cancelled = true; };
+    // Runs once per visit; patchDailyPage is stable enough for this purpose.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeReady, syncState, savedPages.length]);
+
   // A kept sound: attach it to today's page when there is one, otherwise the
   // recording *is* the day's page (a wordless day is still a day), with one
   // factual contextual line rather than any invented writing.
@@ -736,6 +783,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           initialPageId={libraryPage}
           onReadingChange={setIsReading}
           onViewChange={(v, p) => setLibraryRoute({ v, p: v === "reader" ? p : undefined })}
+          authorName={account?.name?.split(/\s+/)[0]}
           onAddMemory={chooseCraftMemory}
           syncState={syncState}
           onCommitPages={commitLibraryPages}

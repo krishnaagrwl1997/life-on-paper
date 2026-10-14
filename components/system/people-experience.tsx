@@ -40,7 +40,8 @@ function arcSentence(label: string, arc: FeelingArc): string {
   if (arc.heavy > 0) {
     return `Your writing about ${label} has leaned heavy${arc.heavyDate ? `, most of all around ${arc.heavyDate}` : ""}.`;
   }
-  return `Your writing about ${label} has read warm.`;
+  if (arc.warm > 0) return `Your pages about ${label} have felt warm.`;
+  return `Your pages about ${label} have been about everyday things.`;
 }
 
 function CastCard({
@@ -97,7 +98,7 @@ export function PeopleExperience({
 
   if (!cast.length) {
     return (
-      <div className="mx-auto w-full max-w-2xl px-5 pt-8">
+      <div className="people-page mx-auto w-full max-w-2xl px-5 pt-8">
         <motion.section
           className="people-door"
           aria-label="People"
@@ -203,7 +204,7 @@ export function PeopleExperience({
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pt-8">
+    <div className="people-page mx-auto w-full max-w-2xl px-5 pt-8">
       <motion.header
         className="cast-heading"
         initial={{ opacity: 0, y: 8 }}

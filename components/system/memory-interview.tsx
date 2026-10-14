@@ -60,6 +60,8 @@ export type KeptPage = {
   writingVersion?: number;
   /** Set when a cloud save failed; the next sign-in sync re-sends this page. */
   syncPending?: boolean;
+  /** True once the AI editor has polished this page (vs. the instant offline draft). */
+  aiPolished?: boolean;
 };
 
 type Phase = "capture" | "interview" | "summary" | "placement" | "page";
@@ -2201,5 +2203,21 @@ export async function upgradeKeptPageWithAi(page: KeptPage): Promise<KeptPage | 
       });
     })(),
     writingVersion: 6,
+    aiPolished: true,
   };
+}
+
+/**
+ * True when a daily page is still exactly the instant offline draft — never
+ * polished by the AI and never edited by hand. Only these are safe to
+ * re-polish later: anything the writer changed is theirs and is left alone.
+ */
+export function isUntouchedOfflineDraft(page: KeptPage): boolean {
+  if (page.aiPolished || !page.id.startsWith("day-") || !page.originalText?.trim()) return false;
+  try {
+    const draft = composeDailyEntry(page.originalText);
+    return draft.title === page.title && JSON.stringify(draft.body) === JSON.stringify(page.body);
+  } catch {
+    return false;
+  }
 }

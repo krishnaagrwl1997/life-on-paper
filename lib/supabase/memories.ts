@@ -45,6 +45,7 @@ type PageMeta = Pick<
   | "writingStyle"
   | "artworkLevel"
   | "photoTreatment"
+  | "aiPolished"
 > & { localId?: string };
 
 function pageMeta(page: KeptPage): PageMeta {
@@ -59,6 +60,7 @@ function pageMeta(page: KeptPage): PageMeta {
     writingStyle: page.writingStyle,
     artworkLevel: page.artworkLevel,
     photoTreatment: page.photoTreatment,
+    aiPolished: page.aiPolished,
   };
 }
 
@@ -161,6 +163,7 @@ export async function loadCloudPages(client: SupabaseClient): Promise<KeptPage[]
     emotions: meta.emotions,
     speechLanguage: meta.speechLanguage,
     writingVersion: meta.writingVersion,
+    aiPolished: meta.aiPolished,
     };
   });
 }
@@ -414,6 +417,7 @@ function mergeWithDevice(cloudPages: KeptPage[], devicePages: KeptPage[]) {
       emotions: cloud.emotions ?? device.emotions,
       speechLanguage: cloud.speechLanguage ?? device.speechLanguage,
       writingVersion: cloud.writingVersion ?? device.writingVersion,
+      aiPolished: cloud.aiPolished ?? device.aiPolished,
     };
   });
 }
