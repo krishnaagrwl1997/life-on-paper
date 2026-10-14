@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, BookOpenText, Sparkle } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, BookOpenText, Sparkle } from "@phosphor-icons/react";
 import type { AccountSummary } from "@/lib/supabase/account";
 
 type Step = "intro" | "glimpse" | "language" | "title";
@@ -47,6 +47,15 @@ export function OnboardingExperience({
 
   return (
     <main className="onboarding-new">
+      {step === "language" || step === "title" ? (
+        <button
+          type="button"
+          onClick={() => setStep(step === "title" ? "language" : "glimpse")}
+          className="fixed left-4 top-4 z-10 inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[var(--rule)] bg-paper-raised px-4 font-interface text-sm text-ink-muted hover:text-ink"
+        >
+          <ArrowLeft size={16} weight="bold" aria-hidden="true" /> Back
+        </button>
+      ) : null}
       <AnimatePresence mode="wait">
         {step === "intro" ? (
           <motion.section

@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { HomeExperience } from "@/components/system/home-experience";
 import { accountFromUser, type AccountSummary } from "@/lib/supabase/account";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Today · Life on Paper",
+  robots: { index: false, follow: false },
+};
 
 /**
  * The app itself. Marketing owns `/`; the journal lives here.

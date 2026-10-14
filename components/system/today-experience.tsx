@@ -7,6 +7,7 @@ import {
   ImageSquare,
   Microphone,
 } from "@phosphor-icons/react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { AccountSummary } from "@/lib/supabase/account";
 import type { KeptPage } from "@/components/system/memory-interview";
@@ -20,6 +21,7 @@ import { formatDuration, keepsakeLine, listKeepsakes, type Keepsake } from "@/co
 import { Waveform } from "@phosphor-icons/react";
 import type { MonthlySummary } from "@/components/system/monthly";
 import { ProfileExperience } from "@/components/system/profile-experience";
+import { useHistoryLayer } from "@/lib/use-history-layer";
 
 const draftKey = "life-on-paper-today-draft";
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
@@ -112,6 +114,7 @@ export function TodayExperience({
     }
   });
   const [showProfile, setShowProfile] = useState(false);
+  useHistoryLayer(showProfile, () => setShowProfile(false), "profile");
   const [whisperMsg, setWhisperMsg] = useState<string | null>(null);
   const justSavedRef = useRef(false);
   const [showResources, setShowResources] = useState(false);
@@ -242,7 +245,7 @@ export function TodayExperience({
     <div className="mx-auto w-full max-w-2xl px-5 pt-6">
       <header className="today-header">
         <div>
-          <p className="today-wordmark">Life on Paper</p>
+          <Link href="/" className="today-wordmark block text-inherit no-underline" aria-label="Life on Paper — home">Life on Paper</Link>
           <small className="today-tagline">A few lines a day. A book of your life.</small>
         </div>
         <div className="today-header__actions">

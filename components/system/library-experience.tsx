@@ -53,6 +53,7 @@ export function LibraryExperience({
   initialView = "shelf",
   initialPageId,
   onReadingChange,
+  onViewChange,
   onAddMemory,
   syncState = "device",
   onCommitPages,
@@ -60,9 +61,11 @@ export function LibraryExperience({
 }: {
   savedPages: KeptPage[];
   bookTitle?: string;
-  initialView?: "shelf" | "book" | "reader" | "search" | "weaves";
+  initialView?: LibraryView;
   initialPageId?: string;
   onReadingChange?: (reading: boolean) => void;
+  /** Reports the current view (and page, in the reader) so the app can keep the address in step. */
+  onViewChange?: (view: LibraryView, pageId?: string) => void;
   onAddMemory?: () => void;
   syncState?: "device" | "syncing" | "synced" | "error";
   onCommitPages?: (pages: KeptPage[]) => Promise<void> | void;
@@ -71,7 +74,7 @@ export function LibraryExperience({
   const initialPages = [...savedPages];
   const [pages, setPages] = useState<KeptPage[]>(initialPages);
   const [removedPageIds, setRemovedPageIds] = useState<string[]>([]);
-  const [bookTitle, setBookTitle] = useState(preferredBookTitle || "The Person I Am Learning to Trust");
+  const [bookTitle, setBookTitle] = useState(preferredBookTitle || "My Life on Paper");
   const [bookVisibility, setBookVisibility] = useState<BookVisibility>("request");
   const [coverStyle, setCoverStyle] = useState<CoverStyle>("coast");
   const [extraVolumes, setExtraVolumes] = useState<string[]>([]);
@@ -174,6 +177,12 @@ export function LibraryExperience({
     }, 0);
     return () => window.clearTimeout(restore);
   }, [savedPages]);
+
+  useEffect(() => {
+    onViewChange?.(view, view === "reader" ? selectedPage?.id : undefined);
+    // onViewChange is a fresh closure each render; only real changes matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, selectedPage?.id]);
 
   useEffect(() => {
     onReadingChange?.(view === "reader");

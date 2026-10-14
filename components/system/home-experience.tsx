@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "@phosphor-icons/react";
 import { Destination, NavShell } from "@/components/system/nav-shell";
@@ -23,6 +23,7 @@ import { deleteCloudPage, saveCloudPage, syncDevicePages } from "@/lib/supabase/
 import type { AccountSummary } from "@/lib/supabase/account";
 import { DEMO_SEED_KEY } from "@/lib/demo-seed";
 import { track } from "@/lib/analytics";
+import { useHistoryLayer } from "@/lib/use-history-layer";
 
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
 const starterQuestions = [
@@ -41,6 +42,42 @@ const starterQuestions = [
 ] as const;
 
 type ActiveView = Destination | "Add Memory";
+type LibraryEntry = "shelf" | "book" | "reader" | "studio" | "search" | "weaves";
+
+/**
+ * Every screen has an address inside /today, so the browser and phone Back
+ * gesture step through screens (instead of leaving the app), refresh keeps
+ * your place, and the tab title says where you are.
+ *   ?s=story&v=reader&p=<pageId>   ?s=people   ?s=write&m=Voice
+ */
+type Route = { s: "today" | "story" | "people" | "write"; v?: LibraryEntry; p?: string; m?: CaptureMode };
+const libraryEntries: LibraryEntry[] = ["shelf", "book", "reader", "studio", "search", "weaves"];
+const captureModes: CaptureMode[] = ["Write", "Voice", "Photo", "Screenshot", "File"];
+
+function routeSearch(route: Route) {
+  const query = new URLSearchParams();
+  if (route.s !== "today") query.set("s", route.s);
+  if (route.s === "story" && route.v && route.v !== "shelf") query.set("v", route.v);
+  if (route.s === "story" && route.v === "reader" && route.p) query.set("p", route.p);
+  if (route.s === "write" && route.m && route.m !== "Write") query.set("m", route.m);
+  const text = query.toString();
+  return text ? `?${text}` : "";
+}
+
+function readRoute(): Route {
+  const query = new URLSearchParams(window.location.search);
+  const s = query.get("s");
+  if (s === "story") {
+    const v = query.get("v") as LibraryEntry | null;
+    return { s, v: v && libraryEntries.includes(v) ? v : "shelf", p: query.get("p") ?? undefined };
+  }
+  if (s === "people") return { s };
+  if (s === "write") {
+    const m = query.get("m") as CaptureMode | null;
+    return { s, m: m && captureModes.includes(m) ? m : "Write" };
+  }
+  return { s: "today" };
+}
 
 export function HomeExperience({ initialAccount }: { initialAccount: AccountSummary | null }) {
   // null = "we do not know yet". The answer lives in localStorage, which the
@@ -53,12 +90,19 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
   const [memoryMode, setMemoryMode] = useState<CaptureMode>("Write");
   const [memoryPrompt, setMemoryPrompt] = useState("");
   const [starterQuestionIndex, setStarterQuestionIndex] = useState(0);
-  const [bookTitle, setBookTitle] = useState("Summer of Firsts");
+  const [bookTitle, setBookTitle] = useState("My Life on Paper");
   const [notice, setNotice] = useState<string | null>(null);
   const [savedPages, setSavedPages] = useState<KeptPage[]>([]);
   const [isReading, setIsReading] = useState(false);
-  const [libraryEntry, setLibraryEntry] = useState<"shelf" | "book" | "reader" | "search" | "weaves">("shelf");
+  const [libraryEntry, setLibraryEntry] = useState<LibraryEntry>("shelf");
   const [libraryPage, setLibraryPage] = useState<string | undefined>();
+  // Where the Story tab currently is (reported by LibraryExperience) — used for
+  // the address only. `libraryNonce` remounts it when we navigate it from outside.
+  const [libraryRoute, setLibraryRoute] = useState<{ v: LibraryEntry; p?: string }>({ v: "shelf" });
+  const [libraryNonce, setLibraryNonce] = useState(0);
+  const [routeReady, setRouteReady] = useState(false);
+  const routeInit = useRef(false);
+  const desiredTitle = useRef("");
   const [addOpen, setAddOpen] = useState(false);
   const [composeSignal, setComposeSignal] = useState(0);
   const [decisions, setDecisions] = useState<MemoryDecisions>(() => {
@@ -129,7 +173,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           window.localStorage.setItem(contentResetKey, "complete");
         }
         setStarterQuestionIndex(Math.floor(Math.random() * starterQuestions.length));
-        const storedBookTitle = window.localStorage.getItem("life-in-books-book-title") || "Summer of Firsts";
+        const storedBookTitle = window.localStorage.getItem("life-in-books-book-title") || "My Life on Paper";
         setBookTitle(storedBookTitle);
         const stored = window.localStorage.getItem("life-in-books-pages");
         const devicePages = (stored ? JSON.parse(stored) as KeptPage[] : []).map(refineKeptPageWriting);
@@ -238,9 +282,11 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     scrollTop();
   };
 
-  const openLibraryAt = (view: "shelf" | "book" | "reader" | "search" | "weaves", pageId?: string) => {
+  const openLibraryAt = (view: LibraryEntry, pageId?: string) => {
     setLibraryEntry(view);
     setLibraryPage(view === "reader" ? pageId : undefined);
+    setLibraryRoute({ v: view, p: view === "reader" ? pageId : undefined });
+    setLibraryNonce((current) => current + 1);
     setActive("Story");
     setNotice(null);
     scrollTop();
@@ -255,6 +301,98 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
       scrollTop();
     }
   };
+
+  const applyRoute = (route: Route) => {
+    setNotice(null);
+    setAddOpen(false);
+    if (route.s === "story") {
+      const view = route.v ?? "shelf";
+      setLibraryEntry(view);
+      setLibraryPage(view === "reader" ? route.p : undefined);
+      setLibraryRoute({ v: view, p: view === "reader" ? route.p : undefined });
+      setLibraryNonce((current) => current + 1);
+      setActive("Story");
+    } else if (route.s === "people") {
+      setActive("People");
+    } else if (route.s === "write") {
+      setMemoryMode(route.m ?? "Write");
+      setActive("Add Memory");
+    } else {
+      setActive("Today");
+      setMemorySeed("");
+      setMemoryPrompt("");
+    }
+  };
+
+  // Restore the screen from the address once we know onboarding is done.
+  useEffect(() => {
+    if (showOnboarding !== false || routeInit.current) return;
+    routeInit.current = true;
+    const timer = window.setTimeout(() => {
+      applyRoute(readRoute());
+      setRouteReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+    // applyRoute only sets state; running it once is the point.
+     
+  }, [showOnboarding]);
+
+  // Back / Forward: show the screen the address names.
+  useEffect(() => {
+    const onPop = () => applyRoute(readRoute());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+     
+  }, []);
+
+  const currentRoute: Route =
+    active === "Story" ? { s: "story", v: libraryRoute.v, p: libraryRoute.p }
+      : active === "People" ? { s: "people" }
+        : active === "Add Memory" ? { s: "write", m: memoryMode }
+          : { s: "today" };
+  const currentSearch = routeSearch(currentRoute);
+  const readerTitle = currentRoute.v === "reader" ? savedPages.find((page) => page.id === currentRoute.p)?.title : undefined;
+
+  // Keep the address (and tab title) in step with the screen. A new screen is
+  // a new history entry; turning pages in the reader just updates the address.
+  useEffect(() => {
+    if (!routeReady) return;
+    const shown = readRoute();
+    if (routeSearch(shown) !== currentSearch) {
+      const url = `${window.location.pathname}${currentSearch}`;
+      const sameReader = shown.s === "story" && shown.v === "reader" && currentRoute.s === "story" && currentRoute.v === "reader";
+      if (sameReader) window.history.replaceState(window.history.state, "", url);
+      else window.history.pushState({}, "", url);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSearch, routeReady]);
+
+  useEffect(() => {
+    const where =
+      currentRoute.s === "story"
+        ? readerTitle ?? (currentRoute.v === "weaves" ? "Your weeks" : currentRoute.v === "search" ? "Search" : "Your book")
+        : currentRoute.s === "people" ? "People"
+          : currentRoute.s === "write" ? "A new memory"
+            : "Today";
+    desiredTitle.current = `${where} · Life on Paper`;
+    document.title = desiredTitle.current;
+  }, [currentRoute.s, currentRoute.v, readerTitle, routeReady]);
+
+  // Next.js rewrites <title> from page metadata after hydration and on
+  // Back/Forward; put ours back whenever that happens.
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      if (window.location.pathname !== "/today") return;
+      if (desiredTitle.current && document.title !== desiredTitle.current) document.title = desiredTitle.current;
+    });
+    observer.observe(document.head, { subtree: true, childList: true, characterData: true });
+    return () => {
+      observer.disconnect();
+      desiredTitle.current = "";
+    };
+  }, []);
+
+  useHistoryLayer(addOpen, () => setAddOpen(false), "add");
 
   const focusTodayComposer = () => {
     if (active !== "Today") showToday();
@@ -584,12 +722,13 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
         />
       ) : active === "Story" ? (
         <LibraryExperience
-          key={`${libraryEntry}-${libraryPage ?? "first"}`}
+          key={libraryNonce}
           savedPages={savedPages}
           bookTitle={bookTitle}
           initialView={libraryEntry}
           initialPageId={libraryPage}
           onReadingChange={setIsReading}
+          onViewChange={(v, p) => setLibraryRoute({ v, p: v === "reader" ? p : undefined })}
           onAddMemory={chooseCraftMemory}
           syncState={syncState}
           onCommitPages={commitLibraryPages}
@@ -619,7 +758,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           onPhotoCapture={() => openMemory("Photo")}
           onOpenLibrary={(pageId) => openLibraryAt("reader", pageId)}
           storyForming={storyFormingNow}
-          onOpenWeaves={() => { setActive("Story"); setLibraryEntry("weaves"); setLibraryPage(undefined); scrollTop(); }}
+          onOpenWeaves={() => { openLibraryAt("weaves"); }}
           composeSignal={composeSignal}
           monthlyCard={monthlyCard}
           onDismissMonthly={dismissMonthly}

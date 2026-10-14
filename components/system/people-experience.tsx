@@ -3,6 +3,8 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, BookOpenText, UsersThree } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
+
+import { useHistoryLayer } from "@/lib/use-history-layer";
 import type { KeptPage } from "@/components/system/memory-interview";
 import { aggregateCast, sortMoments, type CastCharacter, type MemoryDecisions } from "@/components/system/people-intel";
 import { characterFeelingArc, type FeelingArc } from "@/components/system/tone";
@@ -83,6 +85,7 @@ export function PeopleExperience({
   const reduceMotion = useReducedMotion();
   const cast = useMemo(() => aggregateCast(pages, decisions), [pages, decisions]);
   const [selected, setSelected] = useState<CastCharacter | null>(null);
+  useHistoryLayer(Boolean(selected), () => setSelected(null), "person");
 
   const individuals = cast.filter((character) => character.kind === "person");
   const groups = cast.filter((character) => character.kind === "group");
