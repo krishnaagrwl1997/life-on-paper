@@ -29,6 +29,61 @@ function assertNoError(error: { message: string } | null) {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Page fields the database has no column for. Stored in `pages.meta` so a
+ * cloud round-trip (sign-in, a second device) keeps them — see the
+ * 20261014000000_page_meta migration.
+ */
+type PageMeta = Pick<
+  KeptPage,
+  | "people"
+  | "keepsakes"
+  | "createdAt"
+  | "emotions"
+  | "speechLanguage"
+  | "writingVersion"
+  | "writingStyle"
+  | "artworkLevel"
+  | "photoTreatment"
+> & { localId?: string };
+
+function pageMeta(page: KeptPage): PageMeta {
+  return {
+    localId: page.id,
+    people: page.people,
+    keepsakes: page.keepsakes,
+    createdAt: page.createdAt,
+    emotions: page.emotions,
+    speechLanguage: page.speechLanguage,
+    writingVersion: page.writingVersion,
+    writingStyle: page.writingStyle,
+    artworkLevel: page.artworkLevel,
+    photoTreatment: page.photoTreatment,
+  };
+}
+
+/**
+ * Until the page_meta migration is applied, writing `meta` fails with a
+ * missing-column error. Retry once without it so sync keeps working either way.
+ */
+let metaColumnMissing = false;
+
+function isMissingMetaColumn(error: { message: string; code?: string } | null) {
+  return Boolean(error && /meta/i.test(error.message) && /(column|schema cache)/i.test(error.message));
+}
+
+async function writeWithMeta<T extends { error: { message: string; code?: string } | null }>(
+  run: (withMeta: boolean) => PromiseLike<T>,
+): Promise<T> {
+  if (metaColumnMissing) return run(false);
+  const result = await run(true);
+  if (isMissingMetaColumn(result.error)) {
+    metaColumnMissing = true;
+    return run(false);
+  }
+  return result;
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
@@ -73,11 +128,16 @@ export async function loadCloudPages(client: SupabaseClient): Promise<KeptPage[]
     raw_text: string | null;
     transcript: string | null;
     captured_at: string;
+    page_meta?: PageMeta | null;
   }>;
   const media = await signedMediaByMemory(client, rows.map((row) => row.memory_id));
 
-  return rows.map((row) => ({
-    id: row.page_id,
+  return rows.map((row) => {
+    const meta = row.page_meta ?? {};
+    return {
+    // Keep the device id when we have it: keepsakes, weaves and memory
+    // decisions all point at it.
+    id: meta.localId || row.page_id,
     cloudId: row.page_id,
     title: row.page_title,
     excerpt: row.dek || row.pull_quote || row.body.split(/\n\s*\n/)[0] || "",
@@ -88,14 +148,21 @@ export async function loadCloudPages(client: SupabaseClient): Promise<KeptPage[]
     chapter: `Chapter ${row.chapter_position}`,
     chapterTitle: row.chapter_title,
     layout: layoutFromDatabase[row.layout] || "Story",
-    date: formatDate(row.captured_at || row.page_created_at),
+    date: formatDate(meta.createdAt || row.captured_at || row.page_created_at),
+    createdAt: meta.createdAt || row.captured_at || row.page_created_at,
     photo: media.get(row.memory_id),
     originalText: row.raw_text || row.transcript || "",
-    writingLanguage: "original",
-    writingStyle: "almost-unchanged",
-    artworkLevel: "subtle",
-    photoTreatment: "painterly",
-  }));
+    writingLanguage: "original" as const,
+    writingStyle: meta.writingStyle ?? "almost-unchanged",
+    artworkLevel: meta.artworkLevel ?? "subtle",
+    photoTreatment: meta.photoTreatment ?? "painterly",
+    people: meta.people,
+    keepsakes: meta.keepsakes,
+    emotions: meta.emotions,
+    speechLanguage: meta.speechLanguage,
+    writingVersion: meta.writingVersion,
+    };
+  });
 }
 
 function pageSource(page: KeptPage) {
@@ -116,6 +183,17 @@ async function ensureProfile(client: SupabaseClient, ownerId: string) {
 
 async function existingCloudPageId(client: SupabaseClient, ownerId: string, page: KeptPage) {
   if (page.cloudId) return page.cloudId;
+
+  // Match on the device id first — it survives title and wording changes
+  // (e.g. the AI upgrade landing before the first save returned a cloudId).
+  if (!metaColumnMissing) {
+    const byLocalId = await client.from("pages").select("id").eq("meta->>localId", page.id).limit(1);
+    if (isMissingMetaColumn(byLocalId.error)) metaColumnMissing = true;
+    else {
+      assertNoError(byLocalId.error);
+      if (byLocalId.data?.[0]) return byLocalId.data[0].id as string;
+    }
+  }
   const source = pageSource(page);
   if (!source) return null;
 
@@ -221,14 +299,15 @@ export async function saveCloudPage(
   const existingPageId = await existingCloudPageId(client, ownerId, page);
 
   if (existingPageId) {
-    const updated = await client.from("pages").update({
+    const updated = await writeWithMeta((withMeta) => client.from("pages").update({
       chapter_id: chapterId,
       layout: layoutToDatabase[page.layout] || "story",
       title: page.title,
       dek: page.excerpt,
       body: page.body.join("\n\n"),
       pull_quote: page.reflection || null,
-    }).eq("id", existingPageId).select("id").single();
+      ...(withMeta ? { meta: pageMeta(page) } : {}),
+    }).eq("id", existingPageId).select("id").single());
     assertNoError(updated.error);
     return existingPageId;
   }
@@ -241,6 +320,7 @@ export async function saveCloudPage(
     transcript: page.originalText || null,
     ai_summary: page.excerpt,
     feeling_note: emotions.join(", ") || null,
+    ...(page.createdAt ? { captured_at: page.createdAt } : {}),
     status: "page_created",
   }).select("id").single();
   assertNoError(memory.error);
@@ -257,7 +337,7 @@ export async function saveCloudPage(
   const positions = await client.from("pages").select("position").eq("chapter_id", chapterId).order("position", { ascending: false }).limit(1);
   assertNoError(positions.error);
   const position = ((positions.data?.[0]?.position as number | undefined) ?? 0) + 1;
-  const createdPage = await client.from("pages").insert({
+  const createdPage = await writeWithMeta((withMeta) => client.from("pages").insert({
     chapter_id: chapterId,
     memory_id: memoryId,
     layout: layoutToDatabase[page.layout] || "story",
@@ -267,7 +347,8 @@ export async function saveCloudPage(
     pull_quote: page.reflection || null,
     position,
     published_at: new Date().toISOString(),
-  }).select("id").single();
+    ...(withMeta ? { meta: pageMeta(page) } : {}),
+  }).select("id").single());
   assertNoError(createdPage.error);
   if (!createdPage.data) throw new Error("The page could not be saved.");
 
@@ -283,15 +364,58 @@ export async function syncDevicePages(
 ) {
   await ensureProfile(client, ownerId);
   const cloudPages = await loadCloudPages(client);
+  const cloudIds = new Set(cloudPages.map((page) => page.id));
   const cloudKeys = new Map(cloudPages.map((page) => [pageKey(page), page]));
+  const cloudHasMeta = new Set(cloudPages.filter((page) => page.id !== page.cloudId).map((page) => page.id));
 
+  let wrote = false;
   for (const page of devicePages) {
-    const cloudMatch = cloudKeys.get(pageKey(page));
-    if (cloudMatch) continue;
-    await saveCloudPage(client, ownerId, bookTitle, page, page.emotions);
+    const match = cloudIds.has(page.id) ? page : cloudKeys.get(pageKey(page));
+    if (!match) {
+      await saveCloudPage(client, ownerId, bookTitle, page, page.emotions);
+      wrote = true;
+    } else if (page.syncPending) {
+      // A save from this device failed earlier — send this version now.
+      const { syncPending: _pending, ...clean } = page;
+      void _pending;
+      await saveCloudPage(client, ownerId, bookTitle, { ...clean, cloudId: page.cloudId ?? match.cloudId }, page.emotions);
+      wrote = true;
+    } else if (!cloudHasMeta.has(page.id) && !metaColumnMissing) {
+      // Saved before pages.meta existed: backfill it once from this device.
+      const cloudId = page.cloudId ?? match.cloudId;
+      await saveCloudPage(client, ownerId, bookTitle, { ...page, cloudId }, page.emotions);
+      wrote = true;
+    }
   }
 
-  return loadCloudPages(client);
+  const finalPages = wrote ? await loadCloudPages(client) : cloudPages;
+  return mergeWithDevice(finalPages, devicePages);
+}
+
+/**
+ * The cloud copy wins for content, but anything it is missing (pages saved
+ * before pages.meta existed, or while the migration was pending) is filled in
+ * from this device so nothing is lost on sign-in.
+ */
+function mergeWithDevice(cloudPages: KeptPage[], devicePages: KeptPage[]) {
+  const byId = new Map(devicePages.map((page) => [page.id, page]));
+  const byKey = new Map(devicePages.map((page) => [pageKey(page), page]));
+  return cloudPages.map((cloud) => {
+    const device = byId.get(cloud.id) ?? byKey.get(pageKey(cloud));
+    if (!device) return cloud;
+    return {
+      ...cloud,
+      id: device.id,
+      photo: cloud.photo ?? device.photo,
+      createdAt: device.createdAt ?? cloud.createdAt,
+      date: device.createdAt ? device.date : cloud.date,
+      people: cloud.people ?? device.people,
+      keepsakes: cloud.keepsakes ?? device.keepsakes,
+      emotions: cloud.emotions ?? device.emotions,
+      speechLanguage: cloud.speechLanguage ?? device.speechLanguage,
+      writingVersion: cloud.writingVersion ?? device.writingVersion,
+    };
+  });
 }
 
 export async function deleteCloudPage(client: SupabaseClient, ownerId: string, page: KeptPage) {

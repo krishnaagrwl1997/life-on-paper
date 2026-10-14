@@ -58,6 +58,8 @@ export type KeptPage = {
   people?: string[];
   keepsakes?: string[];
   writingVersion?: number;
+  /** Set when a cloud save failed; the next sign-in sync re-sends this page. */
+  syncPending?: boolean;
 };
 
 type Phase = "capture" | "interview" | "summary" | "placement" | "page";

@@ -9,7 +9,7 @@ import { LibraryExperience } from "@/components/system/library-experience";
 import { TodayExperience } from "@/components/system/today-experience";
 import { PeopleExperience } from "@/components/system/people-experience";
 import { detectTutorQuestions, loadMemoryDecisions, persistMemoryDecisions, tutorWeekKey, type MemoryDecisions, type TutorQuestion } from "@/components/system/people-intel";
-import { isoWeekKey, loadWeaveCache } from "@/components/system/weekly-weave";
+import { isoWeekKey, loadWeaveCache, persistWeaveCache, type WeaveCache } from "@/components/system/weekly-weave";
 import { kindCandidate, loadDismissed, persistDismissedIds } from "@/components/system/tone";
 import { detectAcuteSignal, detectSustainedHeaviness, loadCareDismissed, persistCareDismissed, type CareKind } from "@/components/system/tone";
 import { markMonthlyShown, monthlyShownKey, shouldShowMonthly, thisMonthSummary } from "@/components/system/monthly";
@@ -164,12 +164,23 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
                 if (graph.monthlyShown) {
                   try { window.localStorage.setItem(monthlyShownKey, graph.monthlyShown); } catch { /* best-effort */ }
                 }
+                if (graph.weaves && typeof graph.weaves === "object") {
+                  // Weaves are saved with the graph; bring them back on this
+                  // device too. Per week, the most recently generated wins.
+                  const local = loadWeaveCache();
+                  const merged: WeaveCache = { ...local };
+                  for (const [week, weave] of Object.entries(graph.weaves as WeaveCache)) {
+                    const mine = local[week];
+                    if (!mine || (weave?.generatedAt ?? "") > (mine.generatedAt ?? "")) merged[week] = weave;
+                  }
+                  persistWeaveCache(merged);
+                }
               });
             })
             .catch((error: unknown) => {
               console.error("Life on Paper account sync failed", error);
               setSyncState("error");
-              setNotice("Your pages are safe on this device. Account sync will retry automatically.");
+              setNotice("Your pages are safe on this device. We’ll sync them next time you open Life on Paper.");
             });
         }
       } catch {
@@ -285,7 +296,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
         .catch((error: unknown) => {
           console.error("Life on Paper page save failed", error);
           setSyncState("error");
-          setNotice("Saved on this device. Account sync will retry automatically.");
+          setNotice("Saved on this device. We’ll sync it next time you open Life on Paper.");
         });
     } else {
       setSyncState("device");
@@ -306,10 +317,15 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     setNotice("Syncing your edits…");
     try {
       const client = createClient();
+      // Only pages that actually changed go back to the cloud — re-saving the
+      // whole book on every edit made large books slow to sync.
+      const before = new Map(savedPages.map((page) => [page.id, JSON.stringify(page)]));
       const synced: KeptPage[] = [];
       for (const page of pages) {
-        synced.push({
+        const unchanged = page.cloudId && before.get(page.id) === JSON.stringify(page);
+        synced.push(unchanged ? page : {
           ...page,
+          syncPending: undefined,
           cloudId: await saveCloudPage(client, account.id, bookTitle, page, page.emotions),
         });
       }
@@ -319,8 +335,14 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
       setNotice("Your edits are synced across your devices.");
     } catch (error) {
       console.error("Life on Paper edit sync failed", error);
+      const before = new Map(savedPages.map((page) => [page.id, JSON.stringify(page)]));
+      const pending = pages.map((page) =>
+        before.get(page.id) === JSON.stringify(page) ? page : { ...page, syncPending: true },
+      );
+      setSavedPages(pending);
+      window.localStorage.setItem("life-in-books-pages", JSON.stringify(pending));
       setSyncState("error");
-      setNotice("Edits are safe on this device. Account sync will retry automatically.");
+      setNotice("Edits are safe on this device. We’ll sync them next time you open Life on Paper.");
     }
   };
 
@@ -445,12 +467,19 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     void saveCloudPage(createClient(), account.id, bookTitle, updated, updated.emotions)
       .then((cloudId) => {
         setSavedPages((current) => {
-          const next = current.map((item) => item.id === updated.id ? { ...item, cloudId } : item);
+          const next = current.map((item) => item.id === updated.id ? { ...item, cloudId, syncPending: undefined } : item);
           window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));
           return next;
         });
       })
-      .catch((error: unknown) => console.error("Life on Paper daily page AI upgrade sync failed", error));
+      .catch((error: unknown) => {
+        console.error("Life on Paper daily page AI upgrade sync failed", error);
+        setSavedPages((current) => {
+          const next = current.map((item) => item.id === updated.id ? { ...item, syncPending: true } : item);
+          window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));
+          return next;
+        });
+      });
   };
 
   // A kept sound: attach it to today's page when there is one, otherwise the
