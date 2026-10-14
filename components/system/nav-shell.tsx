@@ -54,7 +54,7 @@ export function NavShell({
         onClick={onAdd}
         className="nav-destination nav-destination--action"
       >
-        <Plus size={30} weight="light" aria-hidden="true" />
+        <span className="nav-icon-wrap"><Plus size={26} weight="bold" aria-hidden="true" /></span>
         <span className="nav-label" aria-hidden="true">Add</span>
       </button>
 
@@ -76,7 +76,7 @@ export function NavShell({
         onClick={onSearch}
         className="nav-destination"
       >
-        <MagnifyingGlass size={25} weight="regular" aria-hidden="true" />
+        <span className="nav-icon-wrap"><MagnifyingGlass size={25} weight="regular" aria-hidden="true" /></span>
         <span className="nav-label" aria-hidden="true">Search</span>
       </button>
     </nav>

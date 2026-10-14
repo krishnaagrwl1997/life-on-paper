@@ -16870,3 +16870,15 @@ input:focus-visible {
   min-width: 2.75rem;
   min-height: 2.75rem;
 }
+
+/* Keep "Sign in" on one line on narrow phones. */
+.today-signin {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* The raised + circle speaks for itself (aria-label "Add a moment");
+   its caption fell below the bar edge. */
+.nav-destination--action .nav-label {
+  display: none;
+}

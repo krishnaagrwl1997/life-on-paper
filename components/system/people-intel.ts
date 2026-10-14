@@ -86,7 +86,16 @@ const aliasPattern = new RegExp(
   "gi",
 );
 
-/** Canonical people labels for any kinship alias words present in free text. */
+function titleCase(word: string) {
+  return word.charAt(0).toLocaleUpperCase() + word.slice(1);
+}
+
+/**
+ * Kinship words present in free text, one per person, in the writer's own
+ * word: "amma" stays "Amma", "papa" stays "Papa". Grouping (Amma = Maa = Mom)
+ * happens by canonical key in canonicalizePerson — the label never translates
+ * someone's mother into English (AGENTS.md §7: preserve the user's language).
+ */
 export function aliasPeopleFromText(text: string): string[] {
   const found: string[] = [];
   const seen = new Set<string>();
@@ -96,9 +105,22 @@ export function aliasPeopleFromText(text: string): string[] {
     const group = aliasGroups.find((candidate) => candidate.keys.includes(lower));
     if (!group || seen.has(group.canonical)) continue;
     seen.add(group.canonical);
-    found.push(group.canonical);
+    found.push(titleCase(lower));
   }
   return found;
+}
+
+/** The writer's most-used word for someone, e.g. "Amma" rather than "Mom". */
+export function preferredLabel(counts: Map<string, number>, fallback: string) {
+  let best = fallback;
+  let bestCount = 0;
+  for (const [word, count] of counts) {
+    if (count > bestCount) {
+      best = word;
+      bestCount = count;
+    }
+  }
+  return best;
 }
 
 
@@ -183,6 +205,7 @@ export function aggregateCast(pages: KeptPage[], decisions: MemoryDecisions = {}
   const splitBy = new Map(Object.entries(decisions.split ?? {}).map(([key, worlds]) => [key, worlds]));
   const mergedBy = new Map(Object.entries(decisions.mergedInto ?? {}));
 
+  const variantCounts = new Map<string, Map<string, number>>();
   const add = (page: KeptPage, label: string, kind: CastKind, variant?: string) => {
     if (kind === "person" && !isPlausiblePersonName(label) && aliasPeopleFromText(label).length === 0) return;
     let canonical = canonicalizePerson(label);
@@ -210,6 +233,12 @@ export function aggregateCast(pages: KeptPage[], decisions: MemoryDecisions = {}
     };
     if (kind === "person") {
       if (variant && !entry.aliases.includes(variant)) entry.aliases.push(variant);
+      if (variant) {
+        const counts = variantCounts.get(mapKey) ?? new Map<string, number>();
+        const word = titleCase(variant);
+        counts.set(word, (counts.get(word) ?? 0) + 1);
+        variantCounts.set(mapKey, counts);
+      }
       const time = pageTime(page)?.getTime() ?? null;
       if (time !== null) {
         entry.firstAt = entry.firstAt === null ? time : Math.min(entry.firstAt, time);
@@ -229,6 +258,14 @@ export function aggregateCast(pages: KeptPage[], decisions: MemoryDecisions = {}
     for (const raw of peopleForPage(page)) {
       const { label, variant } = canonicalizePerson(raw);
       if (label) add(page, label, "person", variant);
+    }
+  }
+
+  // Show family members by the writer's own word (Amma, Papa, Nani), not the
+  // English key they are grouped under.
+  for (const entry of byKey.values()) {
+    if (entry.kind === "person" && familyCanonical.has(entry.label)) {
+      entry.label = preferredLabel(variantCounts.get(entry.key) ?? new Map(), entry.label);
     }
   }
 

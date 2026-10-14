@@ -28,14 +28,18 @@ export function thisMonthSummary(pages: KeptPage[], now = new Date()): MonthlySu
   });
   if (!inMonth.length) return null;
 
-  const people = new Set<string>();
+  // Grouped by canonical key, shown in the writer's own word (Amma, not Mom).
+  const people = new Map<string, string>();
   const weeks = new Set<string>();
   for (const page of inMonth) {
-    for (const name of peopleForPage(page)) people.add(canonicalizePerson(name).label);
+    for (const name of peopleForPage(page)) {
+      const key = canonicalizePerson(name).label;
+      if (!people.has(key)) people.set(key, name.charAt(0).toUpperCase() + name.slice(1));
+    }
     const time = pageTime(page)?.getTime();
     if (typeof time === "number") weeks.add(isoWeekKey(new Date(time)));
   }
-  return { count: inMonth.length, people: [...people], weeks: weeks.size, label: monthLabel(now) };
+  return { count: inMonth.length, people: [...people.values()], weeks: weeks.size, label: monthLabel(now) };
 }
 
 export function shouldShowMonthly(pages: KeptPage[], now = new Date()): boolean {
