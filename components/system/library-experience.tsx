@@ -292,6 +292,7 @@ export function LibraryExperience({
                     <button type="button" className="library-primary" onClick={onAddMemory}>Add your first memory <Plus size={18} weight="bold" aria-hidden="true" /></button>
                   ) : null}
                   <button type="button" className="library-secondary" onClick={() => goToView("book")}>View contents</button>
+                  {activePages.length ? <a className="library-secondary no-underline" href="/book">Download as PDF</a> : null}
                 </div>
               </div>
             </div>
