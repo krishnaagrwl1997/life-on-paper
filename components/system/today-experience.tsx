@@ -8,7 +8,7 @@ import {
   Microphone,
 } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AccountSummary } from "@/lib/supabase/account";
 import type { KeptPage } from "@/components/system/memory-interview";
 import type { TutorQuestion } from "@/components/system/people-intel";
@@ -24,6 +24,16 @@ import { ProfileExperience } from "@/components/system/profile-experience";
 import { useHistoryLayer } from "@/lib/use-history-layer";
 
 const draftKey = "life-on-paper-today-draft";
+
+/** The first printable book — a slim volume. Progress toward it, never a streak. */
+const FIRST_BOOK_PAGES = 30;
+/** From here a PDF of what exists so far is worth offering. */
+const PDF_OFFER_PAGES = 7;
+
+function pageMillis(page: KeptPage) {
+  const time = Date.parse(page.createdAt ?? page.date);
+  return Number.isNaN(time) ? 0 : time;
+}
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
 
 const dailyQuestions = [
@@ -50,6 +60,8 @@ export function TodayExperience({
   bookTitle,
   memoryCount,
   latestPage,
+  pages,
+  onOpenStory,
   authPending,
   authError,
   syncState = "device",
@@ -79,6 +91,8 @@ export function TodayExperience({
   bookTitle: string;
   memoryCount: number;
   latestPage: KeptPage | null;
+  pages: KeptPage[];
+  onOpenStory: () => void;
   authPending: boolean;
   authError: string | null;
   syncState?: "device" | "syncing" | "synced" | "error";
@@ -117,6 +131,8 @@ export function TodayExperience({
   useHistoryLayer(showProfile, () => setShowProfile(false), "profile");
   const [whisperMsg, setWhisperMsg] = useState<string | null>(null);
   const justSavedRef = useRef(false);
+  const [justSavedId, setJustSavedId] = useState<string | null>(null);
+  const [showOriginal, setShowOriginal] = useState(false);
   const [showResources, setShowResources] = useState(false);
   const [dictationLang, setDictationLang] = useState<LiveTranscriptionLanguage>("en-IN");
   const [micError, setMicError] = useState<string | null>(null);
@@ -181,6 +197,8 @@ export function TodayExperience({
     if (!latestPage || !justSavedRef.current) return;
     const person = latestPage.people?.[0];
     setWhisperMsg(person ? `Saved. I noticed ${person} — I'll remember them.` : "Saved to your book.");
+    setJustSavedId(latestPage.id);
+    setShowOriginal(false);
     justSavedRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latestPage?.id]);
@@ -216,6 +234,15 @@ export function TodayExperience({
     justSavedRef.current = true;
   };
 
+  const recentPages = useMemo(
+    () => [...pages].sort((a, b) => pageMillis(b) - pageMillis(a)).slice(0, 3),
+    [pages],
+  );
+  const today = new Date().toDateString();
+  const wroteToday = pages.some((page) => page.createdAt && new Date(page.createdAt).toDateString() === today);
+  const justSaved = justSavedId ? pages.find((page) => page.id === justSavedId) ?? null : null;
+  const bookProgress = Math.min(1, memoryCount / FIRST_BOOK_PAGES);
+
   const initials = account
     ? account.name
         .split(/\s+/)
@@ -242,7 +269,7 @@ export function TodayExperience({
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pt-6">
+    <div className="mx-auto w-full max-w-2xl px-5 pt-6 lg:max-w-3xl">
       <header className="today-header">
         <div>
           <Link href="/" className="today-wordmark block text-inherit no-underline" aria-label="Life on Paper — home">Life on Paper</Link>
@@ -279,6 +306,33 @@ export function TodayExperience({
         </div>
       </header>
 
+      {memoryCount > 0 ? (
+        <div className="today-progress" aria-label="Your book so far">
+          <div className="today-progress__row">
+            <span>
+              {memoryCount} {memoryCount === 1 ? "page" : "pages"} in <em>{bookTitle}</em>
+            </span>
+            {memoryCount < FIRST_BOOK_PAGES ? (
+              <span className="today-progress__goal">Your first book at {FIRST_BOOK_PAGES}</span>
+            ) : (
+              <Link href="/book" className="today-progress__link">Your first book is ready — download it</Link>
+            )}
+          </div>
+          <div className="today-progress__bar" aria-hidden="true">
+            <span style={{ width: `${Math.max(3, bookProgress * 100)}%` }} />
+          </div>
+          {memoryCount >= PDF_OFFER_PAGES && memoryCount < FIRST_BOOK_PAGES ? (
+            <Link href="/book" className="today-progress__pdf">Download what you have so far as a PDF</Link>
+          ) : null}
+        </div>
+      ) : null}
+
+      {wroteToday && !justSaved ? (
+        <p className="today-done" role="status">
+          <span aria-hidden="true">✓</span> Today’s page is in your book. Anything else worth keeping?
+        </p>
+      ) : null}
+
       {memoryCount === 0 ? (
         <motion.p
           className="today-beginning"
@@ -302,7 +356,7 @@ export function TodayExperience({
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onInput={(event) => setDraft((event.target as HTMLTextAreaElement).value)}
-          placeholder={dailyQuestion()}
+          placeholder={wroteToday ? "Anything else from today?" : dailyQuestion()}
           className="today-composer__field"
         />
         <footer className="today-composer__footer">
@@ -328,6 +382,7 @@ export function TodayExperience({
               title={isListening ? "Stop dictation" : "Speak your lines"}
             >
               <Microphone size={19} weight={isListening ? "fill" : "regular"} aria-hidden="true" />
+              <span className="today-tool__label">{isListening ? "Stop" : "Speak"}</span>
             </button>
             <button
               type="button"
@@ -338,9 +393,11 @@ export function TodayExperience({
               title={isRecording ? "Stop keeping this sound" : "Keep a sound — a voice, laughter, the rain"}
             >
               <Waveform size={19} weight={isRecording ? "bold" : "regular"} aria-hidden="true" />
+              <span className="today-tool__label">{isRecording ? "Stop" : "Record"}</span>
             </button>
             <button type="button" onClick={onPhotoCapture} aria-label="Add a photo" title="Add a photo">
               <ImageSquare size={19} weight="regular" aria-hidden="true" />
+              <span className="today-tool__label">Photo</span>
             </button>
           </span>
           <button type="button" className="today-composer__action" onClick={shapeIntoPage} disabled={!draft.trim()}>
@@ -371,15 +428,53 @@ export function TodayExperience({
         ) : null}
 
         <div className="today-dictation">
-          <div className="today-dictation__langs" role="group" aria-label="Dictation language">
-            <button type="button" className={dictationLang === "en-IN" ? "is-active" : ""} onClick={() => setDictationLang("en-IN")} aria-pressed={dictationLang === "en-IN"}>EN</button>
-            <button type="button" className={dictationLang === "hi-IN" ? "is-active" : ""} onClick={() => setDictationLang("hi-IN")} aria-pressed={dictationLang === "hi-IN"}>हिं</button>
+          <div className="today-dictation__langs" role="group" aria-label="Language you speak in">
+            <span className="today-dictation__label">Speaking in</span>
+            <button type="button" className={dictationLang === "en-IN" ? "is-active" : ""} onClick={() => setDictationLang("en-IN")} aria-pressed={dictationLang === "en-IN"}>English</button>
+            <button type="button" className={dictationLang === "hi-IN" ? "is-active" : ""} onClick={() => setDictationLang("hi-IN")} aria-pressed={dictationLang === "hi-IN"}>हिंदी</button>
           </div>
           {micError ? <p className="today-mic-error" role="alert">{micError}</p> : null}
         </div>
 
         <p className="today-composer__note">Saved on this device as you write.</p>
       </section>
+
+      <AnimatePresence>
+        {justSaved ? (
+          <motion.section
+            key={justSaved.id}
+            className="today-new-page"
+            aria-label="Your new page"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}
+          >
+            <header className="today-new-page__header">
+              <p>Just added to your book · {justSaved.chapterTitle || justSaved.volume}</p>
+              <button type="button" onClick={() => setJustSavedId(null)} aria-label="Close the new page">×</button>
+            </header>
+            <h2 className="today-new-page__title">{justSaved.title}</h2>
+            {showOriginal ? (
+              <p className="today-new-page__raw">{justSaved.originalText || justSaved.body.join(" ")}</p>
+            ) : (
+              <div className="today-new-page__body">
+                {justSaved.body.map((paragraph, index) => (
+                  <p key={index}>{paragraph}</p>
+                ))}
+              </div>
+            )}
+            <footer className="today-new-page__footer">
+              <button type="button" onClick={() => setShowOriginal((current) => !current)}>
+                {showOriginal ? "See the page" : "See what you wrote"}
+              </button>
+              <button type="button" onClick={() => onOpenLibrary(justSaved.id)}>
+                Read it in your book <CaretRight size={13} weight="bold" aria-hidden="true" />
+              </button>
+            </footer>
+          </motion.section>
+        ) : null}
+      </AnimatePresence>
 
       <AnimatePresence>
         {whisperMsg ? (
@@ -484,16 +579,17 @@ export function TodayExperience({
         </section>
       ) : null}
 
-      <button type="button" className="today-profile-row" onClick={() => setShowProfile(true)}>
-        <span className="today-profile-row__icon" aria-hidden="true">
-          <BookOpenText size={18} weight="regular" />
-        </span>
-        <span className="today-profile-row__copy">
-          <strong>Your profile</strong>
-          <small>{account ? `${account.name} · account & privacy` : "Sign in with Google · account & privacy"}</small>
-        </span>
-        <CaretRight size={16} weight="bold" aria-hidden="true" />
-      </button>
+      {!account && memoryCount >= 3 ? (
+        <section className="today-backup" aria-label="Back up your book">
+          <div>
+            <strong>Back up your book</strong>
+            <p>Your {memoryCount} pages live only on this device. Sign in to keep a private copy you can open anywhere.</p>
+          </div>
+          <button type="button" onClick={onGoogleSignIn} disabled={authPending}>
+            {authPending ? "Opening…" : "Sign in with Google"}
+          </button>
+        </section>
+      ) : null}
 
       {surfacingCandidate ? (
         <section className="surfacing-card" role="region" aria-label="A moment worth returning to">
@@ -532,23 +628,31 @@ export function TodayExperience({
         </section>
       ) : null}
 
-      {latestPage ? (
-        <button
-          type="button"
-          className="today-back-to-book"
-          onClick={() => onOpenLibrary(latestPage.id)}
-          aria-label={`Back to your book — ${latestPage.title}`}
-        >
-          <span className="today-back-to-book__icon" aria-hidden="true">
-            <BookOpenText size={18} weight="regular" />
-          </span>
-          <span className="today-back-to-book__copy">
-            <small>Back to your book</small>
-            <strong>{latestPage.title}</strong>
-            <em>{latestPage.excerpt}</em>
-          </span>
-          <CaretRight size={16} weight="bold" aria-hidden="true" />
-        </button>
+      {recentPages.length ? (
+        <section className="today-recent" aria-label="Recent pages">
+          <header className="today-recent__header">
+            <p>Recent pages</p>
+            <button type="button" onClick={onOpenStory}>
+              Your whole book <CaretRight size={13} weight="bold" aria-hidden="true" />
+            </button>
+          </header>
+          <ul>
+            {recentPages.map((page) => (
+              <li key={page.id}>
+                <button type="button" onClick={() => onOpenLibrary(page.id)}>
+                  <span className="today-recent__icon" aria-hidden="true">
+                    <BookOpenText size={16} weight="regular" />
+                  </span>
+                  <span className="today-recent__copy">
+                    <strong>{page.title}</strong>
+                    <small>{page.date}</small>
+                  </span>
+                  <CaretRight size={14} weight="bold" aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
     </div>
   );

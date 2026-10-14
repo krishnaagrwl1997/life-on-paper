@@ -30,7 +30,7 @@ export function OnboardingExperience({
 
   useEffect(() => {
     if (step !== "intro") return;
-    const timer = window.setTimeout(() => setStep("glimpse"), reduceMotion ? 1200 : 4600);
+    const timer = window.setTimeout(() => setStep("glimpse"), reduceMotion ? 1200 : 2600);
     return () => window.clearTimeout(timer);
   }, [step, reduceMotion]);
 

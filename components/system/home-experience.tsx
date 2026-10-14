@@ -747,6 +747,8 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           bookTitle={bookTitle}
           memoryCount={savedPages.length}
           latestPage={latestPage ?? null}
+          pages={savedPages}
+          onOpenStory={() => openLibraryAt("shelf")}
           authPending={authPending}
           authError={authError}
           syncState={syncState}
