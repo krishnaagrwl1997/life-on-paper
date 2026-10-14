@@ -99,7 +99,7 @@ test("server-renders the readable sample book at /sample", async () => {
   assert.equal(response.status, 200);
 
   const html = await response.text();
-  assert.match(html, /A whole book/);
+  assert.match(html, /This is what your words become/);
   assert.match(html, /The Long Way Home/);
   assert.match(html, /School Years/);
   // The promise the product makes is checkable on this page, so the control
