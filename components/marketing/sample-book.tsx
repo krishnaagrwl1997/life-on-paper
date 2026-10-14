@@ -148,7 +148,7 @@ export function SampleBook() {
                   aria-pressed={mode === option}
                   className={
                     mode === option
-                      ? "inline-flex min-h-11 items-center rounded-full bg-action px-4 font-interface text-sm text-paper"
+                      ? "inline-flex min-h-11 items-center rounded-full bg-action-deep px-4 font-interface text-sm text-paper"
                       : "inline-flex min-h-11 items-center rounded-full px-4 font-interface text-sm text-ink-muted hover:text-ink"
                   }
                 >

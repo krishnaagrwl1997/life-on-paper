@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-page-custom-font */
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@/components/system/analytics";
 import { ThemeProvider } from "@/components/system/theme-provider";
 import "./globals.css";
 
@@ -57,6 +58,7 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <ThemeProvider>{children}</ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

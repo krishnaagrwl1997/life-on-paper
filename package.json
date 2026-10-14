@@ -26,6 +26,7 @@
     "drizzle-orm": "0.45.2",
     "framer-motion": "^12.42.2",
     "next": "16.2.6",
+    "posthog-js": "^1.438.9",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tailwind-merge": "^3.6.0"

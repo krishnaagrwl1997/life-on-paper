@@ -54,15 +54,20 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-button,
-textarea,
-input {
-  font: inherit;
-}
+/* Element defaults live in the base layer so Tailwind utilities (in the
+   utilities layer) can override them — unlayered rules would win over every
+   utility and silently drop text-* / font-* classes on form controls. */
+@layer base {
+  button,
+  textarea,
+  input {
+    font: inherit;
+  }
 
-button {
-  color: inherit;
-  cursor: pointer;
+  button {
+    color: inherit;
+    cursor: pointer;
+  }
 }
 
 button:focus-visible,

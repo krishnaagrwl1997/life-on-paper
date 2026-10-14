@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { track } from "@/lib/analytics";
+
 type Status = "idle" | "submitting" | "done" | "error";
 
 /**
@@ -39,6 +41,7 @@ export function WaitlistForm({ source }: { source: string }) {
         return;
       }
 
+      track("waitlist_joined", { source, already: Boolean(payload?.alreadyOnList) });
       setStatus("done");
       setMessage(
         payload?.alreadyOnList
@@ -82,7 +85,7 @@ export function WaitlistForm({ source }: { source: string }) {
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="rounded-full bg-action px-7 py-3.5 font-interface text-base text-paper transition-colors hover:bg-action-deep disabled:opacity-60"
+          className="rounded-full bg-action-deep px-7 py-3.5 font-interface text-base text-paper transition-colors hover:bg-ink disabled:opacity-60"
         >
           {status === "submitting" ? "Adding…" : "Keep me posted"}
         </button>

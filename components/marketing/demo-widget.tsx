@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { track } from "@/lib/analytics";
 import { DEMO_SEED_KEY } from "@/lib/demo-seed";
 
 /**
@@ -73,6 +74,10 @@ export function DemoWidget() {
     // capped, and if it still overruns we fail with something human.
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 20_000);
+    const startedAt = performance.now();
+    const edited = text.trim() !== SAMPLES[language].trim();
+    const report = (ok: boolean) =>
+      track("demo_run", { language, edited, ok, ms: Math.round(performance.now() - startedAt) });
 
     try {
       const response = await fetch("/api/memory-engine", {
@@ -98,6 +103,7 @@ export function DemoWidget() {
         | null;
 
       if (!response.ok || !payload || typeof payload.bookDraft !== "string") {
+        report(false);
         setStatus("error");
         setError(
           payload?.error === "AI_NOT_CONFIGURED"
@@ -109,9 +115,11 @@ export function DemoWidget() {
         return;
       }
 
+      report(true);
       setResult(payload);
       setStatus("done");
     } catch {
+      report(false);
       setStatus("error");
       setError("The editor took too long just now. Try again in a moment.");
     } finally {
@@ -121,6 +129,7 @@ export function DemoWidget() {
 
   // Carry the visitor's own words into their first real entry.
   const keepIt = () => {
+    track("demo_keep", { language });
     try {
       window.localStorage.setItem(DEMO_SEED_KEY, text.trim());
     } catch {
@@ -151,7 +160,7 @@ export function DemoWidget() {
               aria-pressed={language === key}
               className={
                 language === key
-                  ? "inline-flex min-h-11 items-center rounded-full bg-action px-3.5 font-interface text-sm text-paper"
+                  ? "inline-flex min-h-11 items-center rounded-full bg-action-deep px-3.5 font-interface text-sm text-paper"
                   : "inline-flex min-h-11 items-center rounded-full px-3.5 font-interface text-sm text-ink-muted hover:text-ink"
               }
             >
@@ -159,7 +168,7 @@ export function DemoWidget() {
             </button>
           ))}
         </div>
-        <p className="font-interface text-xs text-ink-muted">
+        <p className="font-interface text-sm text-ink">
           Nothing is saved. Yours lives on your device.
         </p>
       </div>
@@ -182,7 +191,7 @@ export function DemoWidget() {
           type="button"
           onClick={run}
           disabled={status === "loading" || !text.trim()}
-          className="rounded-full bg-action px-6 py-3 font-interface text-base text-paper transition-colors hover:bg-action-deep disabled:opacity-60"
+          className="rounded-full bg-action-deep px-6 py-3 font-interface text-base text-paper transition-colors hover:bg-ink disabled:opacity-60"
         >
           {status === "loading" ? "Reading it…" : "See what the editor does"}
         </button>
@@ -261,7 +270,7 @@ export function DemoWidget() {
             <Link
               href="/today"
               onClick={keepIt}
-              className="mt-8 inline-flex min-h-11 items-center rounded-full bg-action px-6 font-interface text-base text-paper transition-colors hover:bg-action-deep"
+              className="mt-8 inline-flex min-h-11 items-center rounded-full bg-action-deep px-6 font-interface text-base text-paper transition-colors hover:bg-ink"
             >
               Keep this — start your book
             </Link>

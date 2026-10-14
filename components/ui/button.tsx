@@ -11,10 +11,10 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "rounded-book bg-action px-5 py-3.5 text-paper shadow-paper-sm hover:bg-action-deep hover:shadow-paper-md active:translate-y-px",
+          "rounded-book bg-action-deep px-5 py-3.5 text-paper shadow-paper-sm hover:bg-ink hover:shadow-paper-md active:translate-y-px",
         secondary:
           "rounded-book border border-ink/55 bg-transparent px-5 py-[0.82rem] text-ink hover:border-ink hover:bg-sheet",
-        text: "border-b border-ink/60 px-0 py-1 text-ink hover:border-action hover:text-action",
+        text: "border-b border-ink/60 px-0 py-1 text-ink hover:border-action-deep hover:text-action-deep",
       },
       size: {
         default: "min-h-11",

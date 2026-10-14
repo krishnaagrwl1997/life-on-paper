@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "What Life on Paper stores, where it lives, who touches it, and how to remove it. Your writing is yours.",
 };
 
-const UPDATED = "28 September 2026";
+const UPDATED = "14 October 2026";
 
 function H2({ children }: { children: React.ReactNode }) {
   return (
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
         </Link>
         <Link
           href="/today"
-          className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] px-4 font-interface text-sm text-ink transition-colors hover:border-action hover:text-action"
+          className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] px-4 font-interface text-sm text-ink transition-colors hover:border-action-deep hover:text-action-deep"
         >
           Start writing
         </Link>
@@ -139,6 +139,15 @@ export default function PrivacyPage() {
           advertising or cross-site tracking cookies.
         </P>
 
+        <H2>Analytics</H2>
+        <P>
+          We count a few anonymous events — a page was visited, the demo was tried, a page was
+          kept — using PostHog, so we can tell whether the product is working for people. These
+          counts never include anything you write: no entries, titles, names or email addresses.
+          Analytics stores nothing on your device and does not record your session, and we honour
+          your browser’s Do Not Track setting.
+        </P>
+
         <H2>Your choices</H2>
         <UL
           items={[
@@ -147,7 +156,7 @@ export default function PrivacyPage() {
             <>
               Ask us to delete your account and everything in it by writing to{" "}
               <a
-                className="text-action underline underline-offset-4"
+                className="text-action-deep underline underline-offset-4"
                 href="mailto:privacy@lifeonpaper.app"
               >
                 privacy@lifeonpaper.app
@@ -181,7 +190,7 @@ export default function PrivacyPage() {
         <P>
           Questions about any of this?{" "}
           <a
-            className="text-action underline underline-offset-4"
+            className="text-action-deep underline underline-offset-4"
             href="mailto:privacy@lifeonpaper.app"
           >
             privacy@lifeonpaper.app

@@ -22,6 +22,7 @@ import { loadCloudGraph, saveCloudGraph } from "@/lib/supabase/graph";
 import { deleteCloudPage, saveCloudPage, syncDevicePages } from "@/lib/supabase/memories";
 import type { AccountSummary } from "@/lib/supabase/account";
 import { DEMO_SEED_KEY } from "@/lib/demo-seed";
+import { track } from "@/lib/analytics";
 
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
 const starterQuestions = [
@@ -262,6 +263,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
   };
 
   const keepPageInLibrary = (page: KeptPage) => {
+    track("entry_saved", { kind: "interview", entry_number: savedPages.length + 1, signed_in: Boolean(account) });
     setSavedPages((current) => {
       const next = [page, ...current.filter((item) => item.id !== page.id)];
       window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));
@@ -415,6 +417,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
   // Phase 1 — daily lines become pages instantly (silent cloud sync) and then
   // receive a best-effort, invisible AI upgrade when the engine is available.
   const addDailyPage = (page: KeptPage) => {
+    track("entry_saved", { kind: "daily", entry_number: savedPages.length + 1, signed_in: Boolean(account) });
     setSavedPages((current) => {
       const next = [page, ...current.filter((item) => item.id !== page.id)];
       window.localStorage.setItem("life-in-books-pages", JSON.stringify(next));

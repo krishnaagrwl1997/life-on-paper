@@ -30,7 +30,7 @@ export default function TermsPage() {
         </Link>
         <Link
           href="/today"
-          className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] px-4 font-interface text-sm text-ink transition-colors hover:border-action hover:text-action"
+          className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] px-4 font-interface text-sm text-ink transition-colors hover:border-action-deep hover:text-action-deep"
         >
           Start writing
         </Link>
@@ -106,7 +106,7 @@ export default function TermsPage() {
         <H2>Contact</H2>
         <P>
           Anything unclear?{" "}
-          <a className="text-action underline underline-offset-4" href="mailto:hello@lifeonpaper.app">
+          <a className="text-action-deep underline underline-offset-4" href="mailto:hello@lifeonpaper.app">
             hello@lifeonpaper.app
           </a>
         </P>

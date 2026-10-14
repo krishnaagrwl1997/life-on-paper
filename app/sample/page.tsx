@@ -18,7 +18,7 @@ export default function SamplePage() {
         </Link>
         <Link
           href="/today"
-          className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] px-4 font-interface text-sm text-ink transition-colors hover:border-action hover:text-action"
+          className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] px-4 font-interface text-sm text-ink transition-colors hover:border-action-deep hover:text-action-deep"
         >
           Start writing
         </Link>
@@ -48,7 +48,7 @@ export default function SamplePage() {
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <Link
               href="/today"
-              className="inline-flex min-h-11 items-center rounded-full bg-action px-7 font-interface text-base text-paper transition-colors hover:bg-action-deep"
+              className="inline-flex min-h-11 items-center rounded-full bg-action-deep px-7 font-interface text-base text-paper transition-colors hover:bg-ink"
             >
               Start your book — free
             </Link>

@@ -38,7 +38,7 @@ test("server-renders the public landing page at /", async () => {
   const html = await response.text();
   assert.match(html, /Life on Paper/);
   assert.match(html, /Write ninety seconds a day/);
-  assert.match(html, /Three quiet doors/);
+  assert.match(html, /Messy is fine/);
   assert.match(html, /See what the editor does/);
 });
 
