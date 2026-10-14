@@ -8,7 +8,7 @@ import {
   type MemoryWeaveResult,
 } from "@/lib/ai/memory-engine";
 import { guardPageResult, guardQuestionResult, tidyEditorialText } from "@/lib/ai/editorial-guardrails";
-import { clientKey, dailyCap, dailyCapResponse, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { clientKey, dailyCap, dailyCapResponse, rateLimit, rateLimitResponse, sharedLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -34,6 +34,27 @@ const RATE_LIMIT_MAX = Number(process.env.MEMORY_ENGINE_RATE_LIMIT) || 60;
  * MEMORY_ENGINE_DAILY_MAX.
  */
 const DAILY_MAX = Number(process.env.MEMORY_ENGINE_DAILY_MAX) || 2000;
+
+/** Per-IP ceiling for the day — generous for shared mobile-carrier IPs. */
+const PER_IP_DAILY_MAX = Number(process.env.MEMORY_ENGINE_PER_IP_DAILY_MAX) || 300;
+
+/**
+ * Browsers always send Origin on a cross-site POST, so this stops other
+ * websites from spending our AI budget from their pages. Requests with no
+ * Origin (a native app, server-to-server) are still allowed and still limited.
+ */
+function isAllowedOrigin(origin: string) {
+  try {
+    const { protocol, hostname } = new URL(origin);
+    if (hostname === "lifeonpaper.app" || hostname === "www.lifeonpaper.app") return protocol === "https:";
+    if (hostname === "localhost" || hostname === "127.0.0.1") return true;
+    if (hostname.endsWith(".vercel.app") && hostname.startsWith("life-on-paper")) return protocol === "https:";
+    const extra = (process.env.MEMORY_ENGINE_ALLOWED_ORIGINS ?? "").split(",").map((item) => item.trim()).filter(Boolean);
+    return extra.includes(origin);
+  } catch {
+    return false;
+  }
+}
 
 const editorInstructions = `You are the private documentary editor for Life on Paper, an AI memoir app.
 
@@ -436,16 +457,32 @@ async function callOpenAi(input: string, schema: EngineSchema, schemaName: strin
 }
 
 export async function POST(request: Request) {
-  const verdict = rateLimit(clientKey(request, "memory-engine"), RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
-  if (!verdict.ok) {
-    return NextResponse.json(rateLimitResponse(verdict), {
-      status: 429,
-      headers: { "Retry-After": String(verdict.retryAfter) },
-    });
+  const origin = request.headers.get("origin");
+  if (origin && !isAllowedOrigin(origin)) {
+    return NextResponse.json({ error: "FORBIDDEN_ORIGIN" }, { status: 403 });
+  }
+
+  // Shared counters (Upstash) when configured, in-memory per instance otherwise.
+  const ipKey = clientKey(request, "memory-engine");
+  const verdict =
+    (await sharedLimit(ipKey, RATE_LIMIT_MAX, "10 m")) ??
+    rateLimit(ipKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+  const ipDay =
+    (await sharedLimit(clientKey(request, "memory-engine-ip-day"), PER_IP_DAILY_MAX, "1 d")) ??
+    rateLimit(clientKey(request, "memory-engine-ip-day"), PER_IP_DAILY_MAX, 24 * 60 * 60 * 1000);
+  for (const result of [verdict, ipDay]) {
+    if (!result.ok) {
+      return NextResponse.json(rateLimitResponse(result), {
+        status: 429,
+        headers: { "Retry-After": String(result.retryAfter) },
+      });
+    }
   }
 
   // Circuit breaker: bound the day's spend even if the per-IP limit is evaded.
-  const daily = dailyCap("memory-engine", DAILY_MAX);
+  // With shared counters this is a true global ceiling, not per instance.
+  const daily =
+    (await sharedLimit("memory-engine-day:all", DAILY_MAX, "1 d")) ?? dailyCap("memory-engine", DAILY_MAX);
   if (!daily.ok) {
     return NextResponse.json(dailyCapResponse(daily), {
       status: 429,

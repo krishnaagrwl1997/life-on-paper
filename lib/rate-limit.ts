@@ -1,3 +1,6 @@
+import { Ratelimit, type Duration } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
 /**
  * Minimal in-memory fixed-window rate limiter.
  *
@@ -123,4 +126,61 @@ export function dailyCapResponse(result: RateLimitResult) {
     message: "The editor has had a very busy day. Please try again tomorrow.",
     retryAfter: result.retryAfter,
   };
+}
+
+/* ------------------------------------------------------------------------ */
+/* Shared limits (Upstash Redis)                                            */
+/* ------------------------------------------------------------------------ */
+
+
+/**
+ * The real fix for the per-instance caveat above: counters in Upstash Redis,
+ * shared by every instance and surviving deploys. Connect it from Vercel →
+ * Storage → Upstash Redis; the integration injects KV_REST_API_URL /
+ * KV_REST_API_TOKEN (or UPSTASH_REDIS_REST_URL / _TOKEN when set by hand).
+ *
+ * Without those variables — or if Redis errors — callers fall back to the
+ * in-memory limiters above, so the endpoint never goes down because of this.
+ */
+const redisUrl = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
+
+const limiters = new Map<string, Ratelimit>();
+
+function limiterFor(limit: number, window: Duration, prefix: string) {
+  const id = `${prefix}:${limit}:${window}`;
+  let limiter = limiters.get(id);
+  if (!limiter && redis) {
+    limiter = new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(limit, window), prefix: `lop:${prefix}` });
+    limiters.set(id, limiter);
+  }
+  return limiter ?? null;
+}
+
+export const sharedLimitsEnabled = Boolean(redis);
+
+/**
+ * Shared fixed-window limit. Returns null when shared storage is unavailable,
+ * so the caller can use the in-memory limiter instead.
+ */
+export async function sharedLimit(
+  key: string,
+  limit: number,
+  window: Duration,
+): Promise<RateLimitResult | null> {
+  const limiter = limiterFor(limit, window, key.split(":")[0]);
+  if (!limiter) return null;
+  try {
+    const result = await limiter.limit(key);
+    return {
+      ok: result.success,
+      limit: result.limit,
+      remaining: result.remaining,
+      retryAfter: Math.max(1, Math.ceil((result.reset - Date.now()) / 1000)),
+    };
+  } catch (error) {
+    console.error("Shared rate limit unavailable; using in-memory limit", error);
+    return null;
+  }
 }
