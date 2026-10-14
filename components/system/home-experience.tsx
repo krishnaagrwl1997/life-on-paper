@@ -129,15 +129,22 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=/today`,
           queryParams: { access_type: "offline", prompt: "select_account" },
+          // We navigate ourselves (below) so Google can replace this history
+          // entry instead of stacking on top of it.
+          skipBrowserRedirect: true,
         },
       });
 
       if (error) throw error;
+      if (!data?.url) throw new Error("No sign-in URL");
+      // replace(): after signing in, Back returns to where you were before
+      // the app, not into Google's account screens.
+      window.location.replace(data.url);
     } catch {
       setAuthPending(false);
       setAuthError("You can keep exploring as a guest and connect your account later.");
@@ -709,7 +716,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
 
   return (
     <>
-    <main className={active === "Add Memory" ? "home-app home-app--memory" : isReading ? "home-app home-app--reading" : "home-app"}>
+    <main className={active === "Add Memory" ? "home-app home-app--memory" : isReading ? "home-app home-app--reading" : active === "Today" ? "home-app home-app--today" : "home-app"}>
       {active === "Add Memory" ? (
         <MemoryInterview
           key={`${memoryMode}-${memorySeed}-${memoryPrompt}`}

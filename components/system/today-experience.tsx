@@ -6,6 +6,7 @@ import {
   CaretRight,
   ImageSquare,
   Microphone,
+  UserCircle,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -242,6 +243,19 @@ export function TodayExperience({
   const wroteToday = pages.some((page) => page.createdAt && new Date(page.createdAt).toDateString() === today);
   const justSaved = justSavedId ? pages.find((page) => page.id === justSavedId) ?? null : null;
   const bookProgress = Math.min(1, memoryCount / FIRST_BOOK_PAGES);
+  const todayLabel = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
+
+  // One suggestion at a time, so Today stays a writing page rather than a
+  // feed. Care always comes first.
+  const nudge: "care" | "chapter" | "tutor" | "monthly" | "forming" | "surfacing" | "backup" | null =
+    careCard ? "care"
+      : storyForming?.chapterReady ? "chapter"
+        : showTutor && tutorQuestions.length ? "tutor"
+          : monthlyCard ? "monthly"
+            : storyForming && storyForming.momentsNeeded > 0 ? "forming"
+              : surfacingCandidate ? "surfacing"
+                : !account && memoryCount >= 3 ? "backup"
+                  : null;
 
   const initials = account
     ? account.name
@@ -299,7 +313,7 @@ export function TodayExperience({
             <img src={account.avatarUrl} alt="" className="today-avatar__image" />
           ) : (
             <span className="today-avatar__fallback" aria-hidden="true">
-              {account ? initials : <BookOpenText size={18} weight="regular" />}
+              {account ? initials : <UserCircle size={20} weight="regular" />}
             </span>
           )}
         </button>
@@ -341,11 +355,10 @@ export function TodayExperience({
           transition={{ duration: reduceMotion ? 0 : 0.6, ease: paperEase }}
         >
           Your book begins with a few lines a day.
-          <button type="button" className="today-beginning__craft" onClick={onCraftMemory}>
-            Prefer guidance? Craft a memory <CaretRight size={13} weight="bold" aria-hidden="true" />
-          </button>
         </motion.p>
       ) : null}
+
+      <p className="today-date">{todayLabel}</p>
 
       <section className="today-composer" aria-label="Write today's lines">
         <label className="sr-only" htmlFor="today-lines">Today&rsquo;s lines</label>
@@ -439,6 +452,12 @@ export function TodayExperience({
         <p className="today-composer__note">Saved on this device as you write.</p>
       </section>
 
+      {!draft.trim() && !justSaved ? (
+        <button type="button" className="today-guide" onClick={onCraftMemory}>
+          Not sure what to write? I&rsquo;ll ask you a few questions <CaretRight size={13} weight="bold" aria-hidden="true" />
+        </button>
+      ) : null}
+
       <AnimatePresence>
         {justSaved ? (
           <motion.section
@@ -492,7 +511,7 @@ export function TodayExperience({
         ) : null}
       </AnimatePresence>
 
-      {storyForming && !storyForming.chapterReady && storyForming.momentsNeeded > 0 ? (
+      {nudge === "forming" && storyForming ? (
         <section className="forming-card" role="region" aria-label="Your story is forming">
           <header className="forming-card__header">
             <p>Your story is forming</p>
@@ -517,7 +536,7 @@ export function TodayExperience({
         </section>
       ) : null}
 
-      {storyForming && storyForming.chapterReady ? (
+      {nudge === "chapter" && storyForming ? (
         <section className="forming-card forming-card--ready" role="region" aria-label="Your first chapter is ready">
           <header className="forming-card__header">
             <p>Your first chapter is ready</p>
@@ -531,7 +550,7 @@ export function TodayExperience({
         </section>
       ) : null}
 
-      {monthlyCard ? (
+      {nudge === "monthly" && monthlyCard ? (
         <section className="monthly-card" role="region" aria-label={`Your month so far, ${monthlyCard.label}`}>
           <header className="monthly-card__header">
             <p>Your month, so far · {monthlyCard.label}</p>
@@ -545,7 +564,7 @@ export function TodayExperience({
         </section>
       ) : null}
 
-      {careCard ? (
+      {nudge === "care" && careCard ? (
         <section className={`care-card${careCard.kind === "acute" ? " care-card--acute" : ""}`} role="region" aria-label={careCard.kind === "acute" ? "You're not alone" : "I'm here"}>
           <header className="care-card__header">
             <p>{careCard.kind === "acute" ? "You're not alone" : "I'm here."}</p>
@@ -579,7 +598,7 @@ export function TodayExperience({
         </section>
       ) : null}
 
-      {!account && memoryCount >= 3 ? (
+      {nudge === "backup" ? (
         <section className="today-backup" aria-label="Back up your book">
           <div>
             <strong>Back up your book</strong>
@@ -591,7 +610,7 @@ export function TodayExperience({
         </section>
       ) : null}
 
-      {surfacingCandidate ? (
+      {nudge === "surfacing" && surfacingCandidate ? (
         <section className="surfacing-card" role="region" aria-label="A moment worth returning to">
           <header className="surfacing-card__header">
             <p>A moment worth returning to</p>
@@ -607,7 +626,7 @@ export function TodayExperience({
         </section>
       ) : null}
 
-      {showTutor && tutorQuestions.length ? (
+      {nudge === "tutor" ? (
         <section className="tutor-card" role="region" aria-label="A quick memory check">
           <header className="tutor-card__header">
             <p>A quick memory check</p>

@@ -17227,3 +17227,49 @@ input:focus-visible {
   margin-left: auto;
   white-space: nowrap;
 }
+
+/* ---------------------------------------------------------------------------
+   Today on desktop: no framed panel. The writing page sits on the paper,
+   centred, at full height — the boxed "book" frame suits the Story reader,
+   but on Today it read as a narrow column in a box that stopped mid-screen.
+   --------------------------------------------------------------------------- */
+@media (min-width: 641px) {
+  .home-app.home-app--today {
+    width: 100%;
+    min-height: 100svh;
+    margin: 0 auto;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+.home-app--today > div {
+  padding-top: clamp(1.5rem, 4vh, 3rem);
+}
+
+.today-date {
+  margin: 0 0 0.6rem;
+  color: var(--ink-muted);
+  font-family: var(--font-fraunces), serif;
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.today-guide {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.today-guide:hover {
+  color: var(--action-deep);
+}
