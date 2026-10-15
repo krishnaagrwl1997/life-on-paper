@@ -695,13 +695,14 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     addDailyPage(page);
   };
 
-  const saveDailyEntry = (text: string) => {
+  const saveDailyEntry = (text: string, photo?: string) => {
     let page: KeptPage;
     try {
       page = composeDailyEntry(text);
     } catch {
       return;
     }
+    if (photo) page = { ...page, photo, photoTreatment: "original" };
     addDailyPage(page);
     const attemptUpgrade = (attempt: number) => {
       void upgradeKeptPageWithAi(page).then((upgraded) => {
@@ -812,7 +813,6 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
           onCraftMemory={chooseCraftMemory}
           onSaveDaily={saveDailyEntry}
           onKeepSound={keepSound}
-          onPhotoCapture={() => openMemory("Photo")}
           onOpenLibrary={(pageId) => openLibraryAt("reader", pageId)}
           storyForming={storyFormingNow}
           onOpenWeaves={() => { openLibraryAt("weaves"); }}

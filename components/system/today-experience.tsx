@@ -7,6 +7,7 @@ import {
   ImageSquare,
   Microphone,
   UserCircle,
+  X,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -71,7 +72,6 @@ export function TodayExperience({
   onCraftMemory,
   onSaveDaily,
   onKeepSound,
-  onPhotoCapture,
   onOpenLibrary,
   storyForming,
   onOpenWeaves,
@@ -100,9 +100,8 @@ export function TodayExperience({
   onGoogleSignIn: () => void;
   onSignOut: () => void;
   onCraftMemory: () => void;
-  onSaveDaily: (text: string) => void;
+  onSaveDaily: (text: string, photo?: string) => void;
   onKeepSound: (keepsake: Keepsake, line: string) => void;
-  onPhotoCapture: () => void;
   onOpenLibrary: (pageId: string) => void;
   storyForming: StoryForming | null;
   onOpenWeaves: () => void;
@@ -143,6 +142,29 @@ export function TodayExperience({
     onError: setMicError,
     language: dictationLang,
   });
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+
+  // A photo stays on Today: it joins the lines being written and goes into
+  // the page when it's shaped, instead of opening a separate flow.
+  const choosePhoto = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setMicError("That file isn't a photo. Try a JPG or PNG.");
+      return;
+    }
+    setMicError(null);
+    setPhotoBusy(true);
+    try {
+      setPhoto(await shrinkPhoto(file));
+    } catch {
+      setMicError("That photo couldn't be opened. Try another one.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
 
   const [keepsakes, setKeepsakes] = useState<Keepsake[]>([]);
   const { isRecording, elapsedMs, start: startRecording, stop: stopRecording } = useKeepsakeRecorder({
@@ -222,8 +244,42 @@ export function TodayExperience({
     return () => window.clearTimeout(timer);
   }, [draft]);
 
+  // The field grows with the writing, and follows dictated words to the end.
+  useEffect(() => {
+    const field = composerRef.current;
+    if (!field) return;
+    field.style.height = "auto";
+    field.style.height = `${field.scrollHeight}px`;
+    if (isListening && document.activeElement !== field) field.scrollTop = field.scrollHeight;
+  }, [draft, isListening]);
+
+  const toggleDictation = () => {
+    if (isListening) {
+      stopDictation();
+      return;
+    }
+    setMicError(null);
+    if (!isSupported) {
+      setMicError("Live dictation isn't available in this browser. You can still type your lines.");
+      return;
+    }
+    if (isRecording) stopRecording();
+    startDictation();
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+    setMicError(null);
+    if (isListening) stopDictation();
+    void startRecording();
+  };
+
   const shapeIntoPage = () => {
-    const text = draft.trim();
+    // Words still being spoken are kept, not dropped.
+    const text = (stopDictation() ?? draft).trim();
     if (!text) return;
     setDraft("");
     try {
@@ -231,7 +287,8 @@ export function TodayExperience({
     } catch {
       // Best-effort cleanup.
     }
-    onSaveDaily(text);
+    onSaveDaily(text, photo ?? undefined);
+    setPhoto(null);
     justSavedRef.current = true;
   };
 
@@ -369,27 +426,37 @@ export function TodayExperience({
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onInput={(event) => setDraft((event.target as HTMLTextAreaElement).value)}
-          placeholder={wroteToday ? "Anything else from today?" : dailyQuestion()}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && isListening) {
+              event.preventDefault();
+              stopDictation();
+            }
+          }}
+          placeholder={photo ? "What's the story behind this photo?" : wroteToday ? "Anything else from today?" : dailyQuestion()}
           className="today-composer__field"
         />
+        {photo || photoBusy ? (
+          <figure className="today-photo">
+            {photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photo} alt="The photo for this page" />
+            ) : (
+              <span className="today-photo__loading" aria-live="polite">Adding your photo…</span>
+            )}
+            {photo ? (
+              <button type="button" className="today-photo__remove" onClick={() => setPhoto(null)} aria-label="Remove the photo">
+                <X size={14} weight="bold" aria-hidden="true" />
+              </button>
+            ) : null}
+            {photo && !draft.trim() ? <figcaption>Add a line or two about it, then shape it into a page.</figcaption> : null}
+          </figure>
+        ) : null}
         <footer className="today-composer__footer">
           <span className="today-composer__tools">
             <button
               type="button"
               className={isListening ? "today-mic today-mic--listening" : "today-mic"}
-              onClick={() => {
-                if (isListening) {
-                  stopDictation();
-                  window.setTimeout(syncDraftFromField, 60);
-                  return;
-                }
-                setMicError(null);
-                if (!isSupported) {
-                  setMicError("Live dictation isn't available in this browser. You can still type your lines.");
-                  return;
-                }
-                startDictation();
-              }}
+              onClick={toggleDictation}
               aria-label={isListening ? "Stop dictation" : "Speak your lines"}
               aria-pressed={isListening}
               title={isListening ? "Stop dictation" : "Speak your lines"}
@@ -400,7 +467,7 @@ export function TodayExperience({
             <button
               type="button"
               className={isRecording ? "today-record today-record--on" : "today-record"}
-              onClick={() => (isRecording ? stopRecording() : void startRecording())}
+              onClick={toggleRecording}
               aria-label={isRecording ? "Stop keeping this sound" : "Keep a sound"}
               aria-pressed={isRecording}
               title={isRecording ? "Stop keeping this sound" : "Keep a sound — a voice, laughter, the rain"}
@@ -408,21 +475,42 @@ export function TodayExperience({
               <Waveform size={19} weight={isRecording ? "bold" : "regular"} aria-hidden="true" />
               <span className="today-tool__label">{isRecording ? "Stop" : "Record"}</span>
             </button>
-            <button type="button" onClick={onPhotoCapture} aria-label="Add a photo" title="Add a photo">
-              <ImageSquare size={19} weight="regular" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              aria-label={photo ? "Change the photo" : "Add a photo"}
+              title={photo ? "Change the photo" : "Add a photo"}
+              disabled={photoBusy}
+            >
+              <ImageSquare size={19} weight={photo ? "fill" : "regular"} aria-hidden="true" />
               <span className="today-tool__label">Photo</span>
             </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(event) => {
+                void choosePhoto(event.target.files?.[0]);
+                event.target.value = "";
+              }}
+            />
           </span>
-          <button type="button" className="today-composer__action" onClick={shapeIntoPage} disabled={!draft.trim()}>
+          <button type="button" className="today-composer__action" onClick={shapeIntoPage} disabled={!draft.trim() && !interimTranscript}>
             Shape into a page
           </button>
         </footer>
 
-        {isListening || interimTranscript ? (
-          <div className="today-listening" role="status" aria-live="polite">
-            <span className="today-listening__dot" aria-hidden="true" />
-            <span className="today-listening__label">Listening{dictationLang === "hi-IN" ? " · हिंदी" : ""}</span>
-            {interimTranscript ? <em>{interimTranscript}</em> : <em>Speak naturally — pauses are fine.</em>}
+        {isListening ? (
+          <div className={interimTranscript ? "today-listening today-listening--hearing" : "today-listening"} role="status">
+            <span className="today-listening__bars" aria-hidden="true"><i /><i /><i /><i /></span>
+            <span className="today-listening__label">{interimTranscript ? "Hearing you" : "Listening"}</span>
+            <em>
+              {draft.trim()
+                ? "Pause whenever you like. Say \u201cfull stop\u201d or \u201cnew paragraph\u201d."
+                : "Speak naturally \u2014 your words appear above as you talk."}
+            </em>
+            <button type="button" className="today-listening__done" onClick={() => stopDictation()}>Done</button>
           </div>
         ) : null}
 
@@ -430,7 +518,8 @@ export function TodayExperience({
           <div className="today-listening today-listening--record" role="status" aria-live="polite">
             <span className="today-listening__dot" aria-hidden="true" />
             <span className="today-listening__label">Keeping this sound</span>
-            <em>{formatDuration(elapsedMs)} — tap the wave to stop</em>
+            <em>{formatDuration(elapsedMs)}</em>
+            <button type="button" className="today-listening__done" onClick={() => stopRecording()}>Done</button>
           </div>
         ) : null}
 
@@ -474,6 +563,10 @@ export function TodayExperience({
               <button type="button" onClick={() => setJustSavedId(null)} aria-label="Close the new page">×</button>
             </header>
             <h2 className="today-new-page__title">{justSaved.title}</h2>
+            {justSaved.photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="today-new-page__photo" src={justSaved.photo} alt="The photo on this page" />
+            ) : null}
             {showOriginal ? (
               <p className="today-new-page__raw">{justSaved.originalText || justSaved.body.join(" ")}</p>
             ) : (
@@ -675,4 +768,28 @@ export function TodayExperience({
       ) : null}
     </div>
   );
+}
+
+/** Scales a photo down so a day's page stays light enough to keep on the device. */
+function shrinkPhoto(file: File, maxSide = 1600): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new window.Image();
+    image.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.naturalWidth * scale);
+      canvas.height = Math.round(image.naturalHeight * scale);
+      const context = canvas.getContext("2d");
+      URL.revokeObjectURL(url);
+      if (!context) return reject(new Error("no canvas"));
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("unreadable image"));
+    };
+    image.src = url;
+  });
 }

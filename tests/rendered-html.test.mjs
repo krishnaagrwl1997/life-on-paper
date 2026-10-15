@@ -62,7 +62,7 @@ test("keeps the three-door memoir shell and core flows explicit", async () => {
   assert.match(memory, /Keep in my book/);
   assert.match(transcription, /interimResults = true/);
   assert.match(library, /Open book contents/);
-  assert.match(library, /Scroll inside the paper to read/);
+  assert.match(library, /className="reader-time">Page /);
   assert.match(library, /Toggle reading by lamplight/);
   assert.match(profile, /Google/);
 });
