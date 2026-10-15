@@ -123,9 +123,13 @@ export function LibraryExperience({
   // not already say it (it used to sit above the body, so pages opened with
   // their ending and then repeated it).
   const normalizeLine = (value?: string) => (value ?? "").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  // On a page that holds a recording, the automatic "A sound I wanted to
+  // keep, from this afternoon." line only repeats the title; the player says it.
+  const hasKeepsakes = Boolean(selectedPage?.keepsakes?.length);
   const readerParagraphs = selectedPage
     ? selectedPage.body.filter((paragraph, index, collection) => {
         const normalized = normalizeLine(paragraph);
+        if (hasKeepsakes && /^(a sound i wanted to keep|i spoke this)\b/.test(normalized)) return false;
         return Boolean(normalized) && collection.findIndex((candidate) => normalizeLine(candidate) === normalized) === index;
       })
     : [];
@@ -671,7 +675,7 @@ export function LibraryExperience({
                   <Image src="/assets/goa-watercolor-motifs.png" alt="" fill unoptimized sizes="760px" />
                 </div>
               ) : null}
-              <header><span>{selectedPage.book} · {selectedPage.volume}</span><span>{selectedPage.chapter}</span></header>
+              <header><span>{selectedPage.volume}</span><span>{selectedPage.chapter}</span></header>
               <div>
                 <p className="reader-date">{selectedPage.date}</p>
                 <h1>{selectedPage.title}</h1>
@@ -680,12 +684,12 @@ export function LibraryExperience({
                 {readerReflection ? <p className="reader-reflection">{readerReflection}</p> : null}
                 {readerKeepsakes.length ? (
                   <div className="reader-keepsakes">
-                    <p className="reader-keepsakes__label">The sound of this moment</p>
+                    {!readerParagraphs.length ? null : <p className="reader-keepsakes__label">The sound of this moment</p>}
                     {readerKeepsakes.map((keepsake) => <KeepsakePlayer key={keepsake.id} keepsake={keepsake} />)}
                   </div>
                 ) : null}
               </div>
-              <footer><span>{bookTitle}</span><span>{selectedPageIndex + 1}</span></footer>
+              <footer><span>{selectedPageIndex + 1}</span></footer>
             </article>
             <button type="button" className="reader-edge reader-edge--next" aria-label="Next page" disabled={!canMoveNext} onClick={() => movePage(1)}><ArrowRight size={20} aria-hidden="true" /></button>
             <nav className={readerChrome ? "reader-controls reader-controls--floating" : "reader-controls reader-controls--floating reader-controls--hidden"} aria-label="Page controls">

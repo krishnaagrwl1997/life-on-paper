@@ -17378,14 +17378,6 @@ input:focus-visible {
   }
 }
 
-/* Reader on desktop: the fixed reading panel started 2.5rem down but was a
-   full viewport tall, so its page-turn bar sat below the screen. Fit it. */
-@media (min-width: 641px) {
-  .home-app.home-app--reading {
-    height: calc(100svh - 2.5rem);
-    min-height: 0;
-  }
-}
 
 /* The writer's closing line, at the end of the page. */
 .reader-page .reader-reflection {
@@ -17555,4 +17547,209 @@ input:focus-visible {
   margin: 0.4rem 0 0.9rem;
   border-radius: 0.8rem;
   object-fit: cover;
+}
+
+/* Reader, calmer: one full-screen reading room instead of a framed card,
+   one centred page, each label said once, and a title that breathes. */
+
+.home-app.home-app--reading {
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: #ece6dc;
+}
+
+.home-app.home-app--reading .reader-view--kindle {
+  width: 100%;
+  max-width: none;
+  padding: 0 clamp(1rem, 3vw, 2.5rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 44rem) minmax(0, 1fr);
+  gap: 0;
+}
+
+.home-app.home-app--reading .reader-margin {
+  display: none;
+}
+
+.home-app.home-app--reading .reader-kindle-bar {
+  grid-column: 1 / -1;
+  padding-right: max(clamp(1rem, 3vw, 2.5rem), calc((100% - 68rem) / 2));
+  padding-left: max(clamp(1rem, 3vw, 2.5rem), calc((100% - 68rem) / 2));
+  border-bottom: 1px solid rgba(43, 38, 32, 0.08);
+  background: rgba(240, 234, 224, 0.92);
+  box-shadow: none;
+}
+
+.home-app.home-app--reading .reader-page {
+  display: flex;
+  flex-direction: column;
+  grid-column: 2;
+  margin-top: 1.25rem;
+  height: calc(100% - 1.25rem);
+  border: 0;
+  border-radius: 0.35rem 0.35rem 0 0;
+  box-shadow: 0 1px 2px rgba(43, 38, 32, 0.06), 0 18px 48px rgba(63, 48, 32, 0.1);
+}
+
+.home-app.home-app--reading .reader-page > * {
+  flex-shrink: 0;
+}
+
+.home-app.home-app--reading .reader-page > header {
+  border-radius: 0.35rem 0.35rem 0 0;
+  border-bottom: 1px solid rgba(43, 38, 32, 0.07);
+  color: var(--ink-muted);
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+
+.home-app.home-app--reading .reader-page > div:not(.reader-watercolor-motifs) {
+  width: 100%;
+  min-height: 0;
+  max-width: 36rem;
+  padding-top: clamp(2rem, 7vh, 3.75rem);
+}
+
+.home-app.home-app--reading .reader-page h1 {
+  max-width: 18ch;
+  font-size: clamp(2.4rem, 4.2vw, 3.5rem);
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.home-app.home-app--reading .reader-date {
+  margin-bottom: 1.1rem !important;
+}
+
+.home-app.home-app--reading .reader-page > footer {
+  justify-content: center;
+  margin: auto 0 0;
+  padding: 1.5rem 0 1.75rem;
+  border-top: 0;
+  color: var(--ink-muted);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.home-app.home-app--reading .reader-controls--floating {
+  grid-column: 2;
+}
+
+.home-app.home-app--reading .reader-location strong {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.home-app.home-app--reading .reader-location small {
+  font-size: 0.6rem;
+}
+
+.home-app.home-app--reading .reader-keepsakes {
+  margin-top: 2rem;
+}
+
+@media (max-width: 700px) {
+  .home-app.home-app--reading .reader-view--kindle {
+    padding: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-app.home-app--reading .reader-kindle-bar,
+  .home-app.home-app--reading .reader-page,
+  .home-app.home-app--reading .reader-controls--floating {
+    grid-column: 1;
+  }
+
+  .home-app.home-app--reading .reader-kindle-bar {
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .home-app.home-app--reading .reader-page {
+    margin-top: 0;
+    height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .home-app.home-app--reading .reader-page > header {
+    border-radius: 0;
+    font-size: 0.55rem;
+  }
+
+  .home-app.home-app--reading .reader-page h1 {
+    max-width: none;
+    font-size: clamp(2.1rem, 9vw, 2.75rem);
+    line-height: 1.06;
+  }
+}
+
+/* Keepsake player: play, pause, progress and time */
+
+.keepsake {
+  gap: 0.85rem;
+  padding: 0.7rem 0.95rem 0.7rem 0.7rem;
+}
+
+.keepsake__play {
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 0;
+  background: var(--action);
+  color: var(--paper);
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.keepsake__play:hover {
+  background: var(--action-deep);
+}
+
+.keepsake__play:active {
+  transform: scale(0.94);
+}
+
+.keepsake__copy {
+  flex: 1;
+  gap: 0.35rem;
+}
+
+.keepsake__track {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.keepsake__bar {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(43, 38, 32, 0.1);
+  cursor: pointer;
+}
+
+.keepsake__bar::before {
+  content: "";
+  position: absolute;
+  inset: -8px 0;
+}
+
+.keepsake__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--action);
+  transition: width 0.25s linear;
+}
+
+.keepsake__track small {
+  flex: none;
+  font-variant-numeric: tabular-nums;
 }
