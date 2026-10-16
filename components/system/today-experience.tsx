@@ -24,6 +24,7 @@ import { Waveform } from "@phosphor-icons/react";
 import type { MonthlySummary } from "@/components/system/monthly";
 import { ProfileExperience } from "@/components/system/profile-experience";
 import { useHistoryLayer } from "@/lib/use-history-layer";
+import { HabitNudge, shouldShowHabitNudge } from "@/components/system/habit-panel";
 
 const draftKey = "life-on-paper-today-draft";
 
@@ -200,6 +201,37 @@ export function TodayExperience({
     if (composeSignal > 0) composerRef.current?.focus();
   }, [composeSignal]);
 
+  // Whether to suggest a daily reminder (read after mount: it lives in localStorage).
+  const [showHabit, setShowHabit] = useState(false);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setShowHabit(shouldShowHabitNudge(memoryCount)));
+    return () => window.cancelAnimationFrame(frame);
+  }, [memoryCount]);
+
+  // Opened from a reminder or a home-screen shortcut: ?write=1 puts the cursor
+  // in the field, ?speak=1 starts listening. The flag is then dropped from the
+  // address so a refresh doesn't repeat it.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const write = url.searchParams.has("write");
+    const speak = url.searchParams.has("speak");
+    if (!write && !speak && !url.searchParams.has("source")) return;
+    // Acts (and clears the flag) only once this screen has settled, so a
+    // quick remount on arrival doesn't swallow it.
+    const timer = window.setTimeout(() => {
+      url.searchParams.delete("write");
+      url.searchParams.delete("speak");
+      url.searchParams.delete("source");
+      window.history.replaceState(window.history.state, "", url);
+      composerRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      if (speak && isSupported) startDictation();
+      else if (write) composerRef.current?.focus();
+    }, 350);
+    return () => window.clearTimeout(timer);
+    // Runs once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // If the browser (native dictation, autofill, an extension) writes into the
   // field without React seeing it, state and DOM diverge — which used to leave
   // "Shape into a page" disabled even though text was visible. Keep them in
@@ -304,8 +336,9 @@ export function TodayExperience({
 
   // One suggestion at a time, so Today stays a writing page rather than a
   // feed. Care always comes first.
-  const nudge: "care" | "chapter" | "tutor" | "monthly" | "forming" | "surfacing" | "backup" | null =
+  const nudge: "care" | "chapter" | "tutor" | "monthly" | "forming" | "surfacing" | "backup" | "habit" | null =
     careCard ? "care"
+      : showHabit ? "habit"
       : storyForming?.chapterReady ? "chapter"
         : showTutor && tutorQuestions.length ? "tutor"
           : monthlyCard ? "monthly"
@@ -690,6 +723,8 @@ export function TodayExperience({
           </div>
         </section>
       ) : null}
+
+      {nudge === "habit" ? <HabitNudge onClose={() => setShowHabit(false)} /> : null}
 
       {nudge === "backup" ? (
         <section className="today-backup" aria-label="Back up your book">

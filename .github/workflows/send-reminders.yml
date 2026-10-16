@@ -1,0 +1,29 @@
+name: Send daily reminders
+
+# Every 15 minutes, ask the app to send any daily reminders that are due.
+# The app decides who is due (each person's chosen time, in their timezone).
+# Needs the CRON_SECRET repository secret, matching CRON_SECRET in Vercel.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send due reminders
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "CRON_SECRET is not set yet; skipping."
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/body -w '%{http_code}' -m 60 -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            https://lifeonpaper.app/api/reminders/send)
+          cat /tmp/body; echo
+          if [ "$code" = "503" ]; then echo "Reminders are not configured on the server yet."; exit 0; fi
+          [ "$code" = "200" ] || { echo "::error::Reminder send returned $code"; exit 1; }

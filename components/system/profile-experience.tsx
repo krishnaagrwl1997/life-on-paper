@@ -1,5 +1,6 @@
 "use client";
 
+import { InstallRow, ReminderSettingsPanel } from "@/components/system/habit-panel";
 import Image from "next/image";
 import { ArrowLeft, BookOpenText, CloudCheck, CloudSlash, LockKey, SignOut } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -81,6 +82,16 @@ export function ProfileExperience({
                     : "Saved on this device only. Sign in to back up your book."}
             </p>
           </div>
+        </section>
+
+        <section className="cast-section">
+          <p className="section-label">Daily reminder</p>
+          <ReminderSettingsPanel />
+        </section>
+
+        <section className="cast-section">
+          <p className="section-label">On this device</p>
+          <InstallRow />
         </section>
 
         <section className="cast-section">

@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@/components/system/analytics";
 import { ThemeProvider } from "@/components/system/theme-provider";
+import { PwaSetup } from "@/components/system/pwa";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,6 +25,11 @@ export const metadata: Metadata = {
         alt: "Life on Paper — write 90 seconds a day, get a book of your life.",
       },
     ],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Life on Paper",
+    statusBarStyle: "default",
   },
   twitter: {
     card: "summary_large_image",
@@ -59,6 +65,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>{children}</ThemeProvider>
         <Analytics />
+        <PwaSetup />
       </body>
     </html>
   );
