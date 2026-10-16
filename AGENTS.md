@@ -117,7 +117,19 @@ GEMINI_API_KEY=
 GEMINI_MEMORY_MODEL=gemini-2.5-flash
 OPENAI_API_KEY=
 OPENAI_MEMORY_MODEL=gpt-5.6-terra
+
+# Daily reminders by push (optional; calendar reminders need nothing)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=          # public; build-time — redeploy after changing
+VAPID_PRIVATE_KEY=                     # secret
+VAPID_SUBJECT=mailto:hello@lifeonpaper.app
+SUPABASE_SERVICE_ROLE_KEY=             # secret, server-only (lib/supabase/admin.ts)
+CRON_SECRET=                           # also a GitHub repo secret (send-reminders.yml)
 ```
+
+Push reminders also need the `push_subscriptions` migration applied. Until
+all of the above exist, the "Notify me" option is hidden and
+`/api/reminders` answers `503 NOT_CONFIGURED`; the 15-minute GitHub workflow
+skips quietly.
 
 Local values live in `.env`; production values live in **Vercel project env
 vars**. Changing `.env` does nothing for production and vice versa.
