@@ -312,7 +312,7 @@ export function TodayExperience({
   const shapeIntoPage = () => {
     // Words still being spoken are kept, not dropped.
     const text = (stopDictation() ?? draft).trim();
-    if (!text) return;
+    if (!text && !photo) return;
     setDraft("");
     try {
       window.localStorage.removeItem(draftKey);
@@ -481,7 +481,7 @@ export function TodayExperience({
                 <X size={14} weight="bold" aria-hidden="true" />
               </button>
             ) : null}
-            {photo && !draft.trim() ? <figcaption>Add a line or two about it, then shape it into a page.</figcaption> : null}
+            {photo && !draft.trim() ? <figcaption>Add a line about it if you like — or keep the photo as today&rsquo;s page.</figcaption> : null}
           </figure>
         ) : null}
         <footer className="today-composer__footer">
@@ -529,7 +529,7 @@ export function TodayExperience({
               }}
             />
           </span>
-          <button type="button" className="today-composer__action" onClick={shapeIntoPage} disabled={!draft.trim() && !interimTranscript}>
+          <button type="button" className="today-composer__action" onClick={shapeIntoPage} disabled={!draft.trim() && !interimTranscript && !photo}>
             Shape into a page
           </button>
         </footer>

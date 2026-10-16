@@ -64,6 +64,9 @@ function routeSearch(route: Route) {
   return text ? `?${text}` : "";
 }
 
+/** Where wordless days (a sound, a photo) are filed, instead of a guessed topic. */
+const KEPT_MOMENTS = { volume: "Kept moments", chapterTitle: "Sounds and pictures" } as const;
+
 function readRoute(): Route {
   const query = new URLSearchParams(window.location.search);
   const s = query.get("s");
@@ -691,11 +694,24 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     } catch {
       return;
     }
-    page = { ...page, title: "A sound I wanted to keep", keepsakes: [keepsake.id], people: [] };
+    page = { ...page, ...KEPT_MOMENTS, title: "A sound I wanted to keep", keepsakes: [keepsake.id], people: [] };
     addDailyPage(page);
   };
 
   const saveDailyEntry = (text: string, photo?: string) => {
+    // A photo with no words is still a day: one factual line, nothing invented.
+    if (!text.trim() && photo) {
+      const hour = new Date().getHours();
+      const partOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : hour < 21 ? "evening" : "night";
+      let photoPage: KeptPage;
+      try {
+        photoPage = composeDailyEntry(`A photo I wanted to keep, from this ${partOfDay}.`);
+      } catch {
+        return;
+      }
+      addDailyPage({ ...photoPage, ...KEPT_MOMENTS, title: "A photo I wanted to keep", photo, photoTreatment: "original", people: [], aiPolished: true });
+      return;
+    }
     let page: KeptPage;
     try {
       page = composeDailyEntry(text);

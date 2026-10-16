@@ -26,7 +26,7 @@ import type { KeptPage } from "@/components/system/memory-interview";
 import { WeavesExperience } from "@/components/system/weaves-experience";
 import { KeepsakePlayer } from "@/components/system/keepsake-player";
 import { listKeepsakes, type Keepsake } from "@/components/system/keepsakes";
-import { computeWeekGroups } from "@/components/system/weekly-weave";
+import { computeWeekGroups, pageTime } from "@/components/system/weekly-weave";
 import { detectEras, type Era } from "@/components/system/eras";
 
 type LibraryView = "shelf" | "book" | "reader" | "studio" | "search" | "weaves";
@@ -91,6 +91,9 @@ export function LibraryExperience({
   const [readerChrome, setReaderChrome] = useState(true);
   const [readerSettingsOpen, setReaderSettingsOpen] = useState(false);
   const [readerContentsOpen, setReaderContentsOpen] = useState(false);
+  const [pageMenuOpen, setPageMenuOpen] = useState(false);
+  const [editDraft, setEditDraft] = useState<{ title: string; body: string } | null>(null);
+  const [moveOpen, setMoveOpen] = useState(false);
   const [readerScrollProgress, setReaderScrollProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
@@ -101,8 +104,10 @@ export function LibraryExperience({
   const activePages = pages.filter((page) => !removedPageIds.includes(page.id));
   const eraVolumes = groupEras(activePages);
   const readingPages = eraFilter ? activePages.filter((page) => eraKeyFor(page, eraVolumes) === eraFilter) : activePages;
-  const libraryVolumes = [...new Set(readingPages.map((page) => page.volume).filter(Boolean))];
-  const orderedPages = libraryVolumes.flatMap((volume) => readingPages.filter((page) => page.volume === volume));
+  // A book reads from the beginning of a life: parts in life order (childhood
+  // before college before now), and pages oldest first within each part.
+  const libraryVolumes = orderVolumes(readingPages);
+  const orderedPages = libraryVolumes.flatMap((volume) => oldestFirst(readingPages.filter((page) => page.volume === volume)));
   const libraryChapters = [...new Set(activePages.map((page) => page.chapterTitle).filter(Boolean))];
   const wovenWeeksCount = computeWeekGroups(activePages).length;
   const bookSummary = activePages.length
@@ -125,11 +130,11 @@ export function LibraryExperience({
   const normalizeLine = (value?: string) => (value ?? "").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   // On a page that holds a recording, the automatic "A sound I wanted to
   // keep, from this afternoon." line only repeats the title; the player says it.
-  const hasKeepsakes = Boolean(selectedPage?.keepsakes?.length);
+  const hasKeepsakes = Boolean(selectedPage?.keepsakes?.length || selectedPage?.photo);
   const readerParagraphs = selectedPage
     ? selectedPage.body.filter((paragraph, index, collection) => {
         const normalized = normalizeLine(paragraph);
-        if (hasKeepsakes && /^(a sound i wanted to keep|i spoke this)\b/.test(normalized)) return false;
+        if (hasKeepsakes && /^(a sound i wanted to keep|a photo i wanted to keep|i spoke this)\b/.test(normalized)) return false;
         return Boolean(normalized) && collection.findIndex((candidate) => normalizeLine(candidate) === normalized) === index;
       })
     : [];
@@ -237,8 +242,16 @@ export function LibraryExperience({
     const previousOverflow = document.body.style.overflow;
     document.body.style.setProperty("overflow", "hidden");
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (editDraft || moveOpen) {
+        if (event.key === "Escape") {
+          setEditDraft(null);
+          setMoveOpen(false);
+        }
+        return;
+      }
       if (event.key === "Escape") {
-        if (readerContentsOpen) setReaderContentsOpen(false);
+        if (pageMenuOpen) setPageMenuOpen(false);
+        else if (readerContentsOpen) setReaderContentsOpen(false);
         else if (readerSettingsOpen) setReaderSettingsOpen(false);
         else goToView("book");
         return;
@@ -255,11 +268,19 @@ export function LibraryExperience({
     };
   // movePage and goToView intentionally use the current reader state.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, selectedPageId, orderedPages.length, readerContentsOpen, readerSettingsOpen]);
+  }, [view, selectedPageId, orderedPages.length, readerContentsOpen, readerSettingsOpen, editDraft, moveOpen, pageMenuOpen]);
 
   const persistStudio = (next: { pages?: KeptPage[]; removedPageIds?: string[]; bookTitle?: string; bookVisibility?: BookVisibility; coverStyle?: CoverStyle; extraVolumes?: string[] }) => {
     const state = { pages, removedPageIds, bookTitle, bookVisibility, coverStyle, extraVolumes, ...next };
     window.localStorage.setItem("life-in-books-studio", JSON.stringify(state));
+  };
+
+  /** Saves a change to one page from the reader: on this device, then to the account. */
+  const savePage = (id: string, patch: Partial<KeptPage>) => {
+    const next = pages.map((page) => (page.id === id ? { ...page, ...patch } : page));
+    setPages(next);
+    persistStudio({ pages: next });
+    void onCommitPages?.(next.filter((page) => !removedPageIds.includes(page.id)));
   };
 
   return (
@@ -562,7 +583,8 @@ export function LibraryExperience({
                 <div><strong>{bookTitle}</strong><span>{selectedPage.chapterTitle}</span></div>
                 <div className="reader-type-controls" aria-label="Reading appearance">
                   <button type="button" aria-label="Open book contents" aria-expanded={readerContentsOpen} onClick={() => { setReaderContentsOpen((value) => !value); setReaderSettingsOpen(false); }}><ListBullets size={20} weight="bold" aria-hidden="true" /></button>
-                  <button type="button" aria-label="Open reading settings" aria-expanded={readerSettingsOpen} onClick={() => { setReaderSettingsOpen((value) => !value); setReaderContentsOpen(false); }}><TextAa size={19} weight="bold" aria-hidden="true" /></button>
+                  <button type="button" aria-label="Open reading settings" aria-expanded={readerSettingsOpen} onClick={() => { setReaderSettingsOpen((value) => !value); setReaderContentsOpen(false); setPageMenuOpen(false); }}><TextAa size={19} weight="bold" aria-hidden="true" /></button>
+                  <button type="button" aria-label="Edit or move this page" title="Edit or move this page" aria-expanded={pageMenuOpen} onClick={() => { setPageMenuOpen((value) => !value); setReaderSettingsOpen(false); setReaderContentsOpen(false); }}><PencilSimple size={19} weight="bold" aria-hidden="true" /></button>
                   <button type="button" aria-label="Toggle reading by lamplight" title={lamplight ? "Back to daylight paper" : "Warm lamplight paper"} aria-pressed={lamplight} onClick={() => setLamplight((value) => !value)}><SunDim size={20} weight={lamplight ? "fill" : "regular"} aria-hidden="true" /></button>
                 </div>
               </motion.header> : null}
@@ -615,7 +637,7 @@ export function LibraryExperience({
                     {readerVolumes.map((volume, volumeIndex) => (
                       <section key={volume}>
                         <h2>{formatVolumeLabel(volume, volumeIndex).number} · {formatVolumeLabel(volume, volumeIndex).name}</h2>
-                        {activePages.filter((page) => page.volume === volume).map((page) => (
+                        {orderedPages.filter((page) => page.volume === volume).map((page) => (
                           <button
                             key={page.id}
                             type="button"
@@ -643,6 +665,30 @@ export function LibraryExperience({
                 <div><span>Line spacing</span>{(["comfortable", "open"] as const).map((spacing) => <button key={spacing} type="button" aria-pressed={readerSpacing === spacing} onClick={() => setReaderSpacing(spacing)}>{spacing === "comfortable" ? "Comfortable" : "Open"}</button>)}</div>
               </motion.aside> : null}
             </AnimatePresence>
+            <AnimatePresence>
+              {pageMenuOpen ? (
+                <motion.div className="reader-page-menu" role="menu" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : 0.25, ease: paperEase }}>
+                  <button type="button" role="menuitem" onClick={() => { setEditDraft({ title: selectedPage.title, body: selectedPage.body.join("\n\n") }); setPageMenuOpen(false); setReaderChrome(true); }}>
+                    <PencilSimple size={17} aria-hidden="true" /><span><strong>Edit the words</strong><small>Fix a typo, a name, a line</small></span>
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => { setMoveOpen(true); setPageMenuOpen(false); }}>
+                    <ListBullets size={17} aria-hidden="true" /><span><strong>Move to another part</strong><small>Choose where it sits in your book</small></span>
+                  </button>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+            {moveOpen ? (
+              <MovePageSheet
+                page={selectedPage}
+                volumes={libraryVolumes}
+                pages={activePages}
+                onClose={() => setMoveOpen(false)}
+                onMove={(volume, chapterTitle) => {
+                  savePage(selectedPage.id, { volume, chapterTitle });
+                  setMoveOpen(false);
+                }}
+              />
+            ) : null}
             <aside className="reader-margin">
               <p>{selectedPage.volume}</p><strong>{selectedPage.chapterTitle}</strong>
               <p className="reader-time">Page {selectedPageIndex + 1} of {orderedPages.length}</p>
@@ -658,7 +704,7 @@ export function LibraryExperience({
                 const available = element.scrollHeight - element.clientHeight;
                 setReaderScrollProgress(available > 0 ? Math.min(100, (element.scrollTop / available) * 100) : 100);
               }}
-              onPointerDown={(event) => { pointerStart.current = { x: event.clientX, y: event.clientY }; }}
+              onPointerDown={(event) => { pointerStart.current = editDraft ? null : { x: event.clientX, y: event.clientY }; }}
               onPointerUp={(event) => {
                 const start = pointerStart.current;
                 pointerStart.current = null;
@@ -675,13 +721,44 @@ export function LibraryExperience({
                   <Image src="/assets/goa-watercolor-motifs.png" alt="" fill unoptimized sizes="760px" />
                 </div>
               ) : null}
-              <header><span>{selectedPage.volume}</span><span>{selectedPage.chapter}</span></header>
+              <header><span>{(() => { const label = formatVolumeLabel(selectedPage.volume, Math.max(0, libraryVolumes.indexOf(selectedPage.volume))); return `${label.number} · ${label.name}`; })()}</span></header>
               <div>
                 <p className="reader-date">{selectedPage.date}</p>
-                <h1>{selectedPage.title}</h1>
+                {editDraft ? (
+                  <form
+                    className="reader-edit"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const body = editDraft.body.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean);
+                      const title = editDraft.title.trim();
+                      if (!title || !body.length) return;
+                      savePage(selectedPage.id, { title, body, excerpt: body[0] });
+                      setEditDraft(null);
+                    }}
+                  >
+                    <label>
+                      <span>Title</span>
+                      <input value={editDraft.title} onChange={(event) => setEditDraft({ ...editDraft, title: event.target.value })} />
+                    </label>
+                    <label>
+                      <span>The page</span>
+                      <textarea
+                        value={editDraft.body}
+                        rows={Math.min(18, Math.max(6, editDraft.body.split("\n").length + 2))}
+                        onChange={(event) => setEditDraft({ ...editDraft, body: event.target.value })}
+                      />
+                      <small>Leave a blank line between paragraphs.</small>
+                    </label>
+                    <div className="reader-edit__actions">
+                      <button type="button" onClick={() => setEditDraft(null)}>Cancel</button>
+                      <button type="submit" className="reader-edit__save" disabled={!editDraft.title.trim() || !editDraft.body.trim()}>Save page</button>
+                    </div>
+                  </form>
+                ) : null}
+                {editDraft ? null : <h1>{selectedPage.title}</h1>}
                 {selectedPage.photo ? <div className={selectedPage.photoTreatment === "original" ? "reader-photo" : "reader-photo reader-photo--painterly"}><Image src={selectedPage.photo} alt="Photograph attached to this memory" width={1600} height={1200} unoptimized sizes="620px" /></div> : null}
-                {readerParagraphs.map((paragraph, index) => <p key={`${selectedPage.id}-${index}`}>{paragraph}</p>)}
-                {readerReflection ? <p className="reader-reflection">{readerReflection}</p> : null}
+                {editDraft ? null : readerParagraphs.map((paragraph, index) => <p key={`${selectedPage.id}-${index}`}>{paragraph}</p>)}
+                {!editDraft && readerReflection ? <p className="reader-reflection">{readerReflection}</p> : null}
                 {readerKeepsakes.length ? (
                   <div className="reader-keepsakes">
                     {!readerParagraphs.length ? null : <p className="reader-keepsakes__label">The sound of this moment</p>}
@@ -1005,5 +1082,108 @@ function PageRow({ page, onOpen }: { page: KeptPage; onOpen: () => void }) {
       <span><small>{page.layout}</small><strong>{page.title}</strong></span>
       <ArrowRight size={18} aria-hidden="true" />
     </button>
+  );
+}
+
+const lifeStages: Array<[RegExp, number]> = [
+  [/\b(early|childhood|bachpan|growing up|little|kid|child)\b/i, 0],
+  [/\b(school)\b/i, 1],
+  [/\b(college|university|campus|hostel)\b/i, 2],
+  [/\b(first job|working|work|career|office)\b/i, 3],
+  [/\b(present|now|today|these days|this year)\b/i, 9],
+];
+
+function lifeStageRank(volume: string) {
+  const found = lifeStages.find(([pattern]) => pattern.test(volume));
+  return found ? found[1] : 5;
+}
+
+function millis(page: KeptPage) {
+  return pageTime(page)?.getTime() ?? 0;
+}
+
+function oldestFirst(pages: KeptPage[]) {
+  return [...pages].sort((a, b) => millis(a) - millis(b));
+}
+
+/** Parts in life order where the name says so, otherwise by when they began. */
+function orderVolumes(pages: KeptPage[]) {
+  const volumes = [...new Set(pages.map((page) => page.volume).filter(Boolean))];
+  const began = new Map(volumes.map((volume) => [volume, Math.min(...pages.filter((page) => page.volume === volume).map(millis))]));
+  return volumes.sort((a, b) => lifeStageRank(a) - lifeStageRank(b) || (began.get(a) ?? 0) - (began.get(b) ?? 0));
+}
+
+function MovePageSheet({
+  page,
+  volumes,
+  pages,
+  onClose,
+  onMove,
+}: {
+  page: KeptPage;
+  volumes: string[];
+  pages: KeptPage[];
+  onClose: () => void;
+  onMove: (volume: string, chapterTitle: string) => void;
+}) {
+  const [volume, setVolume] = useState(page.volume);
+  const [newVolume, setNewVolume] = useState("");
+  const [chapter, setChapter] = useState(page.chapterTitle);
+  const [newChapter, setNewChapter] = useState("");
+  const targetVolume = volume === "__new" ? newVolume.trim() : volume;
+  const chapters = [...new Set(pages.filter((item) => item.volume === targetVolume).map((item) => item.chapterTitle).filter(Boolean))];
+  const targetChapter = chapter === "__new" || !chapters.includes(chapter) ? newChapter.trim() || (chapter !== "__new" ? chapter : "") : chapter;
+  const ready = Boolean(targetVolume && targetChapter);
+
+  return (
+    <div className="move-sheet" role="dialog" aria-modal="true" aria-label="Move this page">
+      <button type="button" className="move-sheet__scrim" aria-label="Close" onClick={onClose} />
+      <form
+        className="move-sheet__panel"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (ready) onMove(targetVolume, targetChapter);
+        }}
+      >
+        <header>
+          <div><span>Move this page</span><strong>{page.title}</strong></div>
+          <button type="button" aria-label="Close" onClick={onClose}><X size={18} weight="bold" aria-hidden="true" /></button>
+        </header>
+        <fieldset>
+          <legend>Part of your book</legend>
+          {volumes.map((option) => (
+            <label key={option} className={volume === option ? "is-chosen" : ""}>
+              <input type="radio" name="volume" checked={volume === option} onChange={() => { setVolume(option); setChapter(""); }} />
+              {option.split("·").pop()?.trim() || option}
+            </label>
+          ))}
+          <label className={volume === "__new" ? "is-chosen" : ""}>
+            <input type="radio" name="volume" checked={volume === "__new"} onChange={() => { setVolume("__new"); setChapter("__new"); }} />
+            A new part…
+          </label>
+          {volume === "__new" ? <input className="move-sheet__new" autoFocus placeholder="e.g. Early Years, Sounds, College" value={newVolume} onChange={(event) => setNewVolume(event.target.value)} /> : null}
+        </fieldset>
+        <fieldset>
+          <legend>Chapter</legend>
+          {chapters.map((option) => (
+            <label key={option} className={chapter === option ? "is-chosen" : ""}>
+              <input type="radio" name="chapter" checked={chapter === option} onChange={() => setChapter(option)} />
+              {option}
+            </label>
+          ))}
+          <label className={chapter === "__new" || (!chapters.includes(chapter) && volume !== "__new") ? "is-chosen" : ""}>
+            <input type="radio" name="chapter" checked={chapter === "__new" || !chapters.includes(chapter)} onChange={() => setChapter("__new")} />
+            A new chapter…
+          </label>
+          {chapter === "__new" || !chapters.includes(chapter) ? (
+            <input className="move-sheet__new" placeholder="Chapter name" value={newChapter} onChange={(event) => setNewChapter(event.target.value)} />
+          ) : null}
+        </fieldset>
+        <footer>
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="submit" className="move-sheet__save" disabled={!ready}>Move page</button>
+        </footer>
+      </form>
+    </div>
   );
 }
