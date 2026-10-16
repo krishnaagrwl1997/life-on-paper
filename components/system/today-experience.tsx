@@ -25,6 +25,7 @@ import type { MonthlySummary } from "@/components/system/monthly";
 import { ProfileExperience } from "@/components/system/profile-experience";
 import { useHistoryLayer } from "@/lib/use-history-layer";
 import { HabitNudge, shouldShowHabitNudge } from "@/components/system/habit-panel";
+import { ShareCardSheet } from "@/components/system/share-card";
 
 const draftKey = "life-on-paper-today-draft";
 
@@ -134,6 +135,7 @@ export function TodayExperience({
   const justSavedRef = useRef(false);
   const [justSavedId, setJustSavedId] = useState<string | null>(null);
   const [showOriginal, setShowOriginal] = useState(false);
+  const [sharePage, setSharePage] = useState<KeptPage | null>(null);
   const [showResources, setShowResources] = useState(false);
   const [dictationLang, setDictationLang] = useState<LiveTranscriptionLanguage>("en-IN");
   const [micError, setMicError] = useState<string | null>(null);
@@ -613,6 +615,9 @@ export function TodayExperience({
               <button type="button" onClick={() => setShowOriginal((current) => !current)}>
                 {showOriginal ? "See the page" : "See what you wrote"}
               </button>
+              <button type="button" onClick={() => setSharePage(justSaved)}>
+                Share
+              </button>
               <button type="button" onClick={() => onOpenLibrary(justSaved.id)}>
                 Read it in your book <CaretRight size={13} weight="bold" aria-hidden="true" />
               </button>
@@ -620,6 +625,8 @@ export function TodayExperience({
           </motion.section>
         ) : null}
       </AnimatePresence>
+
+      {sharePage ? <ShareCardSheet page={sharePage} bookTitle={bookTitle} onClose={() => setSharePage(null)} /> : null}
 
       <AnimatePresence>
         {whisperMsg ? (

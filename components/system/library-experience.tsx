@@ -11,12 +11,14 @@ import {
   ArrowUp,
   BookmarkSimple,
   Check,
+  DotsThreeOutline,
   Eye,
   GearSix,
   ListBullets,
   MagnifyingGlass,
   PencilSimple,
   Plus,
+  ShareNetwork,
   SunDim,
   TextAa,
   Trash,
@@ -25,8 +27,10 @@ import {
 import type { KeptPage } from "@/components/system/memory-interview";
 import { WeavesExperience } from "@/components/system/weaves-experience";
 import { KeepsakePlayer } from "@/components/system/keepsake-player";
+import { ShareCardSheet } from "@/components/system/share-card";
 import { listKeepsakes, type Keepsake } from "@/components/system/keepsakes";
-import { computeWeekGroups, pageTime } from "@/components/system/weekly-weave";
+import { computeWeekGroups } from "@/components/system/weekly-weave";
+import { oldestFirst, orderVolumes } from "@/components/system/book-order";
 import { detectEras, type Era } from "@/components/system/eras";
 
 type LibraryView = "shelf" | "book" | "reader" | "studio" | "search" | "weaves";
@@ -94,6 +98,7 @@ export function LibraryExperience({
   const [pageMenuOpen, setPageMenuOpen] = useState(false);
   const [editDraft, setEditDraft] = useState<{ title: string; body: string } | null>(null);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [readerScrollProgress, setReaderScrollProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
@@ -242,10 +247,11 @@ export function LibraryExperience({
     const previousOverflow = document.body.style.overflow;
     document.body.style.setProperty("overflow", "hidden");
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (editDraft || moveOpen) {
+      if (editDraft || moveOpen || shareOpen) {
         if (event.key === "Escape") {
           setEditDraft(null);
           setMoveOpen(false);
+          setShareOpen(false);
         }
         return;
       }
@@ -268,7 +274,7 @@ export function LibraryExperience({
     };
   // movePage and goToView intentionally use the current reader state.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, selectedPageId, orderedPages.length, readerContentsOpen, readerSettingsOpen, editDraft, moveOpen, pageMenuOpen]);
+  }, [view, selectedPageId, orderedPages.length, readerContentsOpen, readerSettingsOpen, editDraft, moveOpen, shareOpen, pageMenuOpen]);
 
   const persistStudio = (next: { pages?: KeptPage[]; removedPageIds?: string[]; bookTitle?: string; bookVisibility?: BookVisibility; coverStyle?: CoverStyle; extraVolumes?: string[] }) => {
     const state = { pages, removedPageIds, bookTitle, bookVisibility, coverStyle, extraVolumes, ...next };
@@ -584,7 +590,7 @@ export function LibraryExperience({
                 <div className="reader-type-controls" aria-label="Reading appearance">
                   <button type="button" aria-label="Open book contents" aria-expanded={readerContentsOpen} onClick={() => { setReaderContentsOpen((value) => !value); setReaderSettingsOpen(false); }}><ListBullets size={20} weight="bold" aria-hidden="true" /></button>
                   <button type="button" aria-label="Open reading settings" aria-expanded={readerSettingsOpen} onClick={() => { setReaderSettingsOpen((value) => !value); setReaderContentsOpen(false); setPageMenuOpen(false); }}><TextAa size={19} weight="bold" aria-hidden="true" /></button>
-                  <button type="button" aria-label="Edit or move this page" title="Edit or move this page" aria-expanded={pageMenuOpen} onClick={() => { setPageMenuOpen((value) => !value); setReaderSettingsOpen(false); setReaderContentsOpen(false); }}><PencilSimple size={19} weight="bold" aria-hidden="true" /></button>
+                  <button type="button" aria-label="Page options" title="Edit, move or share this page" aria-expanded={pageMenuOpen} onClick={() => { setPageMenuOpen((value) => !value); setReaderSettingsOpen(false); setReaderContentsOpen(false); }}><DotsThreeOutline size={19} weight="fill" aria-hidden="true" /></button>
                   <button type="button" aria-label="Toggle reading by lamplight" title={lamplight ? "Back to daylight paper" : "Warm lamplight paper"} aria-pressed={lamplight} onClick={() => setLamplight((value) => !value)}><SunDim size={20} weight={lamplight ? "fill" : "regular"} aria-hidden="true" /></button>
                 </div>
               </motion.header> : null}
@@ -674,9 +680,13 @@ export function LibraryExperience({
                   <button type="button" role="menuitem" onClick={() => { setMoveOpen(true); setPageMenuOpen(false); }}>
                     <ListBullets size={17} aria-hidden="true" /><span><strong>Move to another part</strong><small>Choose where it sits in your book</small></span>
                   </button>
+                  <button type="button" role="menuitem" onClick={() => { setShareOpen(true); setPageMenuOpen(false); }}>
+                    <ShareNetwork size={17} aria-hidden="true" /><span><strong>Share as a picture</strong><small>Just this page, for WhatsApp or Instagram</small></span>
+                  </button>
                 </motion.div>
               ) : null}
             </AnimatePresence>
+            {shareOpen ? <ShareCardSheet page={selectedPage} bookTitle={bookTitle} onClose={() => setShareOpen(false)} /> : null}
             {moveOpen ? (
               <MovePageSheet
                 page={selectedPage}
@@ -1083,34 +1093,6 @@ function PageRow({ page, onOpen }: { page: KeptPage; onOpen: () => void }) {
       <ArrowRight size={18} aria-hidden="true" />
     </button>
   );
-}
-
-const lifeStages: Array<[RegExp, number]> = [
-  [/\b(early|childhood|bachpan|growing up|little|kid|child)\b/i, 0],
-  [/\b(school)\b/i, 1],
-  [/\b(college|university|campus|hostel)\b/i, 2],
-  [/\b(first job|working|work|career|office)\b/i, 3],
-  [/\b(present|now|today|these days|this year)\b/i, 9],
-];
-
-function lifeStageRank(volume: string) {
-  const found = lifeStages.find(([pattern]) => pattern.test(volume));
-  return found ? found[1] : 5;
-}
-
-function millis(page: KeptPage) {
-  return pageTime(page)?.getTime() ?? 0;
-}
-
-function oldestFirst(pages: KeptPage[]) {
-  return [...pages].sort((a, b) => millis(a) - millis(b));
-}
-
-/** Parts in life order where the name says so, otherwise by when they began. */
-function orderVolumes(pages: KeptPage[]) {
-  const volumes = [...new Set(pages.map((page) => page.volume).filter(Boolean))];
-  const began = new Map(volumes.map((volume) => [volume, Math.min(...pages.filter((page) => page.volume === volume).map(millis))]));
-  return volumes.sort((a, b) => lifeStageRank(a) - lifeStageRank(b) || (began.get(a) ?? 0) - (began.get(b) ?? 0));
 }
 
 function MovePageSheet({

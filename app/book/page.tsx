@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 
 import type { KeptPage } from "@/components/system/memory-interview";
 import { track } from "@/lib/analytics";
+import { oldestFirst, orderVolumes } from "@/components/system/book-order";
+import { WaitlistForm } from "@/components/marketing/waitlist-form";
 
 /**
  * The printable book: cover, contents, then every chapter on its own page,
@@ -43,11 +45,11 @@ function loadBook() {
     (page) => !saved.some((item) => item.id === page.id || item.title === page.title),
   );
   const removed = new Set(studio.removedPageIds ?? []);
-  const pages = [...saved, ...extra]
-    .filter((page) => !removed.has(page.id))
-    .sort((a, b) => pageTime(a) - pageTime(b));
+  const kept = [...saved, ...extra].filter((page) => !removed.has(page.id));
+  // The same order as the reader: parts in life order, pages oldest first.
+  const pages = orderVolumes(kept).flatMap((volume) => oldestFirst(kept.filter((page) => page.volume === volume)))
+    .concat(oldestFirst(kept.filter((page) => !page.volume)));
 
-  // Volumes and chapters in the order they first appear in time.
   const volumes: Volume[] = [];
   for (const page of pages) {
     const volumeTitle = page.volume || "Your Story";
@@ -85,8 +87,9 @@ export default function BookPage() {
   if (!book) return <div className="min-h-screen bg-paper" />;
 
   const { title, pages, volumes } = book;
-  const first = pages[0] ? pageTime(pages[0]) : 0;
-  const last = pages.length ? pageTime(pages[pages.length - 1]) : 0;
+  const times = pages.map(pageTime).filter(Boolean);
+  const first = times.length ? Math.min(...times) : 0;
+  const last = times.length ? Math.max(...times) : 0;
   const span =
     first && last
       ? formatMonthYear(first) === formatMonthYear(last)
@@ -231,6 +234,19 @@ export default function BookPage() {
             <p className="mt-2 font-interface text-xs text-ink-muted">
               Polished, never invented. Made with Life on Paper — lifeonpaper.app
             </p>
+          </section>
+
+          {/* Printed copies — never printed */}
+          <section className="mt-16 rounded-[18px] border border-[var(--rule)] bg-[var(--paper-raised)] p-6 text-left print:hidden" aria-labelledby="print-heading">
+            <p className="font-interface text-xs font-semibold uppercase tracking-[0.12em] text-action-deep">A book you can hold</p>
+            <h2 id="print-heading" className="mt-2 font-editorial text-2xl text-ink">Want this printed and bound?</h2>
+            <p className="mt-2 font-interface text-sm leading-relaxed text-ink-muted">
+              We&rsquo;re setting up printed copies — a hardbound book of your pages, delivered in India first.
+              Leave your email and you&rsquo;ll be the first to know when you can order yours. Until then, the PDF above prints beautifully at A5.
+            </p>
+            <div className="mt-4">
+              <WaitlistForm source="print-book" />
+            </div>
           </section>
         </div>
       )}

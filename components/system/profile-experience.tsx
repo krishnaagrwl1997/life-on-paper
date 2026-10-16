@@ -90,6 +90,13 @@ export function ProfileExperience({
         </section>
 
         <section className="cast-section">
+          <p className="section-label">Give a book</p>
+          <a className="profile-gift" href="/gift">
+            <span><strong>Ask someone for their stories</strong><em>Send Amma, Papa or a friend an invitation to start their own book.</em></span>
+          </a>
+        </section>
+
+        <section className="cast-section">
           <p className="section-label">On this device</p>
           <InstallRow />
         </section>

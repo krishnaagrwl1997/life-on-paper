@@ -272,6 +272,9 @@ export default async function Home() {
             <Link className="underline underline-offset-4 hover:text-ink" href="/sample">
               Sample book
             </Link>
+            <Link className="underline underline-offset-4 hover:text-ink" href="/gift">
+              Give a book
+            </Link>
             <Link className="underline underline-offset-4 hover:text-ink" href="/privacy">
               Privacy
             </Link>
