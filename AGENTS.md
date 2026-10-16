@@ -63,6 +63,35 @@ npm run db:generate  # drizzle-kit generate (legacy; Supabase owns the schema)
 **Always run `npm run build` before committing.** It type-checks the whole app;
 a missing identifier in a client component is a real build failure.
 
+### End-to-end browser tests (`tests/e2e/`)
+
+Real click-through checks (navigation/Back, dictation, photo, sound + reader)
+that drive headless Google Chrome over the DevTools Protocol, using only Node
+built-ins — no extra npm packages. They run against an **already-running**
+production server:
+
+```bash
+npm run build && npx next start -p 3124   # in one terminal
+npm run test:e2e                          # in another
+```
+
+- `E2E_BASE` overrides the server (default `http://localhost:3124`);
+  `CHROME_PATH` overrides the Chrome binary (default: the macOS app).
+- Each test file launches its own Chrome with a throwaway profile, seeds
+  `localStorage` itself, and **blocks `/api/memory-engine`**, so runs are
+  deterministic, cost nothing, and exercise the offline editor. Nothing is
+  written to Supabase (no sign-in).
+- Helpers live in `tests/e2e/cdp.mjs` (`launch`, `seed`, `go`, `click`,
+  `poll`/`waitFor`, `blockAI`, `networkIdle`). Prefer `poll`/`waitFor` over
+  fixed sleeps. Only `*.test.mjs` files are picked up.
+- Known bugs are recorded as `{ todo: "…" }` tests: they still run and print
+  `# TODO` (with the failure) but don't fail the run. Remove the `todo` once
+  fixed.
+- If `next build` fails with "Symlink … node_modules … points out of the
+  filesystem root", `node_modules` is a symlink outside the project (common in
+  git worktrees); Turbopack refuses it. Use a real `node_modules`, or
+  `npx next build --webpack` for a local test build.
+
 ---
 
 ## 4. Repo map
