@@ -402,7 +402,14 @@ the app.
      running**, not a bug in the page.
    - Seed state with `localStorage.setItem('life-in-books-onboarding-complete','yes')`
      *before* navigating.
-5. **Slow first compile.** This project sits on a slow filesystem; the first
+5. **Visual regression for style changes.** Before and after a CSS change,
+   with a production server running:
+   `E2E_BASE=http://localhost:3124 node tests/visual/capture.mjs before`, make
+   the change, rebuild, `... capture.mjs after`, then
+   `node tests/visual/compare.mjs before after`. It screenshots ~50 screens
+   and panels (desktop + phone, clock frozen, motion reduced) and reports any
+   pixel difference. The desktop homepage can differ run to run on its own.
+6. **Slow first compile.** This project sits on a slow filesystem; the first
    request to a route can take a minute or more. Wait it out (and warm
    `/today`) before concluding something is broken.
 

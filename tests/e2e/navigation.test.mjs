@@ -134,14 +134,10 @@ describe("navigation and the Back button", () => {
     await expectHomepage(s);
   });
 
-  // KNOWN APP BUG (marked todo so the suite stays green; it still runs and
-  // reports): after the reader page has been refreshed (the "refresh keeps the
-  // reader" step above), Back from the homepage changes the address to /today
-  // but leaves the homepage on screen. Reproduces every time with
-  // Story → reader → refresh → Back → Back → wordmark → Back in a fresh
-  // browser (see the describe block below); in this longer flow the steps in
-  // between hide it some of the time. Remove the todos once it is fixed.
-  it("Back from homepage → app (after a reader refresh)", { todo: "known bug: Back from / after a reader refresh leaves the homepage showing at /today" }, async () => {
+  // Regression: after the reader was refreshed, Back from the homepage used to
+  // change the address to /today but leave the homepage on screen (a stale
+  // Next.js router snapshot). HistoryGuard in components/system/pwa.tsx fixes it.
+  it("Back from homepage → app (after a reader refresh)", async () => {
     await s.ev("history.back()");
     await expectState(s, { url: "/today", screen: "today" }, 10000);
   });
@@ -168,7 +164,7 @@ describe("Back from the homepage after refreshing the reader", () => {
     await s?.close();
   });
 
-  it("refreshed reader → Back → Back → wordmark → Back returns to Today", { todo: "known bug: the homepage stays on screen at /today" }, async () => {
+  it("refreshed reader → Back → Back → wordmark → Back returns to Today", async () => {
     await expectState(s, { url: "/today", screen: "today" }, 15000);
     await s.click(navButton("Story"));
     await expectState(s, { url: "/today?s=story", screen: "story" });

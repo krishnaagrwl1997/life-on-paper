@@ -2,7 +2,7 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@/components/system/analytics";
 import { ThemeProvider } from "@/components/system/theme-provider";
-import { PwaSetup } from "@/components/system/pwa";
+import { HistoryGuard, PwaSetup } from "@/components/system/pwa";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -66,6 +66,7 @@ export default function RootLayout({
         <ThemeProvider>{children}</ThemeProvider>
         <Analytics />
         <PwaSetup />
+        <HistoryGuard />
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
 
@@ -51,4 +52,34 @@ export function useInstallPrompt() {
     return outcome === "accepted";
   };
   return { available, install };
+}
+
+/**
+ * Back/Forward safety net. After a page reload, Next.js can restore an older
+ * history entry from a stale router snapshot without fetching it: the address
+ * says /today while the homepage stays on screen. If, shortly after a
+ * Back/Forward, the router's path still disagrees with the address bar, load
+ * the address for real.
+ */
+export function HistoryGuard() {
+  const pathname = usePathname();
+  const routerPath = useRef(pathname);
+  useEffect(() => {
+    routerPath.current = pathname;
+  }, [pathname]);
+  useEffect(() => {
+    let timer: number | undefined;
+    const onPop = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (routerPath.current !== window.location.pathname) window.location.reload();
+      }, 900);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      window.clearTimeout(timer);
+    };
+  }, []);
+  return null;
 }
