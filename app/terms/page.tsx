@@ -32,7 +32,7 @@ export default function TermsPage() {
           href="/today"
           className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] px-4 font-interface text-sm text-ink transition-colors hover:border-action-deep hover:text-action-deep"
         >
-          Start writing
+          Start your book
         </Link>
       </header>
 

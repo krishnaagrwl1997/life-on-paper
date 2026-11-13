@@ -57,7 +57,7 @@ function CastCard({
   return (
     <button type="button" className="cast-card" onClick={onSelect}>
       <span className="cast-card__avatar" aria-hidden="true">
-        {character.label.slice(0, 2).toLocaleUpperCase()}
+        {Array.from(character.label)[0]?.toLocaleUpperCase()}
       </span>
       <span className="cast-card__copy">
         <strong>{character.label}</strong>
@@ -149,7 +149,7 @@ export function PeopleExperience({
         >
           <header className="cast-portrait__header">
             <span className="cast-avatar" aria-hidden="true">
-              {selected.label.slice(0, 2).toLocaleUpperCase()}
+              {Array.from(selected.label)[0]?.toLocaleUpperCase()}
             </span>
             <div>
               <p className="people-eyebrow">{selected.kind === "group" ? "A group in your life" : "A person in your life"}</p>

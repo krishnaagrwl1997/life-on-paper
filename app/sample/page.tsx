@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SampleBook } from "@/components/marketing/sample-book";
 import { TrackedLink } from "@/components/marketing/tracked-link";
+import { StickyMobileCta } from "@/components/marketing/sticky-mobile-cta";
 import { WaitlistForm } from "@/components/marketing/waitlist-form";
 
 export const metadata: Metadata = {
@@ -23,14 +24,13 @@ export default function SamplePage() {
           where="header"
           className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] px-4 font-interface text-sm text-ink transition-colors hover:border-action-deep hover:text-action-deep"
         >
-          Start writing
+          Start your book
         </TrackedLink>
       </header>
 
       <main className="mx-auto max-w-6xl px-5 sm:px-8">
         <section className="max-w-3xl pt-6 sm:pt-10">
-          <p className="font-interface text-xs uppercase tracking-[0.18em] text-action-deep">A sample book</p>
-          <h1 className="mt-3 text-balance font-editorial text-4xl leading-[1.1] tracking-tight sm:text-6xl">
+          <h1 className="text-balance font-editorial text-4xl leading-[1.1] tracking-tight sm:text-6xl">
             This is what your words become.
           </h1>
           <p className="mt-5 font-interface text-lg leading-relaxed text-ink-muted">
@@ -43,7 +43,7 @@ export default function SamplePage() {
           <SampleBook />
         </section>
 
-        <section className="mt-24 border-t border-[var(--rule)] py-16 text-center">
+        <section id="sample-closing" className="mt-24 border-t border-[var(--rule)] py-16 text-center">
           <h2 className="font-editorial text-3xl leading-snug tracking-tight sm:text-5xl">
             Your own book starts with one line.
           </h2>
@@ -97,7 +97,7 @@ export default function SamplePage() {
       </footer>
 
       {/* Sticky action on phones — the page is long and the reader is the point. */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--rule)] bg-paper/95 px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:hidden">
+      <StickyMobileCta hideWhenVisibleId="sample-closing">
         <TrackedLink
           href="/today"
           event="sample_cta"
@@ -106,7 +106,7 @@ export default function SamplePage() {
         >
           Start your book — free
         </TrackedLink>
-      </div>
+      </StickyMobileCta>
     </div>
   );
 }

@@ -15,7 +15,6 @@ import {
   Eye,
   GearSix,
   ListBullets,
-  MagnifyingGlass,
   PencilSimple,
   Plus,
   ShareNetwork,
@@ -26,6 +25,7 @@ import {
 } from "@phosphor-icons/react";
 import type { KeptPage } from "@/components/system/memory-interview";
 import { WeavesExperience } from "@/components/system/weaves-experience";
+import { MemorySearch } from "@/components/system/memory-search";
 import { KeepsakePlayer } from "@/components/system/keepsake-player";
 import { ShareCardSheet } from "@/components/system/share-card";
 import { listKeepsakes, type Keepsake } from "@/components/system/keepsakes";
@@ -86,6 +86,8 @@ export function LibraryExperience({
   const [coverStyle, setCoverStyle] = useState<CoverStyle>("coast");
   const [extraVolumes, setExtraVolumes] = useState<string[]>([]);
   const [view, setView] = useState<LibraryView>(initialView);
+  // Where the reader's close button returns to: the contents, or the search results it was opened from.
+  const [readerFrom, setReaderFrom] = useState<"book" | "search">("book");
   const [eraFilter, setEraFilter] = useState<string | null>(null);
   const [readerKeepsakes, setReaderKeepsakes] = useState<Keepsake[]>([]);
   const [selectedPageId, setSelectedPageId] = useState(initialPageId ?? pages[0]?.id ?? "");
@@ -100,8 +102,6 @@ export function LibraryExperience({
   const [moveOpen, setMoveOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [readerScrollProgress, setReaderScrollProgress] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const readerPageRef = useRef<HTMLElement | null>(null);
   const reduceMotion = useReducedMotion();
@@ -147,12 +147,6 @@ export function LibraryExperience({
     ? selectedPage.reflection
     : "";
   const readerVolumes = libraryVolumes;
-  const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
-  const searchResults = activePages.filter((page) => {
-    const matchesWords = !normalizedQuery || pageMatchesQuery(page, normalizedQuery);
-    const matchesFilter = searchFilter === "all" || pageMatchesFilter(page, searchFilter);
-    return matchesWords && matchesFilter;
-  });
   const syncLabel = syncState === "synced"
     ? "Synced to your account"
     : syncState === "syncing"
@@ -163,6 +157,7 @@ export function LibraryExperience({
 
   const goToView = (next: LibraryView) => {
     window.scrollTo({ top: 0, behavior: "auto" });
+    if (next === "reader" && view !== "reader") setReaderFrom(view === "search" ? "search" : "book");
     setView(next);
     if (next === "reader") {
       setReaderChrome(true);
@@ -259,7 +254,7 @@ export function LibraryExperience({
         if (pageMenuOpen) setPageMenuOpen(false);
         else if (readerContentsOpen) setReaderContentsOpen(false);
         else if (readerSettingsOpen) setReaderSettingsOpen(false);
-        else goToView("book");
+        else goToView(readerFrom);
         return;
       }
       if (readerContentsOpen || readerSettingsOpen) return;
@@ -291,10 +286,10 @@ export function LibraryExperience({
 
   return (
     <div className={view === "reader" ? lamplight ? "library-experience library-experience--reader library-experience--lamplight" : "library-experience library-experience--reader" : "library-experience"}>
-      {view !== "reader" ? <header className="library-header">
+      {view !== "reader" && view !== "search" ? <header className="library-header">
         <div>
           <p>Life on Paper</p>
-          <span>{view === "shelf" ? "Your story" : view === "book" ? "Book One" : view === "studio" ? "Book Studio" : view === "search" ? "Search your life" : view === "weaves" ? "Your weeks" : selectedPage.chapterTitle}</span>
+          <span>{view === "shelf" ? "Your story" : view === "book" ? "Book One" : view === "studio" ? "Book Studio" : view === "weaves" ? "Your weeks" : selectedPage.chapterTitle}</span>
         </div>
         {view !== "shelf" ? (
           <button type="button" onClick={() => goToView(view === "studio" ? "book" : "shelf")}>
@@ -304,10 +299,6 @@ export function LibraryExperience({
         ) : (
           <div className="library-header-actions">
             <span className="library-folio">{todayFolio}</span>
-            <button type="button" className="library-search-trigger" aria-label="Search your memories" onClick={() => goToView("search")}>
-              <MagnifyingGlass size={18} weight="bold" aria-hidden="true" />
-              <span>Search</span>
-            </button>
           </div>
         )}
       </header> : null}
@@ -322,7 +313,6 @@ export function LibraryExperience({
                 <div><small>A memoir in progress</small><strong>{bookTitle}</strong>{authorName ? <em>{authorName}</em> : null}</div>
               </button>
               <div className="library-book-copy">
-                <p className="section-label">Currently writing</p>
                 <h2>{bookTitle}</h2>
                 <p>{bookSummary}</p>
                 <dl>
@@ -346,9 +336,9 @@ export function LibraryExperience({
               <div><p className="section-label">{activePages.length ? "Recently bound" : "A fresh beginning"}</p><span>{activePages.length ? syncLabel : "No pages yet"}</span></div>
               {activePages.length ? (
                 <div className="library-recent-grid">
-                  {[...activePages].slice(0, 3).map((page, index) => (
+                  {[...activePages].slice(0, 3).map((page) => (
                     <button key={page.id} type="button" onClick={() => { setSelectedPageId(page.id); goToView("reader"); }}>
-                      <span>{String(index + 1).padStart(2, "0")}</span><small>{page.chapterTitle}</small><strong>{page.title}</strong><p>{page.excerpt}</p>
+                      <small>{page.chapterTitle}</small><strong>{page.title}</strong><p>{page.excerpt}</p>
                     </button>
                   ))}
                 </div>
@@ -417,74 +407,15 @@ export function LibraryExperience({
             />
           </motion.section>
         ) : view === "search" ? (
-          <motion.section key="search" className="memory-search" initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
-            <div className="memory-search__heading">
-              <p className="memory-eyebrow">Search your life</p>
-              <h1>What are you trying to remember?</h1>
-              <p>Search a place, person, feeling, date, chapter, or any words you remember saying.</p>
-            </div>
-            <label className="memory-search__field">
-              <MagnifyingGlass size={22} weight="bold" aria-hidden="true" />
-              <span className="sr-only">Search memories</span>
-              <input
-                autoFocus
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Try “Goa”, “someone appreciated me”, or “July 2026”"
-              />
-              {searchQuery ? <button type="button" onClick={() => setSearchQuery("")}>Clear</button> : null}
-            </label>
-
-            <div className="memory-search__filters" aria-label="Filter memories by theme">
-              {([
-                ["all", "Everything"],
-                ["travel", "Places"],
-                ["people", "People"],
-                ["work", "Work"],
-                ["feelings", "Feelings"],
-                ["lessons", "Life lessons"],
-              ] as [SearchFilter, string][]).map(([filter, label]) => (
-                <button key={filter} type="button" aria-pressed={searchFilter === filter} onClick={() => setSearchFilter(filter)}>{label}</button>
-              ))}
-            </div>
-
-            {!normalizedQuery && searchFilter === "all" ? (
-              <div className="memory-search__starting-points">
-                <span>Try a theme</span>
-                <div>
-                  {["solo travel", "appreciation", "becoming", "small things"].map((suggestion) => (
-                    <button key={suggestion} type="button" onClick={() => setSearchQuery(suggestion)}>{suggestion}</button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="memory-search__results">
-                <div className="memory-search__result-count">
-                  <span>{searchResults.length} {searchResults.length === 1 ? "memory" : "memories"} found</span>
-                  <small>{normalizedQuery ? `for “${searchQuery.trim()}”` : `in ${searchFilter}`}</small>
-                </div>
-                {searchResults.length ? (
-                  <div className="memory-search__result-list">
-                    {searchResults.map((page) => (
-                      <button key={page.id} type="button" onClick={() => { setSelectedPageId(page.id); goToView("reader"); }}>
-                        <span>
-                          <small>{page.date} · {page.chapterTitle}{page.emotions?.length ? ` · ${page.emotions.slice(0, 2).join(", ")}` : ""}</small>
-                          <strong>{highlightMatch(page.title, normalizedQuery)}</strong>
-                          <p>{highlightMatch(page.excerpt || page.reflection || page.body[0] || "", normalizedQuery)}</p>
-                        </span>
-                        <ArrowRight size={18} weight="bold" aria-hidden="true" />
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="memory-search__empty">
-                    <strong>Nothing in this part of your life yet.</strong>
-                    <p>Try another word or theme. Names, places, feelings, years, and phrases all work.</p>
-                  </div>
-                )}
-              </div>
-            )}
+          <motion.section key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.3, ease: paperEase }}>
+            <MemorySearch
+              pages={activePages}
+              onOpenPage={(pageId) => {
+                setEraFilter(null); // the page may sit outside an era picked earlier
+                setSelectedPageId(pageId);
+                goToView("reader");
+              }}
+            />
           </motion.section>
         ) : view === "book" ? (
           <motion.section key="book" className="book-contents" initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
@@ -495,7 +426,6 @@ export function LibraryExperience({
                 <strong>{bookTitle}</strong>
               </button>
               <div className="book-contents-heading">
-                <p className="memory-eyebrow">Book One · A memoir in progress</p>
                 <h1>{bookTitle}</h1>
                 <p>{bookSummary}</p>
                 <div className="book-detail-actions">
@@ -511,7 +441,7 @@ export function LibraryExperience({
             </div>
 
             <div className="contents-title">
-              <div><p className="memory-eyebrow">Contents</p><h2>Chapters and pages</h2></div>
+              <div><h2>Contents</h2></div>
               <span>{activePages.length} pages</span>
             </div>
             {activePages.length ? <div className="volume-list">
@@ -532,8 +462,7 @@ export function LibraryExperience({
                         return (
                           <section key={`${volume}-${chapterTitle}`} className="chapter-index__chapter">
                             <div className="chapter-index__heading">
-                              <span>{String(chapterIndex + 1).padStart(2, "0")}</span>
-                              <div><small>Chapter</small><h3>{chapterTitle}</h3><p>{chapterSummary(chapterPages)}</p></div>
+                              <div><small>Chapter {chapterIndex + 1}</small><h3>{chapterTitle}</h3><p>{chapterSummary(chapterPages)}</p></div>
                               <em>{chapterPages.length} {chapterPages.length === 1 ? "page" : "pages"}</em>
                             </div>
                             {chapterPages.map((page) => <PageRow key={page.id} page={page} onOpen={() => { setSelectedPageId(page.id); goToView("reader"); }} />)}
@@ -585,7 +514,7 @@ export function LibraryExperience({
           <motion.section key={selectedPage.id} className="reader-view reader-view--kindle" initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
             <AnimatePresence>
               {readerChrome ? <motion.header className="reader-kindle-bar" initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -18 }} transition={{ duration: reduceMotion ? 0 : 0.5, ease: paperEase }}>
-                <button type="button" onClick={() => goToView("book")} aria-label="Close reader and return to contents"><ArrowLeft size={19} weight="bold" aria-hidden="true" /> <span>Contents</span></button>
+                <button type="button" onClick={() => goToView(readerFrom)} aria-label={readerFrom === "search" ? "Close reader and return to search results" : "Close reader and return to contents"}><ArrowLeft size={19} weight="bold" aria-hidden="true" /> <span>{readerFrom === "search" ? "Results" : "Contents"}</span></button>
                 <div><strong>{bookTitle}</strong><span>{selectedPage.chapterTitle}</span></div>
                 <div className="reader-type-controls" aria-label="Reading appearance">
                   <button type="button" aria-label="Open book contents" aria-expanded={readerContentsOpen} onClick={() => { setReaderContentsOpen((value) => !value); setReaderSettingsOpen(false); }}><ListBullets size={20} weight="bold" aria-hidden="true" /></button>
@@ -1000,32 +929,6 @@ function pageSearchText(page: KeptPage) {
   ].join(" ").toLocaleLowerCase();
 }
 
-function pageMatchesQuery(page: KeptPage, query: string) {
-  const searchable = pageSearchText(page);
-  if (searchable.includes(query)) return true;
-  const queryWords = query.split(/\s+/).filter(Boolean);
-  const pageWords = searchable.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-  return queryWords.every((queryWord) => pageWords.some((pageWord) => {
-    if (pageWord.startsWith(queryWord) || queryWord.startsWith(pageWord)) return true;
-    if (queryWord.length < 3 || pageWord.length < 3 || Math.abs(queryWord.length - pageWord.length) > 1) return false;
-    return editDistance(queryWord, pageWord) <= 1;
-  }));
-}
-
-function editDistance(a: string, b: string) {
-  const row = Array.from({ length: b.length + 1 }, (_, index) => index);
-  for (let i = 1; i <= a.length; i += 1) {
-    let previous = row[0];
-    row[0] = i;
-    for (let j = 1; j <= b.length; j += 1) {
-      const current = row[j];
-      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1));
-      previous = current;
-    }
-  }
-  return row[b.length];
-}
-
 function formatVolumeLabel(volume: string, index: number) {
   const [, ...nameParts] = volume.split("·");
   const explicitName = nameParts.join("·").trim();
@@ -1047,19 +950,6 @@ function pageMatchesFilter(page: KeptPage, filter: Exclude<SearchFilter, "all">)
     lessons: /\b(learn|learned|learnt|lesson|realised|realized|understood|became|becoming|growth|changed|confidence|reflection)\b/i,
   };
   return patterns[filter].test(text) || (filter === "feelings" && Boolean(page.emotions?.length));
-}
-
-function highlightMatch(text: string, query: string) {
-  if (!query) return text;
-  const index = text.toLocaleLowerCase().indexOf(query);
-  if (index < 0) return text;
-  return (
-    <>
-      {text.slice(0, index)}
-      <mark>{text.slice(index, index + query.length)}</mark>
-      {text.slice(index + query.length)}
-    </>
-  );
 }
 
 function chapterSummary(pages: KeptPage[]) {
@@ -1089,7 +979,7 @@ function PageRow({ page, onOpen }: { page: KeptPage; onOpen: () => void }) {
     <button type="button" className="page-row" onClick={onOpen}>
       <div><BookmarkSimple size={17} weight="fill" aria-hidden="true" /></div>
       <span><small>{page.chapter}</small><strong>{page.chapterTitle}</strong></span>
-      <span><small>{page.layout}</small><strong>{page.title}</strong></span>
+      <span><strong>{page.title}</strong></span>
       <ArrowRight size={18} aria-hidden="true" />
     </button>
   );

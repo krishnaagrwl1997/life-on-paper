@@ -1,18 +1,11 @@
 import Link from "next/link";
-import {
-  BellSlash,
-  BookOpenText,
-  DeviceMobile,
-  Microphone,
-  Scroll,
-  ShieldCheck,
-  Sparkle,
-} from "@phosphor-icons/react/dist/ssr";
+import { BellSlash, DeviceMobile, Scroll, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import { BeforeAfter } from "@/components/marketing/before-after";
 import { BookMockup } from "@/components/marketing/book-mockup";
 import { DemoWidget } from "@/components/marketing/demo-widget";
 import { GrowthShelf } from "@/components/marketing/growth-shelf";
 import { WaitlistForm } from "@/components/marketing/waitlist-form";
+import { TextScribble } from "@/components/wensity/text-scribble";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -31,17 +24,14 @@ export const dynamic = "force-dynamic";
 
 const STEPS = [
   {
-    icon: Microphone,
     title: "Write or speak",
     body: "Ninety seconds on a warm page. A faint question helps if you’re stuck. English, Hindi or Hinglish — type or talk.",
   },
   {
-    icon: Sparkle,
     title: "It’s quietly polished",
     body: "Grammar and flow, lightly. Your voice stays yours. The people, places and years are filed for you — nothing to tag.",
   },
   {
-    icon: BookOpenText,
     title: "It becomes a book",
     body: "Days weave into chapters, chapters into eras. Thirty days in, you have a slim book you can print.",
   },
@@ -107,7 +97,7 @@ export default async function Home() {
             href="/today"
             className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] px-4 font-interface text-sm text-ink transition-colors hover:border-action-deep hover:text-action-deep"
           >
-            {signedIn ? "Open your book" : "Start writing"}
+            {signedIn ? "Open your book" : "Start your book"}
           </Link>
         </nav>
       </header>
@@ -118,7 +108,13 @@ export default async function Home() {
           <div>
             <h1 className="font-editorial text-[2.6rem] leading-[1.08] tracking-tight sm:text-6xl lg:text-[3.6rem]">
               <span className="block text-balance">Write ninety seconds a day.</span>
-              <span className="block text-balance text-action">Get a book of your life.</span>
+              <span className="block text-balance text-action">
+                Get a book of{" "}
+                <TextScribble type="underline" trigger="view" delay={0.5} duration={0.8} strokeWidth={3}>
+                  your life
+                </TextScribble>
+                .
+              </span>
             </h1>
             <p className="mt-6 max-w-xl font-interface text-lg leading-relaxed text-ink-muted">
               A journal that quietly turns what you write into the story of your life — polished in
@@ -134,7 +130,9 @@ export default async function Home() {
               </Link>
             </div>
             <p className="mt-5 font-interface text-sm text-ink-muted">
-              Free to start · No sign-up to begin · English, Hindi & Hinglish
+              <span className="whitespace-nowrap">Free to start · No sign-up to begin</span>
+              <span aria-hidden="true" className="hidden sm:inline"> · </span>{" "}
+              <span className="block whitespace-nowrap sm:inline">English, Hindi &amp; Hinglish</span>
             </p>
           </div>
 
@@ -146,10 +144,7 @@ export default async function Home() {
         {/* Before → after, visible without a click; then the live demo. */}
         <section id="try" className="scroll-mt-8 border-t border-[var(--rule)] bg-paper-raised">
           <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
-            <p className="font-interface text-xs uppercase tracking-[0.18em] text-action-deep">
-              The editor
-            </p>
-            <h2 className="mt-3 max-w-2xl font-editorial text-3xl leading-tight tracking-tight sm:text-4xl">
+            <h2 className="max-w-2xl font-editorial text-3xl leading-tight tracking-tight sm:text-4xl">
               Messy is fine. That’s the point.
             </h2>
             <p className="mt-4 max-w-2xl font-interface text-base leading-relaxed text-ink-muted">
@@ -176,28 +171,20 @@ export default async function Home() {
         {/* How it works */}
         <section className="border-t border-[var(--rule)]">
           <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
-            <p className="font-interface text-xs uppercase tracking-[0.18em] text-action-deep">
-              How it works
-            </p>
-            <h2 className="mt-3 font-editorial text-3xl tracking-tight sm:text-4xl">
+            <h2 className="font-editorial text-3xl leading-tight tracking-tight sm:text-4xl">
               Three steps. Only the first is yours.
             </h2>
-            <ol className="mt-10 grid gap-5 md:grid-cols-3">
-              {STEPS.map(({ icon: Icon, title, body }, index) => (
-                <li
-                  key={title}
-                  className="rounded-book border border-[var(--rule)] bg-paper-raised p-6 shadow-paper-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--sheet)] text-action">
-                      <Icon size={22} />
-                    </span>
-                    <span className="font-editorial text-3xl text-ink-muted/60">
-                      {index + 1}
-                    </span>
-                  </div>
-                  <h3 className="mt-5 font-editorial text-xl text-ink">{title}</h3>
-                  <p className="mt-2 font-interface text-base leading-relaxed text-ink-muted">{body}</p>
+            {/* A numbered sequence, set like a book's contents — no cards, no icon tiles. */}
+            <ol className="mt-12 grid gap-10 md:grid-cols-3 md:gap-10">
+              {STEPS.map(({ title, body }, index) => (
+                <li key={title} className="border-t border-[var(--rule)] pt-6">
+                  <span aria-hidden="true" className="block font-editorial text-5xl leading-none text-action">
+                    {index + 1}
+                  </span>
+                  <h3 className="mt-5 font-editorial text-2xl tracking-tight text-ink">{title}</h3>
+                  <p className="mt-2 max-w-[38ch] font-interface text-base leading-relaxed text-ink-muted">
+                    {body}
+                  </p>
                 </li>
               ))}
             </ol>
@@ -208,10 +195,7 @@ export default async function Home() {
         <section className="border-t border-[var(--rule)] bg-paper-raised">
           <div className="mx-auto max-w-5xl px-5 py-20 sm:px-8">
             <div className="text-center">
-              <p className="font-interface text-xs uppercase tracking-[0.18em] text-action-deep">
-                The part that makes it worth it
-              </p>
-              <h2 className="mx-auto mt-3 max-w-2xl font-editorial text-3xl leading-tight tracking-tight sm:text-4xl">
+              <h2 className="mx-auto max-w-2xl text-balance font-editorial text-3xl leading-tight tracking-tight sm:text-4xl">
                 Ninety seconds doesn’t feel like much. Then it’s a book.
               </h2>
             </div>
@@ -227,12 +211,15 @@ export default async function Home() {
             <h2 className="max-w-2xl font-editorial text-3xl leading-tight tracking-tight sm:text-4xl">
               You’re handing over your inner life. We take that literally.
             </h2>
-            <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Promises read as a ruled list of commitments, not a row of feature cards. */}
+            <ul className="mt-10 grid border-t border-[var(--rule)] sm:grid-cols-2 sm:gap-x-12">
               {PROMISES.map(({ icon: Icon, title, body }) => (
-                <li key={title} className="rounded-book border border-[var(--rule)] p-5">
-                  <Icon size={24} className="text-action" />
-                  <h3 className="mt-4 font-interface text-base font-medium text-ink">{title}</h3>
-                  <p className="mt-1.5 font-interface text-sm leading-relaxed text-ink-muted">{body}</p>
+                <li key={title} className="flex gap-4 border-b border-[var(--rule)] py-6">
+                  <Icon size={22} aria-hidden="true" className="mt-1 shrink-0 text-action" />
+                  <div>
+                    <h3 className="font-editorial text-xl tracking-tight text-ink">{title}</h3>
+                    <p className="mt-1 font-interface text-base leading-relaxed text-ink-muted">{body}</p>
+                  </div>
                 </li>
               ))}
             </ul>

@@ -85,7 +85,7 @@ export function WaitlistForm({ source }: { source: string }) {
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="rounded-full bg-action-deep px-7 py-3.5 font-interface text-base text-paper transition-colors hover:bg-ink disabled:opacity-60"
+          className="rounded-full border border-action-deep bg-transparent px-7 py-3.5 font-interface text-base text-action-deep transition-colors hover:bg-action-deep hover:text-paper disabled:opacity-60"
         >
           {status === "submitting" ? "Adding…" : "Keep me posted"}
         </button>

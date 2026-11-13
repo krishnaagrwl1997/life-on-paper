@@ -119,14 +119,12 @@ describe("navigation and the Back button", () => {
     await expectState(s, { url: "/today", screen: "today" });
   });
 
-  it("Add sheet opens as its own step", async () => {
+  // There is one writer: + goes straight to today's lines, no chooser sheet.
+  it("Add goes straight to today's writer", async () => {
     await s.click(`document.querySelector('[aria-label="Add a moment"]')`);
-    await expectState(s, { url: /add=1/ });
-  });
-
-  it("Back closes the Add sheet", async () => {
-    await s.ev("history.back()");
     await expectState(s, { url: "/today", screen: "today", sheet: false });
+    await sleep(400);
+    assert.equal(await s.ev("document.activeElement && document.activeElement.id"), "today-lines");
   });
 
   it("Wordmark goes to the homepage", async () => {

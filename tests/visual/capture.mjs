@@ -95,7 +95,7 @@ for (const [label, w, h, mobile] of [["desk", 1280, 860, false], ["phone", 390, 
   await click(`[...document.querySelectorAll('.reader-page-menu button')][1]`); await snap(`${label}-reader-move`);
   await go(`${BASE}/today?s=story&v=reader&p=p1`); await click(`document.querySelector('[aria-label="Page options"]')`); await sleep(300); await click(`[...document.querySelectorAll('.reader-page-menu button')][0]`); await snap(`${label}-reader-edit`);
   await go(`${BASE}/today?s=story&v=reader&p=p1`); await click(`document.querySelector('[aria-label="Toggle reading by lamplight"]')`); await snap(`${label}-reader-lamp`);
-  await go(`${BASE}/today`); await click(`document.querySelector('[aria-label="Add a moment"]')`); await snap(`${label}-add-sheet`);
+  await go(`${BASE}/today`); await click(`document.querySelector('[aria-label="Add a moment"]')`); await snap(`${label}-add-writer`);
 }
 console.log("shots:", n);
 chrome.kill(); process.exit(0);

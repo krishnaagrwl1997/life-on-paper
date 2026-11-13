@@ -63,17 +63,21 @@ function ShelfObject({ kind }: { kind: (typeof STAGES)[number]["object"] }) {
 
 export function GrowthShelf() {
   return (
-    <ol className="grid gap-10 sm:grid-cols-3 sm:gap-6">
+    // On phones each stage is one compact row (object beside its words) so the
+    // whole progression fits on about one screen; from sm up it is a shelf.
+    <ol className="grid gap-8 sm:grid-cols-3 sm:gap-6">
       {STAGES.map((stage) => (
-        <li key={stage.label} className="flex flex-col items-center text-center">
-          <div className="flex h-44 items-end">
+        <li key={stage.label} className="flex items-center gap-5 sm:flex-col sm:gap-0 sm:text-center">
+          <div className="flex h-40 w-36 shrink-0 items-end justify-center sm:h-44 sm:w-auto">
             <ShelfObject kind={stage.object} />
           </div>
-          <div aria-hidden className="mt-3 h-1 w-40 rounded-full bg-[var(--sheet-deep)]" />
-          <p className="mt-5 font-editorial text-xl text-ink">{stage.label}</p>
-          <p className="mt-2 max-w-[16rem] font-interface text-sm leading-relaxed text-ink-muted">
+          <div aria-hidden className="mt-3 hidden h-1 w-40 rounded-full bg-[var(--sheet-deep)] sm:block" />
+          <div>
+          <p className="font-editorial text-xl text-ink sm:mt-5">{stage.label}</p>
+          <p className="mt-1 max-w-[16rem] font-interface text-sm leading-relaxed text-ink-muted sm:mt-2">
             {stage.caption}
           </p>
+          </div>
         </li>
       ))}
     </ol>

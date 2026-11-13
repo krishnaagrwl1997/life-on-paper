@@ -378,8 +378,7 @@ function PersonThread({
     <div>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-interface text-xs uppercase tracking-[0.18em] text-action-deep">A person in this book</p>
-          <h2 className="mt-2 font-editorial text-3xl leading-tight tracking-tight text-ink sm:text-4xl">{name}</h2>
+          <h2 className="font-editorial text-3xl leading-tight tracking-tight text-ink sm:text-4xl">{name}</h2>
           <p className="mt-2 font-interface text-sm text-ink-muted">
             In {appearances.length} {appearances.length === 1 ? "chapter" : "chapters"}, across{" "}
             {new Set(appearances.map(({ volume }) => volume.id)).size === 1 ? "one part" : "the years"} of

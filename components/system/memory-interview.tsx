@@ -1063,16 +1063,13 @@ export function MemoryInterview({
       <header className="memory-header">
         <button type="button" className="memory-back" onClick={onBack}>
           <ArrowLeft size={18} weight="bold" aria-hidden="true" />
-          Home
+          Today
         </button>
         <div className="memory-brand">
           <p>Life on Paper</p>
-          <span>New memory</span>
         </div>
         <span className="memory-folio">{memoryFolio}</span>
       </header>
-
-      <ConversationProgress phase={phase} />
 
       <AnimatePresence mode="wait">
         {phase === "capture" ? (
@@ -1086,8 +1083,7 @@ export function MemoryInterview({
             aria-labelledby="capture-title"
           >
             <div className="memory-phase-intro">
-              <p className="memory-eyebrow">I&apos;m here</p>
-              <h1 id="capture-title">What&apos;s on your mind, buddy?</h1>
+              <h1 id="capture-title">What happened?</h1>
               <p>Tell me as you&apos;d tell a friend. Type it, say it, or add a photo—I&apos;ll keep the meaning and help shape the page.</p>
               {starterPrompt ? <aside className="memory-starter-prompt"><span>Need somewhere to begin?</span><strong>{starterPrompt}</strong></aside> : null}
             </div>
@@ -1679,23 +1675,6 @@ function MemoryArtwork({
   );
 }
 
-function ConversationProgress({ phase }: { phase: Phase }) {
-  const phases: Array<{ id: "capture" | "interview" | "placement"; label: string }> = [
-    { id: "capture", label: "What happened" },
-    { id: "interview", label: "Let’s talk" },
-    { id: "placement", label: "Your page" },
-  ];
-  const activePhase = phase === "capture" ? "capture" : phase === "interview" ? "interview" : "placement";
-  const current = Math.max(0, phases.findIndex((item) => item.id === activePhase));
-
-  return (
-    <div className="memory-journey-progress" aria-label={`Step ${current + 1} of ${phases.length}: ${phases[current].label}`}>
-      <div><strong>{phases[current].label}</strong><span>{current + 1} of {phases.length}</span></div>
-      <span className="memory-journey-track" aria-hidden="true"><i style={{ width: `${((current + 1) / phases.length) * 100}%` }} /></span>
-    </div>
-  );
-}
-
 function CaptureSurface({
   mode,
   memory,
@@ -2018,7 +1997,7 @@ function MemoryComposer({
             disabled={!speech.isSupported}
           >
             <Microphone size={19} weight="fill" aria-hidden="true" />
-            {!compact ? <span>Talk</span> : null}
+            {!compact ? <span>Speak</span> : null}
           </button>
           {!compact ? (
             <>

@@ -70,15 +70,26 @@ body {
   }
 }
 
+a:focus-visible,
 button:focus-visible,
 textarea:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
   outline: 2px solid var(--action);
   outline-offset: 3px;
 }
 
+/* The caret is part of the page, so it takes the action colour, not the browser default. */
+textarea,
+input,
+[contenteditable="true"] {
+  caret-color: var(--action-deep);
+}
+
 ::selection {
   background: rgba(193, 89, 43, 0.2);
+  color: var(--ink);
 }
 
 .sr-only {
@@ -97,7 +108,8 @@ input:focus-visible {
   position: relative;
   min-height: 52.75rem;
   padding: 0 0 7.75rem;
-  overflow-x: hidden;
+  /* clip, not hidden: hidden made this a scroll container, so nothing inside could stick (search box). */
+  overflow-x: clip;
 }
 
 .home-header h1,
@@ -471,6 +483,12 @@ input:focus-visible {
 
 .voice-conversation--listening .voice-conversation__orb::after {
   animation: voice-ring-two 2.8s var(--paper-ease) 0.35s infinite;
+}
+
+/* Shimmer sweep for components/wensity/shimmering-skeleton-wrapper.tsx */
+@keyframes wensity-shimmer-bg {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 
 @keyframes voice-orb-breathe {
@@ -2358,7 +2376,6 @@ input:focus-visible {
   margin: 1.35rem 0 1.2rem;
   padding: 0.85rem 0.9rem 0.85rem 1rem;
   border: 1px solid rgba(43, 38, 32, 0.24);
-  border-left: 3px solid var(--action);
   border-radius: 0.25rem;
   background: rgba(252, 248, 241, 0.96);
   box-shadow: var(--paper-shadow-md);
@@ -4525,7 +4542,7 @@ input:focus-visible {
 .studio-visibility-note {
   margin: 0.75rem 0 0;
   padding-left: 0.85rem;
-  border-left: 2px solid var(--action);
+  border-left: 1px solid var(--rule);
   color: var(--ink-muted);
   font-size: 0.66rem;
   line-height: 1.55;
@@ -5773,209 +5790,6 @@ input:focus-visible {
   transform: translateY(-0.1rem);
 }
 
-.memory-search {
-  width: min(100%, 54rem);
-  margin: 0 auto;
-  padding: clamp(3rem, 8vw, 6.5rem) 0 4rem;
-}
-
-.memory-search__heading {
-  max-width: 45rem;
-}
-
-.memory-search__heading h1 {
-  max-width: 12ch;
-  margin: 0.7rem 0 0;
-  font-family: var(--font-fraunces), serif;
-  font-size: clamp(3rem, 7vw, 6rem);
-  font-weight: 430;
-  letter-spacing: -0.06em;
-  line-height: 0.92;
-}
-
-.memory-search__heading > p:last-child {
-  max-width: 35rem;
-  margin: 1.15rem 0 0;
-  color: var(--ink-muted);
-  font-size: 0.82rem;
-  line-height: 1.65;
-}
-
-.memory-search__field {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: clamp(2.2rem, 5vw, 4rem);
-  padding: 0 0.25rem 0.8rem;
-  border-bottom: 2px solid var(--ink);
-  color: var(--ink);
-}
-
-.memory-search__field > svg {
-  color: var(--action);
-}
-
-.memory-search__field input {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--ink);
-  font-family: var(--font-fraunces), serif;
-  font-size: clamp(1.15rem, 3vw, 1.75rem);
-}
-
-.memory-search__field input::placeholder {
-  color: rgba(43, 38, 32, 0.42);
-}
-
-.memory-search__field > button {
-  padding: 0.3rem 0;
-  border: 0;
-  border-bottom: 1px solid currentColor;
-  background: transparent;
-  color: var(--ink-muted);
-  font-size: 0.56rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.memory-search__starting-points {
-  margin-top: 1.5rem;
-}
-
-.memory-search__starting-points > span {
-  color: var(--ink-muted);
-  font-size: 0.52rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.memory-search__starting-points > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  margin-top: 0.75rem;
-}
-
-.memory-search__starting-points button {
-  min-height: 2.35rem;
-  padding: 0.52rem 0.75rem;
-  border: 1px solid rgba(43, 38, 32, 0.25);
-  border-radius: 0.2rem;
-  background: transparent;
-  color: var(--ink);
-  font-size: 0.62rem;
-  transition: border-color 500ms var(--paper-ease), color 500ms var(--paper-ease);
-}
-
-.memory-search__starting-points button:hover,
-.memory-search__starting-points button:focus-visible {
-  border-color: var(--action);
-  color: var(--action-deep);
-}
-
-.memory-search__results {
-  margin-top: 2.5rem;
-}
-
-.memory-search__result-count {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--ink);
-}
-
-.memory-search__result-count span {
-  font-family: var(--font-fraunces), serif;
-  font-size: 1.15rem;
-  font-weight: 520;
-}
-
-.memory-search__result-count small {
-  overflow: hidden;
-  color: var(--ink-muted);
-  font-size: 0.56rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.memory-search__result-list > button {
-  display: grid;
-  width: 100%;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.35rem 0.3rem;
-  border: 0;
-  border-bottom: 1px solid var(--rule);
-  background: transparent;
-  color: var(--ink);
-  text-align: left;
-  transition: padding 500ms var(--paper-ease), color 500ms var(--paper-ease);
-}
-
-.memory-search__result-list > button:hover,
-.memory-search__result-list > button:focus-visible {
-  padding-right: 0.65rem;
-  padding-left: 0.65rem;
-  color: var(--action-deep);
-}
-
-.memory-search__result-list small,
-.memory-search__result-list strong,
-.memory-search__result-list p {
-  display: block;
-}
-
-.memory-search__result-list small {
-  color: var(--ink-muted);
-  font-size: 0.5rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.memory-search__result-list strong {
-  margin-top: 0.4rem;
-  font-family: var(--font-fraunces), serif;
-  font-size: clamp(1.35rem, 4vw, 2rem);
-  font-weight: 480;
-  letter-spacing: -0.03em;
-}
-
-.memory-search__result-list p {
-  display: -webkit-box;
-  overflow: hidden;
-  margin: 0.5rem 0 0;
-  color: var(--ink-muted);
-  font-size: 0.68rem;
-  line-height: 1.5;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.memory-search__empty {
-  padding: 3rem 0;
-  border-bottom: 1px solid var(--rule);
-}
-
-.memory-search__empty strong {
-  font-family: var(--font-fraunces), serif;
-  font-size: 1.65rem;
-  font-weight: 500;
-}
-
-.memory-search__empty p {
-  margin: 0.55rem 0 0;
-  color: var(--ink-muted);
-  font-size: 0.72rem;
-}
-
 /* Library index: books resolve into volumes, chapters, then individual pages. */
 .chapter-index {
   min-width: 0;
@@ -6040,45 +5854,6 @@ input:focus-visible {
   grid-column: auto;
 }
 
-.memory-search__filters {
-  display: flex;
-  overflow-x: auto;
-  gap: 0;
-  margin-top: 1.25rem;
-  padding-bottom: 0.2rem;
-  border-bottom: 1px solid var(--rule);
-  scrollbar-width: none;
-}
-
-.memory-search__filters::-webkit-scrollbar {
-  display: none;
-}
-
-.memory-search__filters button {
-  min-height: 2.75rem;
-  flex: 0 0 auto;
-  padding: 0.65rem 0.9rem;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--ink-muted);
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  transition: border-color 500ms var(--paper-ease), color 500ms var(--paper-ease);
-}
-
-.memory-search__filters button[aria-pressed="true"] {
-  border-color: var(--action);
-  color: var(--ink);
-}
-
-.memory-search__result-list mark {
-  padding: 0 0.08em;
-  background: rgba(193, 89, 43, 0.16);
-  color: inherit;
-}
-
 @media (max-width: 640px) {
   .library-header-actions {
     gap: 0.55rem;
@@ -6096,33 +5871,6 @@ input:focus-visible {
     width: 2.5rem;
     justify-content: center;
     padding: 0;
-  }
-
-  .memory-search {
-    padding-top: 2.5rem;
-  }
-
-  .memory-search__heading h1 {
-    font-size: clamp(2.7rem, 14vw, 4.5rem);
-  }
-
-  .memory-search__field {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .memory-search__field > button {
-    grid-column: 2;
-    justify-self: end;
-  }
-
-  .memory-search__result-count {
-    display: grid;
-    gap: 0.25rem;
-  }
-
-  .memory-search__filters {
-    margin-right: -1rem;
-    padding-right: 1rem;
   }
 
   .chapter-index__heading {
@@ -13121,4 +12869,377 @@ input:focus-visible {
 
 .profile-gift:hover {
   border-color: rgba(193, 89, 43, 0.45);
+}
+
+/* ------------------------------------------------------------------------
+ * Mobile & anti-slop pass (2026-11-13, Impeccable craft floor)
+ * Kept in one place so it is easy to review or revert.
+ * --------------------------------------------------------------------- */
+
+/* 1. Filled buttons carry text, so they use the deeper orange: white on
+ *    --action is ~4.4:1 (fails AA); on --action-deep it is ~5.3:1. */
+.nav-destination--action .nav-icon-wrap,
+.home-notice__action,
+.feeling-picker--multi button[aria-pressed="true"],
+.feeling-picker button[aria-pressed="true"],
+.conversation-composer-tools .conversation-send,
+.conversation-composer--unified .conversation-send,
+.conversation-next,
+.interview-primary,
+.library-primary,
+.studio-save-row button,
+.reader-settings button[aria-pressed="true"],
+.write-speech-bar--listening button,
+.answer-suggestions button.is-selected,
+.today-composer__action,
+.account-popover__google,
+.people-action,
+.ob-primary,
+.today-composer__tools button.today-mic--listening,
+.today-composer__tools button.today-record--on,
+.forming-card__action,
+.today-listening__done,
+.reminder-way--primary,
+.move-sheet__panel footer .move-sheet__save,
+.share-sheet__panel footer .share-sheet__share {
+  border-color: var(--action-deep);
+  background: var(--action-deep);
+}
+
+/* 2. Small labels read as quiet sentence case, not tracked capitals. */
+.memory-eyebrow,
+.section-label,
+.library-folio,
+.memory-folio,
+.library-recent-grid small,
+.volume-list header > small,
+.page-row small,
+.contents-title > span,
+.chapter-index__heading small,
+.chapter-index__heading em,
+.people-eyebrow,
+.profile-eyebrow,
+.tutor-card__header p,
+.surfacing-card__header p,
+.care-card__header p,
+.monthly-card__header p,
+.forming-card__header p,
+.today-new-page__header p,
+.today-recent__header p,
+.weaves-week__copy small,
+.cast-moment__copy small,
+.ob-kicker,
+.reader-date,
+.reader-contents-list h2,
+.library-book-copy dt,
+.library-header > div span,
+.volume-list header > span {
+  letter-spacing: 0.01em;
+  text-transform: none;
+  font-size: 0.8rem;
+}
+
+/* 3. One button language across the app: rounded, sentence case. */
+.library-primary,
+.library-secondary,
+.book-add-memory {
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  justify-content: center;
+}
+
+.studio-entry {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* 4. Chapter headings and recent pages lost their decorative 01/02/03. */
+.chapter-index__heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+@media (max-width: 640px) {
+  .chapter-index__heading {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The guided writer's question is a prompt, not a poster. */
+  .capture-phase .memory-phase-intro h1 {
+    max-width: none;
+    font-size: clamp(2rem, 9vw, 2.5rem);
+  }
+}
+
+/* 6. "Shape into a page" before there is anything to shape: a quiet outline,
+ *    not a washed-out orange that looks broken. */
+.today-composer__action:disabled {
+  border-color: var(--rule);
+  background: transparent;
+  color: var(--ink-muted);
+  opacity: 1;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  /* Recent pages on Story were 12rem tall each with a few lines inside. */
+  .library-recent-grid button {
+    min-height: 0;
+    padding: 1.1rem 0 1.25rem;
+  }
+}
+
+/* Search (2026-11-13). The box sits at the top and, on phones, stays pinned
+   there, so results show above the keyboard. Starting points and results are
+   drawn from the book itself. */
+.memory-search {
+  width: min(100%, 46rem);
+  margin: 0 auto;
+  padding: clamp(0.25rem, 3vw, 2.5rem) 0 2rem;
+}
+
+.memory-search__title {
+  max-width: 22ch;
+  margin: 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: clamp(1.75rem, 6.4vw, 3rem);
+  font-weight: 450;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.memory-search__bar {
+  margin-top: 1.1rem;
+}
+
+.memory-search__field {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 3.25rem;
+  padding: 0 0.25rem 0 1.05rem;
+  border: 1px solid rgba(43, 38, 32, 0.22);
+  border-radius: 999px;
+  background: #fffaf3;
+  color: var(--ink-muted);
+  transition: border-color 200ms var(--paper-ease), box-shadow 200ms var(--paper-ease);
+}
+
+.memory-search__field:focus-within {
+  border-color: var(--action-deep);
+  box-shadow: 0 0 0 3px rgba(169, 71, 33, 0.14);
+}
+
+.memory-search__field > svg {
+  flex: none;
+}
+
+.memory-search__field input {
+  flex: 1;
+  min-width: 0;
+  height: 3.1rem;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-inter), sans-serif;
+  /* 16px or more, or iOS zooms the page when the box is tapped. */
+  font-size: 1.0625rem;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.memory-search__field input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.memory-search__field input::-webkit-search-cancel-button,
+.memory-search__field input::-webkit-search-decoration {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.memory-search__field input::placeholder {
+  color: var(--ink-muted);
+  opacity: 0.8;
+}
+
+.memory-search__clear {
+  display: grid;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.memory-search__clear span {
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(43, 38, 32, 0.45);
+}
+
+.memory-search__start {
+  display: grid;
+  gap: 1.6rem;
+  margin-top: 1.75rem;
+}
+
+.memory-search__start h2 {
+  margin: 0;
+  color: var(--ink-muted);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.memory-search__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.memory-search__chips button,
+.memory-search__suggest {
+  min-height: 2.75rem;
+  padding: 0 1.05rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color 200ms var(--paper-ease), color 200ms var(--paper-ease);
+}
+
+.memory-search__chips button:hover,
+.memory-search__chips button:focus-visible,
+.memory-search__suggest:hover,
+.memory-search__suggest:focus-visible {
+  border-color: var(--action-deep);
+  color: var(--action-deep);
+}
+
+.memory-search__count {
+  margin: 1.4rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+}
+
+.memory-search__list {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+  list-style: none;
+}
+
+.memory-search__list li {
+  border-bottom: 1px solid var(--rule);
+}
+
+.memory-search__list button {
+  display: block;
+  width: 100%;
+  padding: 1rem 0.15rem 1.1rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.memory-search__list button:hover strong,
+.memory-search__list button:focus-visible strong {
+  color: var(--action-deep);
+}
+
+.memory-search__meta {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+.memory-search__list strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: var(--font-fraunces), serif;
+  font-size: clamp(1.2rem, 4.6vw, 1.5rem);
+  font-weight: 480;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  transition: color 200ms var(--paper-ease);
+}
+
+.memory-search__list p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0.35rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.memory-search mark {
+  padding: 0 0.06em;
+  border-radius: 0.15em;
+  background: rgba(193, 89, 43, 0.2);
+  color: var(--ink);
+}
+
+.memory-search__none {
+  margin-top: 0.75rem;
+}
+
+.memory-search__none-title {
+  margin: 1.4rem 0 0;
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.35rem;
+}
+
+.memory-search__none p {
+  margin: 0.5rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.memory-search__suggest em {
+  font-style: normal;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  /* Pinned under the top edge while the results scroll beneath it. */
+  .memory-search__bar {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 6;
+    margin: 0.9rem -1rem 0;
+    padding: 0.55rem 1rem;
+    background: var(--paper);
+  }
+
+  .memory-search__count {
+    margin-top: 0.9rem;
+  }
 }

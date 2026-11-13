@@ -26,12 +26,16 @@ export function NavShell({
   onSelect,
   onAdd,
   onSearch,
+  searchActive = false,
 }: {
   active: Destination;
   onSelect: (destination: Destination) => void;
   onAdd: () => void;
   onSearch: () => void;
+  /** Search lives inside Story, but when it is open the Search door is the one that is lit. */
+  searchActive?: boolean;
 }) {
+  const current = searchActive ? null : active;
   const reduceMotion = useReducedMotion();
 
   return (
@@ -40,8 +44,8 @@ export function NavShell({
         <ShellButton
           key={label}
           label={label}
-          icon={<IconComponent size={25} weight={active === label ? "bold" : "regular"} />}
-          isActive={active === label}
+          icon={<IconComponent size={25} weight={current === label ? "bold" : "regular"} />}
+          isActive={current === label}
           onClick={() => onSelect(label)}
           reduceMotion={reduceMotion}
         />
@@ -62,35 +66,35 @@ export function NavShell({
         <ShellButton
           key={label}
           label={label}
-          icon={<IconComponent size={25} weight={active === label ? "bold" : "regular"} />}
-          isActive={active === label}
+          icon={<IconComponent size={25} weight={current === label ? "bold" : "regular"} />}
+          isActive={current === label}
           onClick={() => onSelect(label)}
           reduceMotion={reduceMotion}
         />
       ))}
 
-      <button
-        key="search"
-        type="button"
-        aria-label="Search your life"
+      <ShellButton
+        label="Search"
+        ariaLabel="Search your life"
+        icon={<MagnifyingGlass size={25} weight={searchActive ? "bold" : "regular"} />}
+        isActive={searchActive}
         onClick={onSearch}
-        className="nav-destination"
-      >
-        <span className="nav-icon-wrap"><MagnifyingGlass size={25} weight="regular" aria-hidden="true" /></span>
-        <span className="nav-label" aria-hidden="true">Search</span>
-      </button>
+        reduceMotion={reduceMotion}
+      />
     </nav>
   );
 }
 
 function ShellButton({
   label,
+  ariaLabel,
   icon,
   isActive,
   onClick,
   reduceMotion,
 }: {
   label: string;
+  ariaLabel?: string;
   icon: React.ReactNode;
   isActive: boolean;
   onClick: () => void;
@@ -99,7 +103,7 @@ function ShellButton({
   return (
     <button
       type="button"
-      aria-label={label}
+      aria-label={ariaLabel ?? label}
       onClick={onClick}
       aria-current={isActive ? "page" : undefined}
       className={cn(

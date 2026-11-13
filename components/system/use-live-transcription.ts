@@ -28,8 +28,85 @@ type Recognition = {
 
 type RecognitionConstructor = new () => Recognition;
 
-function recognitionConstructor() {
+type NativeSpeechMessage = {
+  id: number;
+  type: "start" | "result" | "error" | "end";
+  transcript?: string;
+  isFinal?: boolean;
+  error?: string;
+};
+
+/** The iOS app's dictation (`SpeechBridge.swift`), when the page runs inside it. */
+function nativeSpeechBridge() {
   if (typeof window === "undefined") return null;
+  const nativeWindow = window as Window & {
+    webkit?: { messageHandlers?: { lopSpeech?: { postMessage: (message: unknown) => void } } };
+  };
+  return nativeWindow.webkit?.messageHandlers?.lopSpeech ?? null;
+}
+
+let nativeSessions = 0;
+
+/**
+ * Web Speech API look-alike backed by the iOS app. Inside apps WebKit exposes
+ * `webkitSpeechRecognition` but it fails at once ("service-not-allowed"), so
+ * the app listens with Apple's speech recognition and sends the words back.
+ * Each session reports one growing result, like a continuous Web Speech session.
+ */
+class NativeRecognition implements Recognition {
+  continuous = true;
+  interimResults = true;
+  lang = "en-IN";
+  onstart: (() => void) | null = null;
+  onresult: ((event: RecognitionEvent) => void) | null = null;
+  onerror: ((event: RecognitionErrorEvent) => void) | null = null;
+  onend: (() => void) | null = null;
+  /** Edits made while listening start a fresh session, so new words aren't skipped. */
+  readonly restartsOnEdit = true;
+  private id = 0;
+
+  private listener = (event: Event) => {
+    const message = (event as CustomEvent<NativeSpeechMessage>).detail;
+    if (!message || message.id !== this.id) return;
+    if (message.type === "start") this.onstart?.();
+    else if (message.type === "result") {
+      const result = { isFinal: Boolean(message.isFinal), 0: { transcript: message.transcript ?? "" } };
+      this.onresult?.({ results: { length: 1, 0: result } });
+    } else if (message.type === "error") this.onerror?.({ error: message.error });
+    else if (message.type === "end") {
+      this.detach();
+      this.onend?.();
+    }
+  };
+
+  start() {
+    const bridge = nativeSpeechBridge();
+    if (!bridge || this.id) throw new Error("Dictation is already running.");
+    nativeSessions += 1;
+    this.id = nativeSessions;
+    window.addEventListener("lop-speech", this.listener);
+    bridge.postMessage({ action: "start", id: this.id, lang: this.lang });
+  }
+
+  stop() {
+    if (this.id) nativeSpeechBridge()?.postMessage({ action: "stop", id: this.id });
+  }
+
+  abort() {
+    if (!this.id) return;
+    nativeSpeechBridge()?.postMessage({ action: "abort", id: this.id });
+    this.detach();
+  }
+
+  private detach() {
+    window.removeEventListener("lop-speech", this.listener);
+    this.id = 0;
+  }
+}
+
+function recognitionConstructor(): RecognitionConstructor | null {
+  if (typeof window === "undefined") return null;
+  if (nativeSpeechBridge()) return NativeRecognition;
   const speechWindow = window as Window & {
     SpeechRecognition?: RecognitionConstructor;
     webkitSpeechRecognition?: RecognitionConstructor;
@@ -175,6 +252,8 @@ export function useLiveTranscription({
     lastComposedRef.current = value;
     heardRef.current = "";
     skipResultsRef.current = seenResultsRef.current;
+    const recognition = recognitionRef.current;
+    if (recognition && "restartsOnEdit" in recognition) recognition.stop();
   }, [value]);
 
   // Switching language mid-sentence: end this stretch, and the quiet restart
@@ -239,7 +318,11 @@ export function useLiveTranscription({
     recognition.onerror = (event) => {
       const error = event.error ?? "";
       if (error === "not-allowed" || error === "service-not-allowed") {
-        finish("Microphone access is off. Allow it in your browser, or keep typing.");
+        finish(
+          nativeSpeechBridge()
+            ? "Microphone or Speech Recognition is off for Life on Paper. Turn them on in Settings, or keep typing."
+            : "Microphone access is off. Allow it in your browser, or keep typing.",
+        );
       } else if (error === "audio-capture") {
         finish("No microphone was found. You can keep typing.");
       } else if (error === "network") {

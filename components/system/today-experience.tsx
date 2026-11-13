@@ -2,7 +2,6 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
-  BookOpenText,
   CaretRight,
   ImageSquare,
   Microphone,
@@ -26,6 +25,7 @@ import { ProfileExperience } from "@/components/system/profile-experience";
 import { useHistoryLayer } from "@/lib/use-history-layer";
 import { HabitNudge, shouldShowHabitNudge } from "@/components/system/habit-panel";
 import { ShareCardSheet } from "@/components/system/share-card";
+import { ShimmeringSkeletonWrapper, SkeletonBox } from "@/components/wensity/shimmering-skeleton-wrapper";
 
 const draftKey = "life-on-paper-today-draft";
 
@@ -333,7 +333,6 @@ export function TodayExperience({
   const today = new Date().toDateString();
   const wroteToday = pages.some((page) => page.createdAt && new Date(page.createdAt).toDateString() === today);
   const justSaved = justSavedId ? pages.find((page) => page.id === justSavedId) ?? null : null;
-  const bookProgress = Math.min(1, memoryCount / FIRST_BOOK_PAGES);
   const todayLabel = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
 
   // One suggestion at a time, so Today stays a writing page rather than a
@@ -379,25 +378,13 @@ export function TodayExperience({
       <header className="today-header">
         <div>
           <Link href="/" className="today-wordmark block text-inherit no-underline" aria-label="Life on Paper — home">Life on Paper</Link>
-          <small className="today-tagline">A few lines a day. A book of your life.</small>
         </div>
         <div className="today-header__actions">
-        {!account ? (
-          <button
-            type="button"
-            className="today-signin"
-            onClick={onGoogleSignIn}
-            disabled={authPending}
-            aria-label="Sign in with Google"
-          >
-            {authPending ? "Opening…" : "Sign in"}
-          </button>
-        ) : null}
         <button
           type="button"
           className="today-avatar"
           aria-label="Profile"
-          title="Profile — account & privacy"
+          title={account ? "Profile — account & privacy" : "Profile — sign in, backup & privacy"}
           onClick={() => setShowProfile(true)}
         >
           {account?.avatarUrl ? (
@@ -418,14 +405,9 @@ export function TodayExperience({
             <span>
               {memoryCount} {memoryCount === 1 ? "page" : "pages"} in <em>{bookTitle}</em>
             </span>
-            {memoryCount < FIRST_BOOK_PAGES ? (
-              <span className="today-progress__goal">Your first book at {FIRST_BOOK_PAGES}</span>
-            ) : (
+            {memoryCount >= FIRST_BOOK_PAGES ? (
               <Link href="/book" className="today-progress__link">Your first book is ready — download it</Link>
-            )}
-          </div>
-          <div className="today-progress__bar" aria-hidden="true">
-            <span style={{ width: `${Math.max(3, bookProgress * 100)}%` }} />
+            ) : null}
           </div>
           {memoryCount >= PDF_OFFER_PAGES && memoryCount < FIRST_BOOK_PAGES ? (
             <Link href="/book" className="today-progress__pdf">Download what you have so far as a PDF</Link>
@@ -476,7 +458,10 @@ export function TodayExperience({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={photo} alt="The photo for this page" />
             ) : (
-              <span className="today-photo__loading" aria-live="polite">Adding your photo…</span>
+              <ShimmeringSkeletonWrapper className="today-photo__loading">
+                <SkeletonBox width="min(100vw - 4rem, 16rem)" height="9rem" radius="0.8rem" />
+                <span className="sr-only">Adding your photo…</span>
+              </ShimmeringSkeletonWrapper>
             )}
             {photo ? (
               <button type="button" className="today-photo__remove" onClick={() => setPhoto(null)} aria-label="Remove the photo">
@@ -508,7 +493,7 @@ export function TodayExperience({
               title={isRecording ? "Stop keeping this sound" : "Keep a sound — a voice, laughter, the rain"}
             >
               <Waveform size={19} weight={isRecording ? "bold" : "regular"} aria-hidden="true" />
-              <span className="today-tool__label">{isRecording ? "Stop" : "Record"}</span>
+              <span className="today-tool__label">{isRecording ? "Stop" : "Keep a sound"}</span>
             </button>
             <button
               type="button"
@@ -794,9 +779,6 @@ export function TodayExperience({
             {recentPages.map((page) => (
               <li key={page.id}>
                 <button type="button" onClick={() => onOpenLibrary(page.id)}>
-                  <span className="today-recent__icon" aria-hidden="true">
-                    <BookOpenText size={16} weight="regular" />
-                  </span>
                   <span className="today-recent__copy">
                     <strong>{page.title}</strong>
                     <small>{page.date}</small>

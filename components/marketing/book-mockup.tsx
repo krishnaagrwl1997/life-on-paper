@@ -19,6 +19,9 @@ export function BookMockup() {
       aria-label={`Read the sample book, ${SAMPLE_BOOK_TITLE}`}
       className="group relative block select-none"
     >
+      {/* The shadow sits in the book's own box, so it lands under the book —
+          not under the caption, where it read as a grey smudge on phones. */}
+      <div className="relative">
       {/* Soft shadow the book rests on */}
       <div
         aria-hidden
@@ -42,7 +45,7 @@ export function BookMockup() {
               {chapter.dates}
             </p>
           </div>
-          <p className="hidden font-editorial text-sm italic leading-snug text-ink-muted sm:block">
+          <p className="font-editorial text-[0.7rem] italic leading-snug text-ink-muted sm:text-sm">
             “{volume.note}”
           </p>
           <p className="font-interface text-[0.65rem] text-ink-muted sm:text-[0.65rem]">12</p>
@@ -70,6 +73,7 @@ export function BookMockup() {
           aria-hidden
           className="pointer-events-none absolute inset-y-0 left-1/2 w-10 -translate-x-1/2 bg-[linear-gradient(90deg,transparent,rgba(63,48,32,0.10),transparent)]"
         />
+      </div>
       </div>
 
       <p className="mt-6 text-center font-interface text-sm text-ink-muted">

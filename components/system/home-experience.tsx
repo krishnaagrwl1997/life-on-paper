@@ -15,7 +15,6 @@ import { detectAcuteSignal, detectSustainedHeaviness, loadCareDismissed, persist
 import { markMonthlyShown, monthlyShownKey, shouldShowMonthly, thisMonthSummary } from "@/components/system/monthly";
 import type { Keepsake } from "@/components/system/keepsakes";
 import { storyForming } from "@/components/system/first-week";
-import { AddMomentSheet } from "@/components/system/add-moment-sheet";
 import { OnboardingExperience } from "@/components/system/onboarding-experience";
 import { createClient } from "@/lib/supabase/client";
 import { loadCloudGraph, saveCloudGraph } from "@/lib/supabase/graph";
@@ -23,7 +22,6 @@ import { deleteCloudPage, saveCloudPage, syncDevicePages } from "@/lib/supabase/
 import type { AccountSummary } from "@/lib/supabase/account";
 import { DEMO_SEED_KEY } from "@/lib/demo-seed";
 import { track } from "@/lib/analytics";
-import { useHistoryLayer } from "@/lib/use-history-layer";
 
 const paperEase = [0.22, 0.72, 0.26, 1] as const;
 const starterQuestions = [
@@ -106,7 +104,6 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
   const [routeReady, setRouteReady] = useState(false);
   const routeInit = useRef(false);
   const desiredTitle = useRef("");
-  const [addOpen, setAddOpen] = useState(false);
   const [composeSignal, setComposeSignal] = useState(0);
   const [decisions, setDecisions] = useState<MemoryDecisions>(() => {
     try { return loadMemoryDecisions(); } catch { return {}; }
@@ -314,7 +311,6 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
 
   const applyRoute = (route: Route) => {
     setNotice(null);
-    setAddOpen(false);
     if (route.s === "story") {
       const view = route.v ?? "shelf";
       setLibraryEntry(view);
@@ -402,7 +398,6 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     };
   }, []);
 
-  useHistoryLayer(addOpen, () => setAddOpen(false), "add");
 
 
   const focusTodayComposer = () => {
@@ -410,13 +405,7 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
     setComposeSignal((current) => current + 1);
   };
 
-  const chooseTodayLines = () => {
-    setAddOpen(false);
-    focusTodayComposer();
-  };
-
   const chooseCraftMemory = () => {
-    setAddOpen(false);
     const question = starterQuestions[starterQuestionIndex];
     setStarterQuestionIndex((current) => (current + 1 + Math.floor(Math.random() * (starterQuestions.length - 1))) % starterQuestions.length);
     openMemory("Write", "", question.question);
@@ -858,22 +847,13 @@ export function HomeExperience({ initialAccount }: { initialAccount: AccountSumm
       </AnimatePresence>
     </main>
 
-    <AnimatePresence>
-      {addOpen ? (
-        <AddMomentSheet
-          onClose={() => setAddOpen(false)}
-          onTodayLines={chooseTodayLines}
-          onCraftMemory={chooseCraftMemory}
-        />
-      ) : null}
-    </AnimatePresence>
-
     {shellVisible ? (
       <NavShell
         active={active}
         onSelect={selectDestination}
-        onAdd={() => setAddOpen(true)}
+        onAdd={focusTodayComposer}
         onSearch={() => openLibraryAt("search")}
+        searchActive={active === "Story" && libraryRoute.v === "search"}
       />
     ) : null}
     </>

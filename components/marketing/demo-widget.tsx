@@ -38,10 +38,12 @@ type PageResult = {
   };
 };
 
+// A different day from the before/after example above it, so a visitor never
+// reads the same note twice on the landing page.
 const SAMPLES = {
-  English: `today was so long. work was just work. but then i walked home by the lake and the light was doing that thing it does in october and i just stood there for a while doing nothing. amma called later, she sounded tired but she laughed at something i said and i felt better`,
-  Hinglish: `aaj bahut lamba din tha, office mein sab kuch ulta seedha. shaam ko lake ke paas se aaya toh light aisi thi jaise october mein hoti hai, main thodi der wahi khada raha. phir amma ka phone aaya, awaaz thaki hui thi par meri baat pe has padi`,
-  Hindi: `आज दिन बहुत लंबा था। शाम को झील के पास से लौटा तो रोशनी वैसी ही थी जैसी अक्टूबर में होती है। मैं कुछ देर वहीं खड़ा रहा। फिर अम्मा का फ़ोन आया। आवाज़ थकी हुई थी, पर मेरी बात पर हँस पड़ीं।`,
+  English: `first proper rain today. got completely soaked walking back from the bus stop and didnt even mind. rohan made maggi and we sat on the balcony watching it pour, havent done that since college honestly. felt like a holiday on a tuesday`,
+  Hinglish: `aaj pehli baar sach mein baarish hui. bus stop se aate aate poora bheeg gaya par bura nahi laga. rohan ne maggi banayi aur hum balcony mein baith ke baarish dekhte rahe, college ke baad aisa kabhi nahi kiya. tuesday ko chutti jaisa laga`,
+  Hindi: `आज पहली बार ठीक से बारिश हुई। बस स्टॉप से लौटते हुए पूरा भीग गया, पर बुरा नहीं लगा। रोहन ने मैगी बनाई और हम बालकनी में बैठकर बारिश देखते रहे। कॉलेज के बाद ऐसा कभी नहीं किया। मंगलवार को छुट्टी जैसा लगा।`,
 } as const;
 
 type SampleKey = keyof typeof SAMPLES;
